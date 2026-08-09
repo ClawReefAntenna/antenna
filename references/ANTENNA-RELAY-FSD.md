@@ -3,7 +3,7 @@
 **Version:** 1.0.10 (historical reference)  
 **Date:** 2026-04-01  
 **Author:** Antenna Contributors  
-**Status:** historical baseline reference; parts of this document are superseded by the current 1.2.19-era relay contract and Apr 17 hardening work
+**Status:** historical reference. The shipped v1.5.2 sources of truth are the write→exec relay-agent contract and the two-tier test suite; legacy test and group/cluster proposals below are retained for history only.
 
 **Companion docs:**
 - `SECRET-EXCHANGE-OPTIONS.md` — secret-exchange layers and tradeoffs
@@ -643,7 +643,7 @@ skills/antenna/
 │   ├── antenna-health.sh       # Peer health check
 │   ├── antenna-peers.sh        # Peer listing utility
 │   ├── antenna-model-test.sh   # Self-loop integration tester (smoke)
-│   └── antenna-test-suite.sh   # Three-tier model/script test suite
+│   └── antenna-test-suite.sh   # Historical three-tier model/script test-suite design
 ├── references/
 │   └── ANTENNA-RELAY-FSD.md    # This document
 └── agent/
@@ -716,11 +716,13 @@ Summary (when --runs > 1):
 
 ---
 
-## 18. Test Suite (`antenna test-suite`)
+## 18. Historical Test-Suite Design (superseded)
+
+> **Superseded by v1.5.2.** The current `antenna test-suite` is two-tier: Tier A has 15 deterministic script/state checks; Tier B has four model checks for write-first behavior, raw-envelope preservation, and unique relay temp paths. The historical Tier C design below is not a runnable current test tier.
 
 ### Purpose
 
-Decomposed three-tier tester that evaluates relay agent model compatibility without the latency and backpressure issues of the self-loop integration test. Isolates script correctness (Tier A) from model competence (Tiers B/C).
+This retained design described a three-tier tester for relay-agent model compatibility. It does not describe the shipped v1.5.2 test interface.
 
 ### Tier Architecture
 
@@ -906,9 +908,9 @@ ClawHub:  https://clawhub.ai/<slug> (coming soon)
 
 **Depends on:** Nothing (can ship standalone). Enhanced version depends on §19.1 (encryption) for including a pairing key in the invite.
 
-### 19.3 One-to-Many / Broadcast
+### 19.3 Historical One-to-Many / Broadcast Proposal (superseded)
 
-**Status:** Proposed (referenced in earlier design discussions)
+**Status:** Superseded by the local `docs/broadcast-design.md` record. The intended direction is consent- and local-policy-based sender-side fan-out: a local JSON group expands into individual normal sends, `CC` carries `group: <name>`, and replies resolve current group membership directly. It does not require receiver-side clusters or origin-coordinated rebroadcast.
 
 Send a single message to multiple peers simultaneously. Useful for announcements, status updates, or coordinated multi-host operations.
 
@@ -917,11 +919,11 @@ antenna msg --all "System update complete"
 antenna msg --group lab-hosts "New SOP published"
 ```
 
-**Depends on:** Peer groups/clusters (§19.4).
+**Historical dependency:** Peer groups/clusters (§19.4).
 
-### 19.4 Peer Groups / Clusters
+### 19.4 Historical Peer Groups / Clusters Proposal (superseded)
 
-**Status:** Proposed
+**Status:** Superseded; retained only to explain the earlier cluster model. See the v1.5.2-era `docs/broadcast-design.md` record described in §19.3.
 
 Named groups of peers in config for broadcast targeting, access control, and organizational clarity.
 

@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*Version 1.5.1 · An AgentSkill from the OpenClaw community*
+*Version 1.5.2 · An AgentSkill from the OpenClaw community*
 
 ---
 
@@ -406,7 +406,7 @@ Or set up a cron job for automated handling of trusted peers.
 |---------|-------------|
 | `antenna test <model>` | Live smoke test with a specific relay model (nonce-scoped PASS and fast-fail) |
 | `antenna test-suite --tier A` | Run deterministic script validation only |
-| `antenna test-suite --model <model>` | Full three-tier test for one model |
+| `antenna test-suite --model <model>` | Full two-tier test for one model |
 | `antenna test-suite --models "a,b,c"` | Side-by-side comparison (up to 6 models) |
 | `antenna test-suite --report` | Save structured report to `test-results/` |
 
@@ -431,19 +431,15 @@ Model tests generate a per-run `TEST_NONCE` and match both success and pre-deliv
 
 ## The Test Suite
 
-Not all models are created equal when it comes to relay work. Some are fast but sloppy. Some are precise but expensive. Antenna's three-tier test suite lets you find the right one for your budget and latency needs.
+Not all models are created equal when it comes to relay work. Some are fast but sloppy. Some are precise but expensive. Antenna's two-tier test suite lets you find the right one for your budget and latency needs.
 
 ### Tier A - Script Validation
 
-Eight deterministic tests. No model involved. Does the relay script parse, validate, rate-limit, and format correctly? This is the foundation - if Tier A fails, nothing else matters.
+Fifteen deterministic tests. No model involved. They check relay parsing and validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks. This is the foundation - if Tier A fails, nothing else matters.
 
 ### Tier B - Tool Call Generation
 
-Can the model correctly emit an `exec` tool call with the relay script and a properly formatted envelope? Tests the model's ability to follow structured instructions.
-
-### Tier C - Relay Completion
-
-Full simulated relay: model follows the write→exec relay contract and lets the wrapper handle delivery. Tests end-to-end comprehension of the relay protocol.
+Can the model correctly choose `write` first, preserve the raw envelope, and use a unique relay temp path before the wrapper-owned delivery step? Tests the model's ability to follow the shipped write→exec relay contract.
 
 ### Multi-Model Comparison
 
@@ -519,7 +515,7 @@ antenna log --tail 50
 - 📧 **Email:** [help@clawreef.io](mailto:help@clawreef.io)
 - 🐛 **Bug reports:** [GitHub Issues](https://github.com/ClawReefAntenna/antenna/issues)
 - 🪨 **ClawReef:** [clawreef.io](https://clawreef.io)
-- 🔒 **Security issues:** See [SECURITY.md](SECURITY.md) for responsible disclosure
+- 🔒 **Security issues:** See [SECURITY.md](../SECURITY.md) for responsible disclosure
 
 ---
 
@@ -549,7 +545,7 @@ cd ~/clawd/skills/antenna && git pull origin main
 clawhub update antenna
 bash skills/antenna/bin/antenna.sh setup   # re-fix permissions + verify config
 ```
-Check the [CHANGELOG](CHANGELOG.md) for what's new.
+Check the [CHANGELOG](../CHANGELOG.md) for what's new.
 
 **Q: Is there a message size limit?**
 Default is 10,000 characters, configurable via `max_message_length` in `antenna-config.json`. Messages over the limit are rejected before sending.
@@ -570,9 +566,9 @@ Defaults allow up to 5 minutes of age and 60 seconds of future skew per message.
 
 ## What's Next - The Lobster Roadmap
 
-Antenna v1.5.1 is the current local release. Here's what's on the horizon:
+Antenna v1.5.2 is the current release. Here's what's on the horizon:
 
-- **📡 Clusters & Broadcasts** - Named groups of peers; send one message to many hosts. Announce a security patch to your whole lab cluster in one command. Broadcast a best practice to every peer on your reef.
+- **📡 Local-policy Groups & Broadcasts** - Proposed sender-side fan-out: local JSON groups expand into normal individual Antenna sends, with `CC: group: <name>`. Replies use the sender's current local membership; no receiver-side cluster or rebroadcast machinery.
 - **🦞🆘 Helping Claw** - Community help requests broadcast to willing peers. Ask the reef a question; peers with `helping_claw` enabled answer; everyone else politely bounces. StackOverflow meets ham radio. The more lobsters on the reef, the smarter the whole ecosystem gets.
 - **🛡️ Malicious Content Scanner** - AI-powered inbound scanning before delivery. Important as the reef grows beyond trusted peers.
 - **🔒 End-to-End Encryption** - Message-level payload encryption via `age`. Even past all the other layers, the payload stays sealed.
@@ -644,7 +640,7 @@ skills/antenna/
 │   ├── antenna-peers.sh             # Peer listing
 │   ├── antenna-doctor.sh            # Diagnostic health check
 │   ├── antenna-model-test.sh        # Single-model smoke test
-│   └── antenna-test-suite.sh        # Three-tier test framework
+│   └── antenna-test-suite.sh        # Two-tier test framework
 ├── references/
 │   ├── USER-GUIDE.md                # This document
 │   ├── ANTENNA-RELAY-FSD.md         # Relay protocol specification

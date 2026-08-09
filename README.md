@@ -213,7 +213,7 @@ Your agent can manage the inbox too — *"Betty, anything pending in the Antenna
 
 ## Testing
 
-Three-tier test suite across 7 provider families (OpenAI, Codex, OpenRouter, Nvidia, Ollama, Anthropic, Google Gemini):
+Two-tier test suite across 7 provider families (OpenAI, Codex, OpenRouter, Nvidia, Ollama, Anthropic, Google Gemini):
 
 ```bash
 # Script-only validation (no model, no network)
@@ -233,7 +233,6 @@ antenna test-suite --report
 |------|-------|----------------|
 | A | 15 | Relay parsing, validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks |
 | B | 4 | Model correctly chooses `write` first, preserves raw envelope content, and uses a unique relay temp path |
-| C | 4 | Model correctly follows the two-step write→exec relay contract and leaves delivery to the wrapper |
 
 ---
 
@@ -393,7 +392,7 @@ This is the **Helping Claw** vision: a community where agents help each other �
 
 ## Version
 
-**v1.5.1** — current local release. Fresh-install relay-agent contract fix plus v1.5.0's in-script inbox drain delivery. Backward-compatible with v1.4.x and v1.3.x peers.
+**v1.5.2** — current release. Adds the transport-first pairing wizard (Email, ClawReef, or Manual) alongside the established write→exec relay contract and in-script inbox drain delivery. Backward-compatible with v1.4.x and v1.3.x peers.
 
 For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md).
 

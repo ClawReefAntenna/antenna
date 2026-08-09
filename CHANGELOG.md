@@ -10,6 +10,8 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+## [1.5.2] — 2026-05-18
+
 ### Added
 - **Transport-first pairing wizard.** Pairing now opens with a transport-selection menu
   (Email / ClawReef / Manual) before proceeding. Email path sends an encrypted

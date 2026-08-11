@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # replay_reserve cache ttl capacity peer message-id [now]; 0=new, 2=replay, 3=fail closed.
 
+replay_capacity_for_window() {
+  local ttl="$1" global_per_minute="$2" minutes
+  [[ "$ttl" =~ ^[1-9][0-9]*$ && "$global_per_minute" =~ ^[1-9][0-9]*$ ]] || return 1
+  minutes=$(( (ttl + 59) / 60 + 2 ))
+  printf '%s\n' "$((minutes * global_per_minute))"
+}
+
 replay_cache_valid() {
   jq -e '
     type == "object" and (keys == ["entries"]) and (.entries | type == "array") and
@@ -24,7 +31,8 @@ replay_reserve() {
   flock -x "$fd" || { exec {fd}>&-; return 3; }
   [[ ! -L "$cache" && ( ! -e "$cache" || -f "$cache" ) ]] || { exec {fd}>&-; return 3; }
   tmp=$(mktemp "$dir/.replay.XXXXXX") || { exec {fd}>&-; return 3; }
-  next="${tmp}.next"; chmod 0600 "$tmp" || { rm -f "$tmp"; exec {fd}>&-; return 3; }
+  next=$(mktemp "$dir/.replay-next.XXXXXX") || { rm -f "$tmp"; exec {fd}>&-; return 3; }
+  chmod 0600 "$tmp" "$next" || { rm -f "$tmp" "$next"; exec {fd}>&-; return 3; }
   if [[ -f "$cache" ]] && ! replay_cache_valid "$cache"; then
     rm -f "$tmp"; exec {fd}>&-; return 3
   fi

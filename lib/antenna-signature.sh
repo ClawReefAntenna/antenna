@@ -10,10 +10,50 @@ signature_uuid_v4() {
   fi
 }
 
+_signature_ed25519_public_content_ok() {
+  openssl pkey -pubin -in "$1" -text_pub -noout 2>/dev/null | head -n1 | grep -q '^ED25519 Public-Key:'
+}
+
+_signature_path_component_safe() {
+  local path="$1" mode owner
+  [[ ! -L "$path" ]] || return 1
+  mode=$(stat -c '%a' "$path" 2>/dev/null) || return 1
+  owner=$(stat -c '%u' "$path" 2>/dev/null) || return 1
+  [[ "$owner" -eq "$(id -u)" ]] || return 1
+  (( (8#$mode & 022) == 0 ))
+}
+
+# Validate a pinned public key beneath an owner-controlled trusted directory.
+# When trusted_root is omitted, the key's immediate directory is the root.
 signature_public_key_ok() {
-  local key="$1"
-  [[ -f "$key" && ! -L "$key" ]] || return 1
-  openssl pkey -pubin -in "$key" -text_pub -noout 2>/dev/null | head -n1 | grep -q '^ED25519 Public-Key:'
+  local key="$1" trusted_root="${2:-$(dirname "$1")}" resolved_key resolved_root lexical_key cursor
+  [[ -f "$key" && ! -L "$key" && -d "$trusted_root" && ! -L "$trusted_root" ]] || return 1
+  resolved_key=$(realpath -e -- "$key" 2>/dev/null) || return 1
+  resolved_root=$(realpath -e -- "$trusted_root" 2>/dev/null) || return 1
+  lexical_key=$(realpath -ms -- "$key" 2>/dev/null) || return 1
+  [[ "$lexical_key" == "$resolved_key" ]] || return 1
+  [[ "$resolved_key" == "$resolved_root"/* ]] || return 1
+  _signature_path_component_safe "$resolved_root" || return 1
+  cursor=$(dirname "$resolved_key")
+  while :; do
+    _signature_path_component_safe "$cursor" || return 1
+    [[ "$cursor" == "$resolved_root" ]] && break
+    [[ "$cursor" == "$resolved_root"/* ]] || return 1
+    cursor=$(dirname "$cursor")
+  done
+  _signature_path_component_safe "$resolved_key" || return 1
+  _signature_ed25519_public_content_ok "$resolved_key"
+}
+
+# Copy a trust-checked key into a private, caller-owned file for verification.
+# This removes the validation/use race for paths that other users cannot alter.
+signature_capture_public_key() {
+  local source="$1" trusted_root="$2" destination="$3"
+  signature_public_key_ok "$source" "$trusted_root" || return 1
+  install -m 0600 -- "$source" "$destination" || return 1
+  [[ -f "$destination" && ! -L "$destination" ]] || return 1
+  _signature_path_component_safe "$destination" || return 1
+  _signature_ed25519_public_content_ok "$destination"
 }
 
 signature_private_key_ok() {
@@ -88,12 +128,15 @@ signature_sign() {
 
 signature_verify() {
   local key="$1" canonical="$2" encoded="$3" sig
-  signature_public_key_ok "$key" || return 1
+  [[ -f "$key" && ! -L "$key" ]] || return 1
+  _signature_path_component_safe "$key" || return 1
+  _signature_ed25519_public_content_ok "$key" || return 1
   [[ "$encoded" =~ ^[A-Za-z0-9+/]{86}==$ ]] || return 1
   sig=$(mktemp "${TMPDIR:-/tmp}/antenna-signature.XXXXXX") || return 1
   chmod 0600 "$sig"
   printf '%s' "$encoded" | openssl base64 -A -d >"$sig" 2>/dev/null || { rm -f "$sig"; return 1; }
   [[ $(wc -c <"$sig") -eq 64 ]] || { rm -f "$sig"; return 1; }
+  [[ "$(openssl base64 -A -in "$sig")" == "$encoded" ]] || { rm -f "$sig"; return 1; }
   openssl pkeyutl -verify -rawin -pubin -inkey "$key" -in "$canonical" -sigfile "$sig" >/dev/null 2>&1
   local rc=$?
   rm -f "$sig"

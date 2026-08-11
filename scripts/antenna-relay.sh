@@ -112,11 +112,22 @@ fi
 RAW_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-envelope.XXXXXX") || exit 1
 BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-body.XXXXXX") || exit 1
 CANONICAL_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-canonical.XXXXXX") || exit 1
-chmod 0600 "$RAW_FILE" "$BODY_FILE" "$CANONICAL_FILE"
-trap 'rm -f "$RAW_FILE" "$BODY_FILE" "$CANONICAL_FILE"' EXIT
+PINNED_KEY_COPY=$(mktemp "${TMPDIR:-/tmp}/antenna-pinned-key.XXXXXX") || exit 1
+chmod 0600 "$RAW_FILE" "$BODY_FILE" "$CANONICAL_FILE" "$PINNED_KEY_COPY"
+trap 'rm -f "$RAW_FILE" "$BODY_FILE" "$CANONICAL_FILE" "$PINNED_KEY_COPY"' EXIT
 if [[ "${1:-}" == "--stdin" ]]; then cat >"$RAW_FILE"
 elif [[ $# -ge 1 ]]; then printf '%s' "$1" >"$RAW_FILE"
 else json_malformed "No input provided"; exit 0
+fi
+MAX_LEN=$(config_max_message_length)
+if [[ ! "$MAX_LEN" =~ ^[1-9][0-9]*$ ]] || (( MAX_LEN > 1000000 )); then
+  json_reject "Invalid maximum-message-length configuration"
+  exit 0
+fi
+RAW_MAX_BYTES=$((MAX_LEN * 4 + 4096))
+if (( $(wc -c <"$RAW_FILE") > RAW_MAX_BYTES )); then
+  json_malformed "Envelope exceeds raw byte limit"
+  exit 0
 fi
 if ! HEADERS_JSON=$(python3 "$SKILL_DIR/lib/antenna-envelope-parse.py" "$RAW_FILE" "$BODY_FILE" 2>&1); then
   json_malformed "Invalid envelope grammar"
@@ -185,6 +196,29 @@ if [[ -z "$TARGET_SESSION" ]]; then
   fi
 fi
 
+# ── Validate sender against explicit inbound policy ─────────────────────────
+
+ALLOWED=$(jq -er --arg from "$FROM" '
+  if (has("allowed_inbound_peers") | not) then "denied"
+  elif (.allowed_inbound_peers | type) != "array" or
+       (all(.allowed_inbound_peers[]; type == "string") | not)
+  then error("invalid inbound allowlist")
+  elif (.allowed_inbound_peers | index($from)) then "allowed"
+  else "denied" end
+' "$CONFIG_FILE" 2>/dev/null || echo "invalid")
+
+if [[ "$ALLOWED" != "allowed" ]]; then
+  json_reject "Unknown or disallowed sender: $FROM" "$FROM"
+  log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (not in allowed_inbound_peers)"
+  exit 0
+fi
+
+if ! peers_exists "$FROM"; then
+  json_reject "Unknown peer: $FROM (not in peers registry)" "$FROM"
+  log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (unknown peer)"
+  exit 0
+fi
+
 # ── REF-402: timestamp freshness window to limit replay exposure ───────────
 if [[ ! "$TIMESTAMP" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
   json_malformed "Invalid timestamp format"; exit 0
@@ -214,8 +248,8 @@ bounded_security_seconds() {
     else ($default | tostring) end
   ' "$CONFIG_FILE" 2>/dev/null
 }
-if ! MAX_AGE_SECONDS=$(bounded_security_seconds max_message_age_seconds 300 604800) ||
-   ! MAX_FUTURE_SKEW_SECONDS=$(bounded_security_seconds max_future_skew_seconds 60 3600); then
+if ! MAX_AGE_SECONDS=$(bounded_security_seconds max_message_age_seconds 300 3600) ||
+   ! MAX_FUTURE_SKEW_SECONDS=$(bounded_security_seconds max_future_skew_seconds 60 300); then
   json_reject "Invalid freshness configuration" "$FROM"
   log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid freshness configuration)"
   exit 0
@@ -235,28 +269,6 @@ if (( FUTURE_SKEW_SECONDS > MAX_FUTURE_SKEW_SECONDS )); then
   exit 0
 fi
 
-# ── Validate sender against allowed inbound peers ───────────────────────────
-
-ALLOWED=$(jq -er --arg from "$FROM" '
-  (.allowed_inbound_peers // []) | if type != "array" then error("invalid inbound allowlist")
-  elif length == 0 then "allowed"
-  elif (. | index($from)) then "allowed"
-  else "denied" end
-' "$CONFIG_FILE" 2>/dev/null || echo "invalid")
-
-if [[ "$ALLOWED" != "allowed" ]]; then
-  json_reject "Unknown or disallowed sender: $FROM" "$FROM"
-  log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (not in allowed_inbound_peers)"
-  exit 0
-fi
-
-# Also check peers file for existence
-if ! peers_exists "$FROM"; then
-  json_reject "Unknown peer: $FROM (not in peers registry)" "$FROM"
-  log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (unknown peer)"
-  exit 0
-fi
-
 # ── Pinned Ed25519 authentication ───────────────────────────────────────────
 AUTH_MODE=$(peers_get "$FROM" auth_mode)
 if [[ "$AUTH_MODE" != "ed25519-v1" ]]; then
@@ -266,14 +278,14 @@ if [[ "$AUTH_MODE" != "ed25519-v1" ]]; then
 fi
 PUBLIC_KEY_FILE=$(peers_get "$FROM" signing_public_key_file)
 [[ -n "$PUBLIC_KEY_FILE" && "$PUBLIC_KEY_FILE" != /* ]] && PUBLIC_KEY_FILE="$SKILL_DIR/$PUBLIC_KEY_FILE"
-if ! signature_public_key_ok "$PUBLIC_KEY_FILE"; then
+if ! signature_capture_public_key "$PUBLIC_KEY_FILE" "$SKILL_DIR/keys" "$PINNED_KEY_COPY"; then
   json_reject "Pinned Ed25519 public key is missing or invalid" "$FROM"
   log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 public key)"
   exit 0
 fi
 signature_canonical_file "$CANONICAL_FILE" "$PROTOCOL" "$FROM" "$TIMESTAMP" "$MESSAGE_ID" \
   "$SIGNED_TARGET_SESSION" "$USER_NAME" "$REPLY_TO" "$SUBJECT" "$BODY_FILE" || { json_reject "Could not construct canonical message" "$FROM"; exit 0; }
-if ! signature_verify "$PUBLIC_KEY_FILE" "$CANONICAL_FILE" "$SIGNATURE_VALUE"; then
+if ! signature_verify "$PINNED_KEY_COPY" "$CANONICAL_FILE" "$SIGNATURE_VALUE"; then
   json_reject "Ed25519 signature verification failed" "$FROM"
   log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 signature)"
   exit 0
@@ -283,8 +295,26 @@ fi
 
 RATE_LIMIT_FILE="$SKILL_DIR/antenna-ratelimit.json"
 RATE_LIMIT_LOCK_FILE="${RATE_LIMIT_FILE}.lock"
-PEER_LIMIT=$(config_rate_limit_per_peer)
-GLOBAL_LIMIT=$(config_rate_limit_global)
+bounded_rate_limit() {
+  local key="$1" default="$2" maximum="$3"
+  jq -er --arg key "$key" --argjson default "$default" --argjson maximum "$maximum" '
+    if has("rate_limit") then
+      if (.rate_limit | type) != "object" then error("rate_limit must be an object")
+      elif (.rate_limit | has($key)) then
+        .rate_limit[$key] as $value |
+        if (($value | type) == "number" and ($value | floor) == $value and
+            $value >= 1 and $value <= $maximum)
+        then ($value | tostring) else error("invalid bounded rate") end
+      else ($default | tostring) end
+    else ($default | tostring) end
+  ' "$CONFIG_FILE" 2>/dev/null
+}
+if ! PEER_LIMIT=$(bounded_rate_limit per_peer_per_minute 10 100) ||
+   ! GLOBAL_LIMIT=$(bounded_rate_limit global_per_minute 30 300) ||
+   (( GLOBAL_LIMIT < PEER_LIMIT )); then
+  json_reject "Invalid rate-limit configuration" "$FROM"
+  exit 0
+fi
 
 mkdir -p "$(dirname "$RATE_LIMIT_FILE")"
 if [[ ! -f "$RATE_LIMIT_FILE" ]]; then
@@ -298,7 +328,7 @@ rate_limit_check_and_record() {
   local result tmp_file
   tmp_file="${RATE_LIMIT_FILE}.tmp.$$"
 
-  result=$(jq -r --arg from "$FROM" --argjson now "$NOW_EPOCH" --argjson cutoff "$WINDOW_START" \
+  result=$(jq -er --arg from "$FROM" --argjson now "$NOW_EPOCH" --argjson cutoff "$WINDOW_START" \
     --argjson peer_limit "$PEER_LIMIT" --argjson global_limit "$GLOBAL_LIMIT" '
     . as $state |
     ([$state | to_entries[] | {key, value: [.value[] | select(. > $cutoff)]}] | from_entries) as $pruned |
@@ -313,7 +343,7 @@ rate_limit_check_and_record() {
       ($updated | tostring) as $state_json |
       "ok|\($peer_count)|\($global_count)|\($state_json)"
     end
-  ' "$RATE_LIMIT_FILE" 2>/dev/null || echo "ok|0|0|{}")
+  ' "$RATE_LIMIT_FILE" 2>/dev/null) || return 1
 
   RATE_VERDICT=$(echo "$result" | cut -d'|' -f1)
   RATE_PEER_COUNT=$(echo "$result" | cut -d'|' -f2)
@@ -328,7 +358,10 @@ rate_limit_check_and_record() {
 
 exec 8>"$RATE_LIMIT_LOCK_FILE"
 flock -x 8
-rate_limit_check_and_record
+if ! rate_limit_check_and_record; then
+  json_reject "Rate limiting unavailable" "$FROM"
+  exit 0
+fi
 
 if [[ "$RATE_VERDICT" == "peer_limited" ]]; then
   json_reject "Rate limited: peer '$FROM' exceeded $PEER_LIMIT messages/minute ($RATE_PEER_COUNT in window)" "$FROM"
@@ -344,7 +377,6 @@ fi
 
 # ── Validate message length ─────────────────────────────────────────────────
 
-MAX_LEN=$(config_max_message_length)
 BODY_LEN=${#BODY}
 
 if [[ "$BODY_LEN" -gt "$MAX_LEN" ]]; then
@@ -381,7 +413,11 @@ fi
 # Reserve only policy-admissible, authenticated messages. Persist before
 # queue/delivery so a retry cannot bypass exact replay rejection.
 REPLAY_CACHE="$SKILL_DIR/state/antenna-replay.json"
-if replay_reserve "$REPLAY_CACHE" "$((MAX_AGE_SECONDS + MAX_FUTURE_SKEW_SECONDS + 1))" 10000 "$FROM" "$MESSAGE_ID"; then
+REPLAY_TTL=$((MAX_AGE_SECONDS + MAX_FUTURE_SKEW_SECONDS + 1))
+REPLAY_CAPACITY=$(replay_capacity_for_window "$REPLAY_TTL" "$GLOBAL_LIMIT") || {
+  json_reject "Replay protection unavailable" "$FROM"; exit 0;
+}
+if replay_reserve "$REPLAY_CACHE" "$REPLAY_TTL" "$REPLAY_CAPACITY" "$FROM" "$MESSAGE_ID"; then
   log_entry "INBOUND | from:$FROM | peer_auth:verified | message_id:$MESSAGE_ID"
 else
   replay_rc=$?

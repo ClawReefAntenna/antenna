@@ -34,10 +34,12 @@
 
 ## First maintenance objective
 
-The bounded SIG-001 signed-unicast core is implemented and deterministically
-verified. It remains Active pending independent security review. Pairing/setup
-integration, legacy migration, Distribution Lists, and Public Group/ClawReef
-work have not begun. See `references/SIG-001-IMPLEMENTATION-REPORT.md`.
+The bounded SIG-001 signed-unicast core is implemented. Initial independent
+review blockers have been repaired with focused regressions; SIG-001 remains
+Active pending the complete isolated-suite rerun and follow-up independent
+review. Pairing/setup integration, legacy migration, Distribution Lists, and
+Public Group/ClawReef work have not begun. See
+`references/SIG-001-IMPLEMENTATION-REPORT.md`.
 
 Public Group work additionally requires the bounded PUB-001 API/wire
 specification and feasibility spike before an implementation branch is opened.

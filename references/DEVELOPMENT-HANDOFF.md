@@ -2,7 +2,7 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** SIG-001 core implemented and verified; independent review pending
+**Status:** SIG-001 review blockers repaired; follow-up review pending
 
 ## The one-sentence picture
 
@@ -141,8 +141,8 @@ Specific concerns to resolve during the first read-only report:
 
 ## Recommended work order
 
-1. Complete SIG-001 signed unicast as a bounded vertical slice.
-2. Stop for complexity and independent security review.
+1. Complete SIG-001's isolated-suite rerun and follow-up independent review.
+2. Keep the task Active until the reviewer clears the repaired candidate.
 3. Add explicit plaintext-legacy migration only after SIG-001 clears.
 4. Add local `@alias` Distribution List fan-out.
 5. Add optional visible-recipient metadata, reply-all, and manual list sharing.

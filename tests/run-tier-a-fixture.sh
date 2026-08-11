@@ -4,15 +4,17 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
-mkdir -p "$TMP/skill/lib" "$TMP/skill/scripts" "$TMP/skill/agent" "$TMP/skill/secrets"
+mkdir -p "$TMP/skill/lib" "$TMP/skill/scripts" "$TMP/skill/agent" "$TMP/skill/secrets" "$TMP/skill/keys"
+chmod 0700 "$TMP/skill/secrets" "$TMP/skill/keys"
 cp -R "$ROOT/lib/." "$TMP/skill/lib/"
 cp -R "$ROOT/scripts/." "$TMP/skill/scripts/"
 cp "$ROOT/agent/AGENTS.md" "$TMP/skill/agent/"
 
 source "$TMP/skill/lib/antenna-signature.sh"
 signature_keygen "$TMP/skill/secrets/private.pem" "$TMP/skill/secrets/public.pem"
+install -m 0644 "$TMP/skill/secrets/public.pem" "$TMP/skill/keys/public.pem"
 cat >"$TMP/skill/antenna-peers.json" <<'EOF'
-{"fixture":{"url":"https://fixture.test","self":true,"auth_mode":"ed25519-v1","signing_private_key_file":"secrets/private.pem","signing_public_key_file":"secrets/public.pem"}}
+{"fixture":{"url":"https://fixture.test","self":true,"auth_mode":"ed25519-v1","signing_private_key_file":"secrets/private.pem","signing_public_key_file":"keys/public.pem"}}
 EOF
 cat >"$TMP/skill/antenna-config.json" <<'EOF'
 {

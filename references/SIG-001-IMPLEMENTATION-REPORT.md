@@ -4,8 +4,8 @@
 
 **Branch:** `dev/signature-minimal`
 
-**Status:** implementation and deterministic verification complete; independent
-security review still required
+**Status:** initial independent review completed; repair candidate awaiting
+follow-up review
 
 ## Delivered vertical slice
 
@@ -16,8 +16,8 @@ security review still required
 - Byte-preserving strict parser for unique LF-framed Antenna envelopes.
 - Exact sender-side signing of protocol, sender, timestamp, UUID message ID,
   optional metadata, and UTF-8 body bytes.
-- Receiver-side verification with the claimed sender's locally pinned public
-  key.
+- Receiver-side verification from a private capture of the claimed sender's
+  locally pinned public key beneath an owner-controlled `keys/` trust root.
 - Bounded, persistent, locked, atomic replay reservation after authentication
   and non-content policy gates but before queueing/delivery.
 - Fail-closed inbound and outbound allowlist/config/key behavior.
@@ -37,10 +37,11 @@ pairing and migration remain separate work after the security review.
 
 ## Verification evidence
 
-- `tests/ed25519-v1.sh`: 35/35 passing, including the fixed vector, parser,
-  Unicode and terminal-LF bodies, all canonical-field tampering, missing/wrong
-  keys, freshness configuration, replay persistence/capacity/corruption, and
-  concurrency.
+- `tests/ed25519-v1.sh`: 67/67 passing, including the fixed vector, canonical
+  base64, strict parser negatives, empty/multiline/Unicode/terminal-LF bodies,
+  all canonical-field tampering, key-path trust and key-type failures,
+  fail-closed allowlists, real stale/future signed envelopes, replay
+  persistence/dynamic capacity/recovery/corruption, and concurrency.
 - Hermetic Tier A: 20/20 passing.
 - All 20 deterministic `tests/*.sh` scripts passed in an isolated seeded skill
   copy.
@@ -49,15 +50,18 @@ pairing and migration remain separate work after the security review.
 
 ## Complexity review
 
-The three new runtime libraries total 197 lines. Tracked runtime changes remove
-17 more lines than they add, for approximately **180 net new runtime lines**
-against `bb599c7`. No negotiation state, journal, recovery protocol, or second
-modern auth mode was introduced. The slice remains below the 200-line scope-
-creep review threshold and well below the 300-line stop threshold.
+The initial implementation was approximately 180 net new runtime lines against
+`bb599c7`. Independent review required key-path capture, strict allowlists,
+dynamic replay sizing, and bounded input/configuration. The repaired candidate
+is approximately **290 net new runtime lines**. It crossed the 200-line review
+threshold only to remediate concrete reviewed failure modes, remains below the
+300-line stop threshold, and still introduces no negotiation state, journal,
+recovery protocol, or second modern authentication mode.
 
 ## Remaining gate
 
-A fresh reviewer must examine the protocol and diff from `bb599c7`, focusing on
-canonical-byte agreement, OpenSSL invocation, parser ambiguity, key-path trust,
-replay ordering/state failure, and denial-of-service behavior. Do not begin
-SIG-002 or live-host validation until that review clears.
+The initial review is recorded in
+`references/SIG-001-SECURITY-REVIEW-2026-08-11.md`. A fresh follow-up must clear
+the repaired candidate, particularly trusted key paths, allowlist semantics,
+and replay availability. Do not begin SIG-002 or live-host validation until it
+clears.

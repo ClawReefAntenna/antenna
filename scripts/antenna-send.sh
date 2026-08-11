@@ -161,6 +161,9 @@ TOKEN=$(cat "$TOKEN_FILE")
 # ── Load config defaults ────────────────────────────────────────────────────
 
 MAX_LEN=$(config_max_message_length)
+if [[ ! "$MAX_LEN" =~ ^[1-9][0-9]*$ ]] || (( MAX_LEN > 1000000 )); then
+  die "Invalid maximum-message-length configuration" 1
+fi
 
 # Session resolution:
 # - If --session was explicitly provided, include target_session in envelope.
@@ -171,9 +174,11 @@ TARGET_SESSION="$SESSION"
 
 # Check allowed outbound peers
 ALLOWED=$(jq -er --arg peer "$PEER" '
-  (.allowed_outbound_peers // []) | if type != "array" then error("invalid outbound allowlist")
-  elif length == 0 then "allowed"
-  elif (. | index($peer)) then "allowed"
+  if (has("allowed_outbound_peers") | not) then "denied"
+  elif (.allowed_outbound_peers | type) != "array" or
+       (all(.allowed_outbound_peers[]; type == "string") | not)
+  then error("invalid outbound allowlist")
+  elif (.allowed_outbound_peers | index($peer)) then "allowed"
   else "denied" end
 ' "$CONFIG_FILE" 2>/dev/null || echo "invalid")
 
@@ -203,12 +208,10 @@ assert_no_envelope_markers "--reply-to" "$REPLY_TO_OVERRIDE"
 # ── Build sender identity ───────────────────────────────────────────────────
 
 # Find the local peer entry (self: true)
-SELF_ID=$(peers_self_id)
-SELF_URL=$(peers_self_url)
-
-if [[ -z "$SELF_ID" ]]; then
-  die "No self peer configured in antenna-peers.json (.self == true). Refusing to guess sender identity from hostname; run 'antenna setup' or repair the self peer entry." 1
+if ! SELF_ID=$(peers_single_self_id); then
+  die "Expected exactly one self peer in antenna-peers.json (.self == true). Refusing to guess sender identity from hostname or accept an ambiguous identity." 1
 fi
+SELF_URL=$(peers_get "$SELF_ID" url)
 AUTH_MODE=$(peers_get "$PEER" auth_mode)
 [[ "$AUTH_MODE" == "ed25519-v1" ]] || die "Peer '$PEER' is not configured for ed25519-v1" 1
 

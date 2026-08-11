@@ -35,12 +35,16 @@ lines beyond baseline.
 freshness, replay, missing-key, and wrong-key tests; Tier A; independent review;
 no public claims.
 
-**Progress (2026-08-11):** core implementation and deterministic validation are
-complete. Focused Ed25519 tests pass 35/35, hermetic Tier A passes 20/20, and
-all 20 deterministic test scripts pass in an isolated seeded skill copy. The
-runtime delta is approximately +180 net lines. Independent security review is
-the remaining SIG-001 gate; pairing/setup integration and live-host work have
-not begun. See `references/SIG-001-IMPLEMENTATION-REPORT.md`.
+**Progress (2026-08-11):** the initial independent review found key-path,
+allowlist, replay-capacity, and evidence blockers. The repair candidate now
+uses trust-checked/captured public keys, fail-closed explicit allowlists,
+rate-derived replay capacity, bounded input/configuration, and the expanded
+67/67 focused matrix. Hermetic Tier A passes 20/20. A complete isolated-suite
+rerun and follow-up independent review remain required. The runtime delta is
+approximately +290 net lines, below the 300-line stop threshold. Pairing/setup
+integration and live-host work have not begun. See
+`references/SIG-001-IMPLEMENTATION-REPORT.md` and
+`references/SIG-001-SECURITY-REVIEW-2026-08-11.md`.
 
 ## Ready
 

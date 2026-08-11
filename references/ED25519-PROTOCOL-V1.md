@@ -46,10 +46,15 @@ The local identity uses OpenSSL Ed25519 PEM files:
 - public key: mode `0644`, referenced by the self peer's
   `signing_public_key_file`.
 
-Each remote `ed25519-v1` peer has a `signing_public_key_file` containing the
-public key pinned during an operator-approved exchange. Senders never receive
-or store another peer's signing private key. An unreadable, malformed, missing,
-symlinked, or non-Ed25519 key fails closed.
+Each remote `ed25519-v1` peer has a `signing_public_key_file` beneath the local
+`keys/` trust root containing the public key pinned during an operator-approved
+exchange. The key and every path component through `keys/` must be owned by the
+runtime user, must not be group/other writable, and must not be a symlink. The
+relay copies a trust-checked key into a private mode-`0600` temporary file and
+verifies from that captured copy, avoiding a second open of the registry path.
+Senders never receive or store another peer's signing private key. An
+unreadable, malformed, missing, unsafe, symlinked, or non-Ed25519 key fails
+closed.
 
 SIG-001 fixtures configure these fields directly. Pairing UX and coordinated
 replacement are subsequent vertical slices and must not be inferred here.
@@ -101,9 +106,11 @@ and may contain LF bytes. The signature header is excluded. Lengths are minimal
 unsigned decimal without leading zeroes except the single digit `0`.
 
 The sender signs these bytes directly with Ed25519. The signature is exactly 64
-bytes, standard-base64 encoded without line wrapping, and carried as
+bytes, canonically standard-base64 encoded without line wrapping, and carried as
 `ed25519-v1:<88 base64 characters>`. Verification reconstructs the canonical
 bytes from the strict parser's validated header values and byte-preserved body.
+Decoding and re-encoding must reproduce the wire value exactly; non-zero pad-bit
+aliases are rejected.
 
 ## 5. Deterministic vector
 
@@ -139,7 +146,7 @@ n1d1ue19mD1vIEL9oOZXDypsLwDSv31Q83NPLPmBset32BKm657dP4NqylHgYCRWvZcbgDqSlcz0kbis
 
 The relay performs:
 
-1. strict byte-preserving envelope parsing;
+1. bounded raw-envelope intake and strict byte-preserving envelope parsing;
 2. required-field and protocol validation;
 3. sender registry and inbound-allowlist validation;
 4. bounded timestamp freshness validation;
@@ -151,17 +158,27 @@ The relay performs:
 Replay state is reserved only after a valid signature and admission by the
 non-content rate/length/session gates, but before inbox queueing or delivery.
 Cache corruption, lock/storage failure, or capacity exhaustion fails closed.
-Absent freshness limits use 300 seconds maximum age and 60 seconds future
-skew. Explicit values must be JSON non-negative integers no greater than seven
-days and one hour respectively; malformed or out-of-range configuration fails
-closed.
+Inbound and outbound peer allowlists must be explicit arrays containing only
+strings. Missing, empty, or malformed allowlists deny all. Absent freshness
+limits use 300 seconds maximum age and 60 seconds future skew. Explicit values
+must be JSON non-negative integers no greater than one hour and five minutes
+respectively; malformed or out-of-range configuration fails closed.
+
+The configured maximum message length must be a positive integer no greater
+than 1,000,000 characters. Before parsing, the relay rejects raw envelopes over
+`4 × max_message_length + 4096` bytes, allowing worst-case UTF-8 plus bounded
+framing without loading an unbounded request into the parser.
 
 ## 7. Replay state
 
 The cache stores only peer ID, lowercase UUID v4, and reservation epoch. It is
 kept in a mode-`0700` directory, protected by `flock`, atomically replaced with
-mode `0600`, pruned by the configured freshness TTL, and bounded to a fixed
-capacity. Duplicate reservations within TTL are rejected.
+mode `0600`, and pruned by the configured freshness TTL. Capacity is derived
+from the TTL and the validated global admitted-message rate, with two additional
+minutes of headroom: `ceil(TTL / 60) + 2`, multiplied by
+`global_per_minute`. Rate configuration is bounded to 1–100 per peer and 1–300
+globally, with the global value at least the peer value. Duplicate reservations
+within TTL are rejected; capacity, corruption, or storage failures fail closed.
 
 ## 8. Required SIG-001 evidence
 

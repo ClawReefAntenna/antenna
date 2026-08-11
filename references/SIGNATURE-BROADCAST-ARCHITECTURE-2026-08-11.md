@@ -29,9 +29,9 @@ message. An age encryption key is not reused as an Ed25519 signing key.
 Establish one durable identity architecture for:
 
 - authenticated unicast;
-- local sender-side one-to-many fan-out;
-- group replies resolved from a shared group manifest;
-- later ClawReef group discovery and recipient-specific encryption.
+- local sender-side Distribution List fan-out;
+- optional, visible Distribution List metadata and reply-all; and
+- later Public Groups under a separate architecture decision.
 
 The sender must never distribute its private signing key or a symmetric secret
 that allows a recipient to impersonate it.
@@ -75,107 +75,98 @@ The canonical signed content includes:
 - UUID message ID;
 - target session when explicitly supplied;
 - optional user, reply-to, and subject metadata;
-- group metadata when applicable;
 - exact UTF-8 body bytes.
 
 Parsing remains byte-preserving. Freshness and bounded persistent replay
 rejection apply before delivery. The signature authenticates identity and
 integrity; HTTPS or recipient-specific age encryption provides confidentiality.
 
-## Group manifest
+## Distribution Lists
 
-A shared ClawReef group is identified by an immutable, opaque `group_id`.
-`group_name` is display metadata and may change; it is never the security
-identifier.
+A Distribution List is a local alias for a personal recipient list. It is not a
+protocol-level group or shared conversation object.
 
-Every member downloads a ClawReef-signed manifest containing at minimum:
+The CLI reserves an `@` prefix for list aliases:
 
-- `group_id` and display name;
-- monotonically increasing `group_revision`;
-- generated and expiry times;
-- member peer IDs;
-- member endpoints;
-- member Ed25519 public keys and fingerprints;
-- member age public keys when encrypted fan-out is supported;
-- group delivery policy metadata.
+```text
+antenna send @my-team "Server maintenance tonight"
+```
 
-The manifest is cached locally and verified before use. The complete membership
-list is not copied into each message.
+Antenna expands `@my-team` locally into ordinary, independent signed unicast
+messages to the configured peers. Members must already be paired and reachable.
+The sender receives per-recipient success or failure; Antenna keeps no broadcast
+state, performs no retries, and makes no atomic-delivery claim.
 
-## Group message
+The local member list is sorted and deduplicated before use. Membership changes
+affect only future sends. A stale or mistaken list is the list owner's
+responsibility.
 
-A group envelope adds signed fields:
+### Visible list metadata
 
-- `group_id`;
-- `group_revision` used by the sender;
-- `thread_id`;
-- optional `in_reply_to` message ID.
+By default, list fan-out need not reveal the other recipients. When the sender
+uses `--show-recipients`, Antenna prepends a small, versioned, machine-readable
+block to the signed body:
 
-The first message uses its own `message_id` as `thread_id`. A reply retains the
-thread ID and sets `in_reply_to` to the message being answered.
+```text
+[ANTENNA_META v=1]
+list: AGS Operations
+recipients: bettyxix,bettyxx,nexus
+[/ANTENNA_META]
 
-The sender signs one recipient-neutral logical envelope, expands the verified
-manifest, and performs ordinary direct delivery to each member except itself.
-For encrypted public-group delivery, the same signed envelope is wrapped in a
-separate age ciphertext for each recipient. Delivery is best-effort and reports
-success or failure per member; it is not an atomic distributed transaction.
+Server maintenance tonight.
+```
 
-## Reply semantics
+The block contains only:
 
-The recipient is offered two explicit actions:
+- `list` — a human-readable sender-supplied display name; and
+- `recipients` — sorted, deduplicated peer IDs from the send-time expansion.
 
-- **Reply to sender** — ordinary signed unicast to the original sender.
-- **Reply to group** — create a new signed group envelope with the same
-  `group_id` and `thread_id`, resolve the group through the local manifest, and
-  fan it out to the current membership.
+It carries no endpoints, hook tokens, public keys, group identifier, revision,
+thread identifier, or delivery claim. Because it is part of the signed body,
+alteration invalidates the message signature. Older Antenna versions merely
+display it as ordinary text.
 
-The original message does not contain a reusable group endpoint or recipient
-list. `group_id` is the durable reply address; the local verified manifest is
-the address book.
+The list name is descriptive, not authoritative. The signature proves only
+that the sender used that name and recipient list; it does not establish a
+shared security identity or prove that every listed peer received the message.
 
-When receiving the original message, Antenna validates the sender against a
-verified manifest and records that the group context was accepted. A revision
-mismatch is a refresh trigger, not a reason to build a distributed historical
-membership archive.
+### Reply and sharing semantics
 
-Before replying to the group, Antenna verifies that:
+A visible list message may offer:
 
-1. the group manifest signature and expiry are valid;
-2. the original message's group context was accepted when received;
-3. the replying peer is still a current member; and
-4. the locally available manifest satisfies the refresh policy.
+- **Reply** — ordinary signed unicast to the original sender; and
+- **Reply all** — a new fan-out to the union of the original sender and the
+  embedded recipients, excluding the replying peer.
 
-The reply is sent to the **current verified membership**, not blindly to the
-original sender's historical recipient set. The reply records the current
-revision and the original message linkage. A stale or unavailable manifest
-causes a refresh request or a clear refusal; Antenna does not guess membership
-or reconstruct historical rosters.
+Reply-all sends only to peers already configured and reachable by the replier.
+Missing peers produce a warning; embedded peer IDs never grant credentials,
+reachability, or trust.
 
-This deliberately gives mailing-list-style semantics: members added after the
-original message may receive later replies, while removed members do not.
+Distribution Lists may be manually exported and imported so several operators
+can use the same local shorthand. A shared list contains its display name,
+preferred local alias, and peer IDs only. It contains no hook tokens or other
+credentials, has no synchronization or revision protocol, and remains a local
+snapshot after import. An alias collision requires an explicit rename or
+replacement choice.
 
-## Delivery and consent
+## Public Groups: separate design boundary
 
-Signature validity proves who sent a message; it does not itself authorize
-direct delivery.
+Public Groups are not Distribution Lists with wider membership. They require a
+separate decision about discovery, admission, delivery credentials, revocation,
+and the trust implications of OpenClaw's single shared `hooks.token`.
 
-- Locally allowed senders/groups may deliver to the configured session.
-- Authenticated public-group traffic defaults to the Antenna inbox.
-- A local group allowlist may opt a trusted group into direct delivery.
-- A sender claiming an unknown group, or a sender absent from the verified
-  manifest, is rejected or quarantined according to explicit policy.
-
-No automatic response is rebroadcast. Every reply-to-group operation is an
-explicit agent or operator action, preventing reply loops.
+No Public Group manifest, group identifier, membership synchronization,
+threading, reply-to-group protocol, or ClawReef delivery integration is approved
+by this record. Public Group work remains deferred until signed unicast and
+Distribution Lists are stable and a concrete ingress/trust model is approved.
 
 ## Implementation sequence
 
 1. Implement and review signed unicast.
 2. Add explicit `plaintext-legacy` migration support.
-3. Add local fan-out for existing known peers.
-4. Add signed manifest import/verification and group reply metadata.
-5. Add recipient-specific age encryption for public-group fan-out.
-6. Integrate ClawReef manifest download and refresh.
+3. Add local `@alias` Distribution List fan-out for existing paired peers.
+4. Add optional `--show-recipients`, reply-all, and manual list export/import.
+5. Stop for a separate Public Group architecture decision.
 
 Each step is a vertical slice with a complexity review before the next begins.
 
@@ -184,6 +175,7 @@ Each step is a vertical slice with a complexity review before the next begins.
 - HMAC as an intermediate public protocol.
 - Shared group secrets.
 - Synchronized distributed membership state.
+- Protocol-level private groups, group IDs, revisions, or threading.
 - Atomic all-member delivery.
 - Automatic retries, receipts, or guaranteed ordering.
 - Automated key rotation or revocation infrastructure.
@@ -195,7 +187,7 @@ Each step is a vertical slice with a complexity review before the next begins.
 - Two authentication modes only.
 - One signing keypair per installation.
 - Replay cache is the only new persistent message-protocol state.
-- Groups are verified cached manifests, not distributed transactions.
+- Distribution Lists are local address-book aliases, not shared protocol state.
 - Stop for architecture review if signed unicast exceeds approximately 300 net
   runtime lines beyond baseline or requires a new recovery journal, handshake,
   or transient negotiation state.
@@ -206,10 +198,10 @@ Success requires independent verification that BettyXIX and BettyXX can:
 
 - pair using public identity keys;
 - exchange signed unicast in both directions;
-- reject tampering, replay, unknown keys, and forged group metadata;
-- send one signed group message to multiple members; and
-- reply to the sender or the current verified group independently.
+- reject tampering, replay, and unknown keys;
+- expand one local Distribution List into independent signed sends; and
+- parse visible list metadata and reply-all only to configured peers.
 
-Stop and reassess if the design begins recreating shared group secrets,
-cross-host transaction recovery, more than two authentication modes, or a
-central ClawReef relay dependency.
+Stop and reassess if Distribution Lists begin acquiring shared membership
+authority, synchronization, revisions, credentials, cross-host transaction
+recovery, or Public Group behavior without a separate architecture decision.

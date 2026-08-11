@@ -43,18 +43,26 @@ May begin only after SIG-001 complexity and security review. Add one explicit,
 warned legacy mode and a manual coordinated re-pairing procedure. No dual
 acceptance or automatic migration.
 
-### GRP-001 — Local signed broadcast fan-out
+### DL-001 — Local Distribution List fan-out
 
-May begin only after signed unicast is stable. Expand a locally verified group
-manifest into direct sends, preserve one signed logical envelope, and report
-partial delivery without retries or atomicity.
+May begin only after signed unicast is stable. Reserve `@alias` for local lists
+of already-paired peers, expand each list into ordinary signed unicast sends,
+and report partial delivery without retries, persistence, or atomicity.
 
-### GRP-002 — Group reply and manifest semantics
+### DL-002 — Visible recipients, reply-all, and list sharing
 
-Add signed `group_id`, revision, thread, and reply linkage; resolve reply-to-group
-through current verified membership as specified in the architecture record.
+Add the optional signed-body `[ANTENNA_META v=1]` preamble produced by
+`--show-recipients`, containing only list display name and sorted/deduplicated
+peer IDs. Add reply-all to configured peers plus manual credential-free list
+export/import. No group ID, revision, threading, or synchronization.
 
 ## Blocked / Betty decision required
+
+### PUB-001 — Public Group architecture
+
+Public Groups require a separate decision about discovery, admission, delivery
+credentials, revocation, and OpenClaw's shared hook-token boundary. Do not treat
+Distribution Lists as implementation authority for Public Groups.
 
 ### ART-001 — Retention policy for ignored local artifacts
 
@@ -76,8 +84,16 @@ adapter without a concrete request.
 ### ARCH-SIG-001 — Choose asymmetric identity and broadcast architecture
 
 **Decision:** move directly from v1.5.2 plaintext authentication to
-`ed25519-v1`, preserve HMAC-minimal as an unpublished study, and use
-ClawReef-signed manifests for sender-side fan-out and group replies.
+`ed25519-v1` and preserve HMAC-minimal as an unpublished study.
+**Record:** `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`.
+**Authorization:** Corey approved the direction on 2026-08-11.
+
+### ARCH-DL-001 — Separate Distribution Lists from Public Groups
+
+**Decision:** Private Groups are local, optionally shareable Distribution List
+aliases. `@alias` expands to ordinary unicasts. `--show-recipients` may add a
+lean signed-body metadata block with list name and peer IDs for recognition and
+reply-all. Public Groups remain a separate blocked architecture question.
 **Record:** `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`.
 **Authorization:** Corey approved the direction on 2026-08-11.
 

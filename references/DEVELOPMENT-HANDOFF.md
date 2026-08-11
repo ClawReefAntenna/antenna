@@ -8,8 +8,9 @@
 
 Antenna v1.5.2 is the published plaintext-authentication baseline. New work on
 `dev/signature-minimal` moves directly to Ed25519 sender signatures and uses
-verified group manifests for one-to-many fan-out and group replies; HMAC-minimal
-is preserved but will not be an intermediate public protocol.
+local Distribution List aliases for later one-to-many fan-out; HMAC-minimal is
+preserved but will not be an intermediate public protocol. Public Groups are a
+separate deferred architecture question.
 
 ## Verified release timeline
 
@@ -71,20 +72,25 @@ The controlling record is
 - migration is coordinated and manual; there is no HMAC compatibility layer,
   negotiation, automated rotation, or rollback protocol.
 
-### Groups / broadcast
+### Distribution Lists and Public Groups
 
 The May local `docs/broadcast-design.md` remains historical input. The tracked
-August architecture refines it:
+August architecture replaces its private-group assumptions:
 
-- broadcasts remain discrete sender-side fan-out, not a central relay;
-- a stable signed `group_id` and manifest revision replace recipient-list CC;
-- every member caches a ClawReef-signed manifest containing current endpoints
-  and public keys;
-- recipients explicitly choose reply-to-sender or reply-to-group;
-- reply-to-group preserves thread linkage but resolves the current verified
-  membership, excluding removed members and allowing later members to receive
-  subsequent replies;
-- ClawReef distributes manifests but is not in the message path.
+- a Distribution List is a local alias such as `@my-team`, not a protocol
+  group;
+- the alias expands into independent signed unicast sends to already-paired
+  peers;
+- `--show-recipients` optionally prepends a signed-body `[ANTENNA_META v=1]`
+  block containing only list display name and sorted/deduplicated peer IDs;
+- visible-list messages may support reply-all to peers already configured by
+  the replier;
+- lists may be exported/imported as credential-free manual snapshots so users
+  can share the same shorthand;
+- there is no list ID, revision, thread, synchronization, persistent broadcast
+  state, retry, or delivery transaction; and
+- Public Groups remain a separate blocked architecture decision, including the
+  unresolved shared-hook-token ingress boundary.
 
 The old group/cluster sections in `references/ANTENNA-RELAY-FSD.md` are
 superseded by that design record. Group work remains proposed, not implemented.
@@ -123,10 +129,10 @@ Specific concerns to resolve during the first read-only report:
 1. Complete SIG-001 signed unicast as a bounded vertical slice.
 2. Stop for complexity and independent security review.
 3. Add explicit plaintext-legacy migration only after SIG-001 clears.
-4. Add local sender-side broadcast fan-out.
-5. Add signed group-manifest and reply-to-group semantics.
-6. Add recipient-specific age encryption and ClawReef manifest refresh only
-   after the simpler group path is stable.
+4. Add local `@alias` Distribution List fan-out.
+5. Add optional visible-recipient metadata, reply-all, and manual list sharing.
+6. Stop for a separate Public Group decision; do not infer ClawReef manifest or
+   ingress authority from Distribution List work.
 
 ## Retrieval anchors
 

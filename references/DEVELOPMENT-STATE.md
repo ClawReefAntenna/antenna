@@ -14,9 +14,10 @@
   constant-time comparison. It does not include `lib/antenna-hmac.sh`.
 - Group/broadcast messaging is proposed, not implemented. The controlling
   tracked architecture is now
-  `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`; it refines the
-  older local `docs/broadcast-design.md` with asymmetric identity, signed group
-  manifests, threading, and explicit reply-to-group semantics.
+  `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`. It separates
+  local Distribution Lists from future Public Groups: `@alias` is only a local
+  fan-out shorthand, optional visible recipients live in a signed body preamble,
+  and Public Group architecture remains deferred.
 
 ## Historical branches and notes
 
@@ -30,7 +31,8 @@
 ## First maintenance objective
 
 Implement the bounded SIG-001 signed-unicast vertical slice. Stop for complexity
-and security review before legacy migration, group fan-out, or ClawReef work.
+and security review before legacy migration, Distribution Lists, or Public
+Group/ClawReef work.
 
 The completed HMAC-minimal branch is retained as
 `archive/hmac-minimal-study`; it is evidence and a source of selectively

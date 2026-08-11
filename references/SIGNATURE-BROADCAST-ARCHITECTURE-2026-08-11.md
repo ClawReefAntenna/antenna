@@ -133,18 +133,23 @@ The original message does not contain a reusable group endpoint or recipient
 list. `group_id` is the durable reply address; the local verified manifest is
 the address book.
 
+When receiving the original message, Antenna validates the sender against a
+verified manifest and records that the group context was accepted. A revision
+mismatch is a refresh trigger, not a reason to build a distributed historical
+membership archive.
+
 Before replying to the group, Antenna verifies that:
 
 1. the group manifest signature and expiry are valid;
-2. the original sender is a member of the referenced group revision or is
-   otherwise authorized by manifest policy;
+2. the original message's group context was accepted when received;
 3. the replying peer is still a current member; and
-4. the locally available revision satisfies the refresh policy.
+4. the locally available manifest satisfies the refresh policy.
 
 The reply is sent to the **current verified membership**, not blindly to the
-original sender's historical recipient set. The reply records both the current
+original sender's historical recipient set. The reply records the current
 revision and the original message linkage. A stale or unavailable manifest
-causes a refresh request or a clear refusal; Antenna does not guess membership.
+causes a refresh request or a clear refusal; Antenna does not guess membership
+or reconstruct historical rosters.
 
 This deliberately gives mailing-list-style semantics: members added after the
 original message may receive later replies, while removed members do not.

@@ -9,8 +9,9 @@
 Antenna v1.5.2 is the published plaintext-authentication baseline. New work on
 `dev/signature-minimal` moves directly to Ed25519 sender signatures and uses
 local Distribution List aliases for later one-to-many fan-out; HMAC-minimal is
-preserved but will not be an intermediate public protocol. Public Groups are a
-separate deferred architecture question.
+preserved but will not be an intermediate public protocol. Public Groups use a
+separate encrypted ClawReef relay architecture after those foundations are
+stable.
 
 ## Verified release timeline
 
@@ -89,8 +90,22 @@ August architecture replaces its private-group assumptions:
   can share the same shorthand;
 - there is no list ID, revision, thread, synchronization, persistent broadcast
   state, retry, or delivery transaction; and
-- Public Groups remain a separate blocked architecture decision, including the
-  unresolved shared-hook-token ingress boundary.
+- Public Groups use the separate architecture in
+  `references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md`.
+
+For Public Groups:
+
+- the sender signs one recipient-neutral message and age-encrypts it once to
+  all current member public keys;
+- the sender uploads that ciphertext plus the group ID to a dedicated ClawReef
+  API;
+- ClawReef stores each member's hook token, never shares tokens among members,
+  and deterministically forwards the same ciphertext to current members;
+- ClawReef uses ordinary TypeScript/Node server logic and no model call;
+- recipient hosts decrypt and verify the original sender's Ed25519 signature;
+- ClawReef sees routing metadata but cannot decrypt the content; and
+- there is no plaintext Public Group mode, shared group key, message store,
+  retry system, or content inspection.
 
 The old group/cluster sections in `references/ANTENNA-RELAY-FSD.md` are
 superseded by that design record. Group work remains proposed, not implemented.
@@ -131,8 +146,11 @@ Specific concerns to resolve during the first read-only report:
 3. Add explicit plaintext-legacy migration only after SIG-001 clears.
 4. Add local `@alias` Distribution List fan-out.
 5. Add optional visible-recipient metadata, reply-all, and manual list sharing.
-6. Stop for a separate Public Group decision; do not infer ClawReef manifest or
-   ingress authority from Distribution List work.
+6. Complete PUB-001's bounded API/wire specification and fixture-only
+   feasibility spike.
+7. Create a separate Public Group implementation branch from the validated
+   signed-unicast/Distribution-List baseline, then implement relay and
+   multi-recipient encryption together.
 
 ## Retrieval anchors
 
@@ -147,6 +165,7 @@ alone for precise claims.
 | Relay tests / whether Tier C was still meaningful | SMAR session `55074bda-b7e1-434b-a574-32b2b407bb92`, messages 59700–59725. |
 | May 18 group/broadcast decisions | SMAR session `947629be-cf12-4ca6-928d-31e0a800ba58`, messages 60557 onward; local `docs/broadcast-design.md`. |
 | Earlier group discussion | SMAR session `eea5bae1-24cc-4d2a-b44c-5cfdf7b992e4`, messages 53169–53181. |
+| Distribution List / encrypted Public Group split | Current 2026-08-11 conversation; durable decisions in the two architecture records above and `memory/2026-08-11.md`. |
 
 Suggested ChatBank queries: `antenna HMAC v1.5`, `transport-first pairing`,
 and `group broadcast Antenna`. Some FTS queries are sensitive to hyphenated

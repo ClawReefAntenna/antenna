@@ -56,13 +56,22 @@ Add the optional signed-body `[ANTENNA_META v=1]` preamble produced by
 peer IDs. Add reply-all to configured peers plus manual credential-free list
 export/import. No group ID, revision, threading, or synchronization.
 
+### PUB-001 — Public Group relay protocol and feasibility spike
+
+May begin only after signed unicast and Distribution Lists are stable. Fix the
+bounded API/wire contract in
+`references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md` and demonstrate with
+fixtures that one multi-recipient age ciphertext can be deterministically
+fanned out without a ClawReef model call. No real tokens or live delivery.
+
+### PUB-002 — Encrypted ClawReef Public Group relay
+
+May begin only after PUB-001 review. Implement the deterministic ClawReef API
+and bounded fan-out together with Antenna multi-recipient encryption/decryption.
+No plaintext mode, shared group key, message persistence, retries, receipts, or
+LLM relay logic.
+
 ## Blocked / Betty decision required
-
-### PUB-001 — Public Group architecture
-
-Public Groups require a separate decision about discovery, admission, delivery
-credentials, revocation, and OpenClaw's shared hook-token boundary. Do not treat
-Distribution Lists as implementation authority for Public Groups.
 
 ### ART-001 — Retention policy for ignored local artifacts
 
@@ -93,8 +102,17 @@ adapter without a concrete request.
 **Decision:** Private Groups are local, optionally shareable Distribution List
 aliases. `@alias` expands to ordinary unicasts. `--show-recipients` may add a
 lean signed-body metadata block with list name and peer IDs for recognition and
-reply-all. Public Groups remain a separate blocked architecture question.
+reply-all. Public Groups require a separate architecture decision rather than
+an extension of Distribution Lists; that decision is recorded below.
 **Record:** `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`.
+**Authorization:** Corey approved the direction on 2026-08-11.
+
+### ARCH-PUB-001 — Choose encrypted ClawReef relay for Public Groups
+
+**Decision:** senders upload one signed, multi-recipient age ciphertext plus a
+group ID; ClawReef deterministically fans the same ciphertext out using member
+hook tokens held only by ClawReef. Public Groups have no plaintext mode.
+**Record:** `references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md`.
 **Authorization:** Corey approved the direction on 2026-08-11.
 
 ### DOC-001 — Rationalize the v1.5.2 documentation baseline

@@ -13,11 +13,15 @@
 - The current release line retains plaintext runtime-secret authentication with
   constant-time comparison. It does not include `lib/antenna-hmac.sh`.
 - Group/broadcast messaging is proposed, not implemented. The controlling
-  tracked architecture is now
+  tracked architecture records are
   `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`. It separates
   local Distribution Lists from future Public Groups: `@alias` is only a local
-  fan-out shorthand, optional visible recipients live in a signed body preamble,
-  and Public Group architecture remains deferred.
+  fan-out shorthand and optional visible recipients live in a signed body
+  preamble. `references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md` defines
+  Public Groups separately: one signed multi-recipient age ciphertext is
+  submitted to a deterministic ClawReef relay, which holds member hook tokens
+  and fans out without a ClawReef model call. No plaintext Public Group mode is
+  planned.
 
 ## Historical branches and notes
 
@@ -33,6 +37,9 @@
 Implement the bounded SIG-001 signed-unicast vertical slice. Stop for complexity
 and security review before legacy migration, Distribution Lists, or Public
 Group/ClawReef work.
+
+Public Group work additionally requires the bounded PUB-001 API/wire
+specification and feasibility spike before an implementation branch is opened.
 
 The completed HMAC-minimal branch is retained as
 `archive/hmac-minimal-study`; it is evidence and a source of selectively

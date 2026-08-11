@@ -149,16 +149,15 @@ credentials, has no synchronization or revision protocol, and remains a local
 snapshot after import. An alias collision requires an explicit rename or
 replacement choice.
 
-## Public Groups: separate design boundary
+## Public Groups: separate architecture
 
-Public Groups are not Distribution Lists with wider membership. They require a
-separate decision about discovery, admission, delivery credentials, revocation,
-and the trust implications of OpenClaw's single shared `hooks.token`.
-
-No Public Group manifest, group identifier, membership synchronization,
-threading, reply-to-group protocol, or ClawReef delivery integration is approved
-by this record. Public Group work remains deferred until signed unicast and
-Distribution Lists are stable and a concrete ingress/trust model is approved.
+Public Groups are not Distribution Lists with wider membership. Their approved
+architecture is recorded separately in
+`references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md`: ClawReef holds member
+delivery credentials and deterministically fans one multi-recipient-encrypted
+ciphertext out to current members. Public Group implementation remains gated
+until signed unicast and Distribution Lists are stable and the bounded wire/API
+specification is complete.
 
 ## Implementation sequence
 
@@ -166,7 +165,9 @@ Distribution Lists are stable and a concrete ingress/trust model is approved.
 2. Add explicit `plaintext-legacy` migration support.
 3. Add local `@alias` Distribution List fan-out for existing paired peers.
 4. Add optional `--show-recipients`, reply-all, and manual list export/import.
-5. Stop for a separate Public Group architecture decision.
+5. Complete the bounded Public Group relay protocol specification.
+6. Implement the ClawReef relay and multi-recipient encryption together; never
+   expose a plaintext Public Group mode.
 
 Each step is a vertical slice with a complexity review before the next begins.
 

@@ -2,7 +2,7 @@
 
 **Maintainer baseline:** 2026-08-08  
 **Checked-out baseline:** `v1.5.2`, commit `6f48bec` (`local-v1.4` / public `origin/main`)  
-**Development branch:** `dev/antenna-next`
+**Development branch:** `dev/signature-minimal`
 
 ## Current truth
 
@@ -13,8 +13,10 @@
 - The current release line retains plaintext runtime-secret authentication with
   constant-time comparison. It does not include `lib/antenna-hmac.sh`.
 - Group/broadcast messaging is proposed, not implemented. The controlling
-  design record is local `docs/broadcast-design.md`; it supersedes the older
-  FSD group/cluster proposal.
+  tracked architecture is now
+  `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`; it refines the
+  older local `docs/broadcast-design.md` with asymmetric identity, signed group
+  manifests, threading, and explicit reply-to-group semantics.
 
 ## Historical branches and notes
 
@@ -27,16 +29,14 @@
 
 ## First maintenance objective
 
-Create an evidence-backed rationalization plan before changing behavior:
+Implement the bounded SIG-001 signed-unicast vertical slice. Stop for complexity
+and security review before legacy migration, group fan-out, or ClawReef work.
 
-1. inventory current documentation and generated/runtime artifacts;
-2. classify each as current, historical, stale-but-retain, or removable only
-   after an approved retention decision;
-3. reconcile version, relay-contract, HMAC, and test-suite claims;
-4. convert the live REF ledger into a verified active backlog;
-5. present the HMAC path as a deliberate decision gate, not an implicit merge.
+The completed HMAC-minimal branch is retained as
+`archive/hmac-minimal-study`; it is evidence and a source of selectively
+reusable parser/replay tests, not the release architecture.
 
 ## Release boundary
 
-Local commits may be prepared on `dev/antenna-next`. Betty owns pushes, tags,
+Local commits may be prepared on `dev/signature-minimal`. Betty owns pushes, tags,
 GitHub Releases, ClawHub publication, and any public announcement.

@@ -2,14 +2,14 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** context and decision record; verify against code before acting
+**Status:** signature architecture approved; SIG-001 is the sole active item
 
 ## The one-sentence picture
 
-Antenna v1.5.2 is a published, script-first inter-host relay with a
-transport-first pairing wizard; its documentation and ignored development notes
-now need reconciliation before security work, HMAC revival, or group broadcast
-work resumes.
+Antenna v1.5.2 is the published plaintext-authentication baseline. New work on
+`dev/signature-minimal` moves directly to Ed25519 sender signatures and uses
+verified group manifests for one-to-many fan-out and group replies; HMAC-minimal
+is preserved but will not be an intermediate public protocol.
 
 ## Verified release timeline
 
@@ -35,7 +35,7 @@ branch called `v1.5` is part of it: it is a divergent historical line.
 - `age` is used for encrypted bootstrap exchange. That protects onboarding
  artifacts; it is distinct from per-message HMAC or message encryption.
 
-## The HMAC fork: important, not shipped
+## HMAC studies: preserved, not selected
 
 Historical branch `v1.5` contains:
 
@@ -49,34 +49,49 @@ over a canonical envelope. It introduced `secret_mode` and a compatibility
 bridge: plaintext-mode receivers could recognize HMAC-shaped values, whereas
 strict HMAC mode rejected plaintext.
 
-It was never merged into the v1.5.2 lineage. Treat it as a decision gate:
-
-1. re-evaluate the design and migration/symmetric-peer requirements;
-2. port only intentional pieces to a fresh branch from v1.5.2;
-3. write cross-version and cross-host tests before calling it a release;
-4. update every security/version claim only after code and tests agree.
-
-Do not “merge the old HMAC branch” wholesale.
+It was never merged into the v1.5.2 lineage. A later minimal implementation was
+completed and validated on `dev/hmac-minimal`, then preserved at
+`archive/hmac-minimal-study`. Corey and Betty decided not to publish HMAC as an
+intermediate protocol because Ed25519 sender identity is the intended unicast
+and broadcast foundation. Reuse only generally applicable parser, canonical
+byte, replay, and test concepts; do not merge either HMAC line wholesale.
 
 ## Design decisions already made
 
+### Identity authentication
+
+The controlling record is
+`references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`:
+
+- dedicated Ed25519 identity keys sign messages;
+- age/X25519 keys remain separate for encrypted exchange/encryption;
+- modern peers exchange public keys, not runtime identity secrets;
+- exactly two modes are permitted: `ed25519-v1` and warned
+  `plaintext-legacy`;
+- migration is coordinated and manual; there is no HMAC compatibility layer,
+  negotiation, automated rotation, or rollback protocol.
+
 ### Groups / broadcast
 
-The current design record is local `docs/broadcast-design.md` (2026-05-18):
+The May local `docs/broadcast-design.md` remains historical input. The tracked
+August architecture refines it:
 
-- broadcasts are discrete, fire-and-forget events;
-- the sending side expands a group to individual normal Antenna sends;
-- `CC` carries `group: <name>`, not every member;
-- replies resolve current group membership directly; no origin-coordinated
-  rebroadcast and no thread/broadcast/group-version machinery in this phase;
-- groups are local JSON files, sourced either locally or from ClawReef.
+- broadcasts remain discrete sender-side fan-out, not a central relay;
+- a stable signed `group_id` and manifest revision replace recipient-list CC;
+- every member caches a ClawReef-signed manifest containing current endpoints
+  and public keys;
+- recipients explicitly choose reply-to-sender or reply-to-group;
+- reply-to-group preserves thread linkage but resolves the current verified
+  membership, excluding removed members and allowing later members to receive
+  subsequent replies;
+- ClawReef distributes manifests but is not in the message path.
 
 The old group/cluster sections in `references/ANTENNA-RELAY-FSD.md` are
 superseded by that design record. Group work remains proposed, not implemented.
 
 ### Release authority
 
-You may prepare local commits on `dev/antenna-next`. Betty owns remote pushes,
+You may prepare local commits on `dev/signature-minimal`. Betty owns remote pushes,
 tags, GitHub Releases, ClawHub publishing, and public statements.
 
 ## Documentation and artifact reality
@@ -105,12 +120,13 @@ Specific concerns to resolve during the first read-only report:
 
 ## Recommended work order
 
-1. Deliver an evidence-backed, read-only baseline/rationalization report.
-2. Make a docs-only rationalization commit: version/contract truth, document
-   map and file-manifest update, active-vs-historical ledger split.
-3. Choose one security/operability tranche from the verified backlog.
-4. Hold an explicit HMAC decision review before implementing it.
-5. Start broadcast work only after the transport/security baseline is stable.
+1. Complete SIG-001 signed unicast as a bounded vertical slice.
+2. Stop for complexity and independent security review.
+3. Add explicit plaintext-legacy migration only after SIG-001 clears.
+4. Add local sender-side broadcast fan-out.
+5. Add signed group-manifest and reply-to-group semantics.
+6. Add recipient-specific age encryption and ClawReef manifest refresh only
+   after the simpler group path is stable.
 
 ## Retrieval anchors
 

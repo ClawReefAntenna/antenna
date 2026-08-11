@@ -18,6 +18,10 @@ CONFIG_FILE="$SKILL_DIR/antenna-config.json"
 source "$SKILL_DIR/lib/peers.sh"
 # shellcheck source=../lib/config.sh
 source "$SKILL_DIR/lib/config.sh"
+# shellcheck source=../lib/antenna-signature.sh
+source "$SKILL_DIR/lib/antenna-signature.sh"
+# shellcheck source=../lib/antenna-replay.sh
+source "$SKILL_DIR/lib/antenna-replay.sh"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -99,93 +103,34 @@ log_entry() {
   echo "[$ts] $*" >> "$log_path"
 }
 
-# ── Read input ───────────────────────────────────────────────────────────────
+# ── Strict byte-preserving parse ────────────────────────────────────────────
 
-if [[ "${1:-}" == "--stdin" ]]; then
-  RAW_MESSAGE=$(cat)
-elif [[ $# -ge 1 ]]; then
-  RAW_MESSAGE="$1"
-else
-  json_malformed "No input provided"
+if ! command -v python3 >/dev/null 2>&1; then
+  json_reject "Signed-message parser unavailable"
   exit 0
 fi
-
-# ── Detect envelope markers ─────────────────────────────────────────────────
-
-if ! echo "$RAW_MESSAGE" | grep -q '\[ANTENNA_RELAY\]'; then
-  json_malformed "No [ANTENNA_RELAY] envelope detected"
-  log_entry "INBOUND  | status:MALFORMED (no envelope markers)"
+RAW_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-envelope.XXXXXX") || exit 1
+BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-body.XXXXXX") || exit 1
+CANONICAL_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-canonical.XXXXXX") || exit 1
+chmod 0600 "$RAW_FILE" "$BODY_FILE" "$CANONICAL_FILE"
+trap 'rm -f "$RAW_FILE" "$BODY_FILE" "$CANONICAL_FILE"' EXIT
+if [[ "${1:-}" == "--stdin" ]]; then cat >"$RAW_FILE"
+elif [[ $# -ge 1 ]]; then printf '%s' "$1" >"$RAW_FILE"
+else json_malformed "No input provided"; exit 0
+fi
+if ! HEADERS_JSON=$(python3 "$SKILL_DIR/lib/antenna-envelope-parse.py" "$RAW_FILE" "$BODY_FILE" 2>&1); then
+  json_malformed "Invalid envelope grammar"
+  log_entry "INBOUND | status:MALFORMED (strict parser)"
   exit 0
 fi
-
-if ! echo "$RAW_MESSAGE" | grep -q '\[/ANTENNA_RELAY\]'; then
-  json_malformed "No closing [/ANTENNA_RELAY] marker"
-  log_entry "INBOUND  | status:MALFORMED (no closing marker)"
-  exit 0
-fi
-
-# Reject multiple envelope markers (collision/injection attempt)
-OPEN_COUNT=$(echo "$RAW_MESSAGE" | grep -o '\[ANTENNA_RELAY\]' | wc -l | tr -d ' ')
-CLOSE_COUNT=$(echo "$RAW_MESSAGE" | grep -o '\[/ANTENNA_RELAY\]' | wc -l | tr -d ' ')
-if [[ "$OPEN_COUNT" -ne 1 || "$CLOSE_COUNT" -ne 1 ]]; then
-  json_malformed "Multiple envelope markers detected"
-  log_entry "INBOUND  | status:MALFORMED (multiple envelope markers)"
-  exit 0
-fi
-
-# ── Extract envelope content ────────────────────────────────────────────────
-
-# Get everything between [ANTENNA_RELAY] and [/ANTENNA_RELAY]
-ENVELOPE=$(echo "$RAW_MESSAGE" | sed -n '/\[ANTENNA_RELAY\]/,/\[\/ANTENNA_RELAY\]/p' | sed '1d;$d')
-
-# ── Parse headers ────────────────────────────────────────────────────────────
-# Headers are key: value lines before the first blank line.
-# Body is everything after the first blank line.
-
-HEADERS=""
-BODY=""
-IN_BODY=false
-
-while IFS= read -r line; do
-  if [[ "$IN_BODY" == "true" ]]; then
-    if [[ -n "$BODY" ]]; then
-      BODY="${BODY}
-${line}"
-    else
-      BODY="$line"
-    fi
-  elif [[ -z "$line" ]]; then
-    IN_BODY=true
-  else
-    if [[ -n "$HEADERS" ]]; then
-      HEADERS="${HEADERS}
-${line}"
-    else
-      HEADERS="$line"
-    fi
-  fi
-done <<< "$ENVELOPE"
-
-# Extract individual header values
-get_header() {
-  echo "$HEADERS" | grep -i "^${1}:" | head -1 | sed "s/^${1}:[[:space:]]*//" || true
-}
-
-FROM=$(get_header "from")
-REPLY_TO=$(get_header "reply_to")
-TARGET_SESSION=$(get_header "target_session")
-TIMESTAMP=$(get_header "timestamp")
-SUBJECT=$(get_header "subject")
-USER_NAME=$(get_header "user")
-
-# ── Sanitize peer-supplied header values for safe logging/processing ────────
-# Strips control chars, newlines, and truncates to prevent log injection.
-FROM=$(sanitize_log_value "$FROM" 64)
-REPLY_TO=$(sanitize_log_value "$REPLY_TO" 256)
-TARGET_SESSION=$(sanitize_log_value "$TARGET_SESSION" 128)
-TIMESTAMP=$(sanitize_log_value "$TIMESTAMP" 32)
-SUBJECT=$(sanitize_log_value "$SUBJECT" 200)
-USER_NAME=$(sanitize_log_value "$USER_NAME" 64)
+header() { jq -r --arg k "$1" '.[$k] // empty' <<<"$HEADERS_JSON"; }
+PROTOCOL=$(header protocol); FROM=$(header from); TIMESTAMP=$(header timestamp)
+MESSAGE_ID=$(header message_id); SIGNATURE_HEADER=$(header signature)
+REPLY_TO=$(header reply_to); TARGET_SESSION=$(header target_session)
+SUBJECT=$(header subject); USER_NAME=$(header user)
+SIGNED_TARGET_SESSION="$TARGET_SESSION"
+# Preserve a terminal LF while importing the already validated UTF-8 body.
+BODY=$(cat "$BODY_FILE"; printf '\001'); BODY=${BODY%$'\001'}
 
 # ── REF-400: reject reserved envelope markers inside parsed values ──────────
 if [[ "$BODY" == *"[ANTENNA_RELAY]"* ]] || [[ "$BODY" == *"[/ANTENNA_RELAY]"* ]]; then
@@ -215,11 +160,21 @@ NONCE="${NONCE:--}"
 
 # ── Validate required fields ────────────────────────────────────────────────
 
-if [[ -z "$FROM" ]]; then
-  json_reject "Missing required field: from"
-  log_entry "INBOUND  | nonce:$NONCE | status:REJECTED (missing from)"
+if [[ "$PROTOCOL" != "antenna-ed25519-v1" ]]; then
+  json_reject "Unsupported or missing protocol" "${FROM:-unknown}"
   exit 0
 fi
+if [[ -z "$FROM" || -z "$TIMESTAMP" || -z "$MESSAGE_ID" || -z "$SIGNATURE_HEADER" ]]; then
+  json_reject "Signed envelope is missing a required field" "${FROM:-unknown}"
+  exit 0
+fi
+if [[ ! "$MESSAGE_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+  json_reject "Invalid message_id" "$FROM"; exit 0
+fi
+if [[ ! "$SIGNATURE_HEADER" =~ ^ed25519-v1:([A-Za-z0-9+/]{86}==)$ ]]; then
+  json_reject "Malformed Ed25519 signature" "$FROM"; exit 0
+fi
+SIGNATURE_VALUE="${BASH_REMATCH[1]}"
 
 if [[ -z "$TARGET_SESSION" ]]; then
   # Use default from config; if absent, build full key for main session
@@ -230,21 +185,41 @@ if [[ -z "$TARGET_SESSION" ]]; then
   fi
 fi
 
-if [[ -z "$TIMESTAMP" ]]; then
-  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-fi
-
 # ── REF-402: timestamp freshness window to limit replay exposure ───────────
+if [[ ! "$TIMESTAMP" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+  json_malformed "Invalid timestamp format"; exit 0
+fi
 TIMESTAMP_EPOCH=$(date -u -d "$TIMESTAMP" +%s 2>/dev/null || echo "")
 if [[ -z "$TIMESTAMP_EPOCH" ]]; then
   json_malformed "Invalid timestamp format"
   log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:MALFORMED (invalid timestamp)"
   exit 0
 fi
+if [[ "$(date -u -d "@$TIMESTAMP_EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" != "$TIMESTAMP" ]]; then
+  json_malformed "Invalid timestamp format"; exit 0
+fi
 
 NOW_EPOCH=$(date -u +%s)
-MAX_AGE_SECONDS=$(config_get '.security.max_message_age_seconds' '300')
-MAX_FUTURE_SKEW_SECONDS=$(config_get '.security.max_future_skew_seconds' '60')
+bounded_security_seconds() {
+  local key="$1" default="$2" maximum="$3"
+  jq -er --arg key "$key" --argjson default "$default" --argjson maximum "$maximum" '
+    if has("security") then
+      if (.security | type) != "object" then error("security must be an object")
+      elif (.security | has($key)) then
+        .security[$key] as $value |
+        if (($value | type) == "number" and ($value | floor) == $value and
+            $value >= 0 and $value <= $maximum)
+        then ($value | tostring) else error("invalid bounded integer") end
+      else ($default | tostring) end
+    else ($default | tostring) end
+  ' "$CONFIG_FILE" 2>/dev/null
+}
+if ! MAX_AGE_SECONDS=$(bounded_security_seconds max_message_age_seconds 300 604800) ||
+   ! MAX_FUTURE_SKEW_SECONDS=$(bounded_security_seconds max_future_skew_seconds 60 3600); then
+  json_reject "Invalid freshness configuration" "$FROM"
+  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid freshness configuration)"
+  exit 0
+fi
 AGE_SECONDS=$((NOW_EPOCH - TIMESTAMP_EPOCH))
 FUTURE_SKEW_SECONDS=$((TIMESTAMP_EPOCH - NOW_EPOCH))
 
@@ -262,13 +237,14 @@ fi
 
 # ── Validate sender against allowed inbound peers ───────────────────────────
 
-ALLOWED=$(jq -r --arg from "$FROM" '
-  .allowed_inbound_peers // [] | if (. | length) == 0 then "allowed"
+ALLOWED=$(jq -er --arg from "$FROM" '
+  (.allowed_inbound_peers // []) | if type != "array" then error("invalid inbound allowlist")
+  elif length == 0 then "allowed"
   elif (. | index($from)) then "allowed"
   else "denied" end
-' "$CONFIG_FILE" 2>/dev/null || echo "allowed")
+' "$CONFIG_FILE" 2>/dev/null || echo "invalid")
 
-if [[ "$ALLOWED" == "denied" ]]; then
+if [[ "$ALLOWED" != "allowed" ]]; then
   json_reject "Unknown or disallowed sender: $FROM" "$FROM"
   log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (not in allowed_inbound_peers)"
   exit 0
@@ -281,52 +257,26 @@ if ! peers_exists "$FROM"; then
   exit 0
 fi
 
-# ── Per-peer authentication ──────────────────────────────────────────────────
-# If the claimed sender has a peer_secret_file configured, we REQUIRE a matching
-# auth: header. This binds identity to a shared secret — the from: field alone
-# is no longer sufficient.
-
-AUTH_HEADER=$(get_header "auth")
-AUTH_HEADER=$(sanitize_log_value "$AUTH_HEADER" 128)
-
-EXPECTED_SECRET_FILE=$(peers_get "$FROM" peer_secret_file)
-if [[ -n "$EXPECTED_SECRET_FILE" ]]; then
-  # Resolve relative paths against skill dir
-  if [[ "$EXPECTED_SECRET_FILE" != /* ]]; then
-    EXPECTED_SECRET_FILE="$SKILL_DIR/$EXPECTED_SECRET_FILE"
-  fi
-
-  if [[ ! -f "$EXPECTED_SECRET_FILE" ]]; then
-    # Secret file configured but missing — fail closed
-    json_reject "Peer auth configured but secret file missing for: $FROM" "$FROM"
-    log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (peer secret file missing)"
-    exit 0
-  fi
-
-  EXPECTED_SECRET=$(tr -d '[:space:]' < "$EXPECTED_SECRET_FILE")
-
-  if [[ -z "$AUTH_HEADER" ]]; then
-    json_reject "Peer auth required but no auth header provided (from: $FROM)" "$FROM"
-    log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (missing auth header)"
-    exit 0
-  fi
-
-  if ! secret_equal_constant_time "$AUTH_HEADER" "$EXPECTED_SECRET"; then
-    # Diagnostic: provide actionable detail without exposing actual secrets
-    auth_hint="${AUTH_HEADER:0:6}...${AUTH_HEADER: -4}"
-    expected_hint="${EXPECTED_SECRET:0:6}...${EXPECTED_SECRET: -4}"
-    diag_msg="Peer auth failed: invalid secret (from: $FROM). Received prefix/suffix: ${auth_hint}, expected prefix/suffix: ${expected_hint}. Likely cause: peer secrets are out of sync. Fix: re-run 'antenna peers exchange' between hosts to resync, or verify peer_secret_file points to the correct file on both sides."
-    json_reject "Peer auth failed: invalid secret (from: $FROM)" "$FROM"
-    log_entry "INBOUND  | from:$FROM | nonce:$NONCE | status:REJECTED (invalid peer secret) | hint:received=${auth_hint} expected=${expected_hint} | fix:resync peer secrets via 'antenna peers exchange'"
-    exit 0
-  fi
-
-  log_entry "INBOUND  | from:$FROM | peer_auth:verified"
-else
-  # No per-peer secret configured — warn but allow (backward compat / migration)
-  if [[ -n "$AUTH_HEADER" ]]; then
-    log_entry "INBOUND  | from:$FROM | peer_auth:ignored (no secret configured, auth header present)"
-  fi
+# ── Pinned Ed25519 authentication ───────────────────────────────────────────
+AUTH_MODE=$(peers_get "$FROM" auth_mode)
+if [[ "$AUTH_MODE" != "ed25519-v1" ]]; then
+  json_reject "Peer is not configured for ed25519-v1" "$FROM"
+  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (peer not ed25519-v1)"
+  exit 0
+fi
+PUBLIC_KEY_FILE=$(peers_get "$FROM" signing_public_key_file)
+[[ -n "$PUBLIC_KEY_FILE" && "$PUBLIC_KEY_FILE" != /* ]] && PUBLIC_KEY_FILE="$SKILL_DIR/$PUBLIC_KEY_FILE"
+if ! signature_public_key_ok "$PUBLIC_KEY_FILE"; then
+  json_reject "Pinned Ed25519 public key is missing or invalid" "$FROM"
+  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 public key)"
+  exit 0
+fi
+signature_canonical_file "$CANONICAL_FILE" "$PROTOCOL" "$FROM" "$TIMESTAMP" "$MESSAGE_ID" \
+  "$SIGNED_TARGET_SESSION" "$USER_NAME" "$REPLY_TO" "$SUBJECT" "$BODY_FILE" || { json_reject "Could not construct canonical message" "$FROM"; exit 0; }
+if ! signature_verify "$PUBLIC_KEY_FILE" "$CANONICAL_FILE" "$SIGNATURE_VALUE"; then
+  json_reject "Ed25519 signature verification failed" "$FROM"
+  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 signature)"
+  exit 0
 fi
 
 # ── Rate limiting ────────────────────────────────────────────────────────────
@@ -425,6 +375,23 @@ session_allowed() {
 if ! session_allowed "$TARGET_SESSION"; then
   json_reject "Session target '$TARGET_SESSION' not in allowed_inbound_sessions" "$FROM"
   log_entry "INBOUND  | from:$FROM | session:$TARGET_SESSION | nonce:$NONCE | status:REJECTED (session not allowed)"
+  exit 0
+fi
+
+# Reserve only policy-admissible, authenticated messages. Persist before
+# queue/delivery so a retry cannot bypass exact replay rejection.
+REPLAY_CACHE="$SKILL_DIR/state/antenna-replay.json"
+if replay_reserve "$REPLAY_CACHE" "$((MAX_AGE_SECONDS + MAX_FUTURE_SKEW_SECONDS + 1))" 10000 "$FROM" "$MESSAGE_ID"; then
+  log_entry "INBOUND | from:$FROM | peer_auth:verified | message_id:$MESSAGE_ID"
+else
+  replay_rc=$?
+  if [[ "$replay_rc" -eq 2 ]]; then
+    json_reject "Replay detected" "$FROM"
+    log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (replay detected)"
+  else
+    json_reject "Replay protection unavailable" "$FROM"
+    log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (replay protection unavailable)"
+  fi
   exit 0
 fi
 

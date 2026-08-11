@@ -2,7 +2,7 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** signature architecture approved; SIG-001 is the sole active item
+**Status:** SIG-001 core implemented and verified; independent review pending
 
 ## The one-sentence picture
 

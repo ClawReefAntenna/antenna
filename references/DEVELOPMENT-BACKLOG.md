@@ -35,6 +35,13 @@ lines beyond baseline.
 freshness, replay, missing-key, and wrong-key tests; Tier A; independent review;
 no public claims.
 
+**Progress (2026-08-11):** core implementation and deterministic validation are
+complete. Focused Ed25519 tests pass 35/35, hermetic Tier A passes 20/20, and
+all 20 deterministic test scripts pass in an isolated seeded skill copy. The
+runtime delta is approximately +180 net lines. Independent security review is
+the remaining SIG-001 gate; pairing/setup integration and live-host work have
+not begun. See `references/SIG-001-IMPLEMENTATION-REPORT.md`.
+
 ## Ready
 
 ### SIG-002 — Explicit plaintext-legacy migration

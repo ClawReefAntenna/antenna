@@ -33,6 +33,8 @@ CONFIG_FILE="$SKILL_DIR/antenna-config.json"
 source "$SKILL_DIR/lib/peers.sh"
 # shellcheck source=../lib/config.sh
 source "$SKILL_DIR/lib/config.sh"
+# shellcheck source=../lib/antenna-signature.sh
+source "$SKILL_DIR/lib/antenna-signature.sh"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,7 +73,6 @@ log_entry() {
 # ── Parse arguments ─────────────────────────────────────────────────────────
 
 PEER=""
-MESSAGE=""
 SESSION=""
 SUBJECT=""
 REPLY_TO_OVERRIDE=""
@@ -103,14 +104,26 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Get message from positional args or stdin
+# Stage exact body bytes. Command substitution would discard terminal LFs.
+command -v python3 &>/dev/null || die "python3 not found — required for signed message handling" 1
+BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-send-body.XXXXXX") || die "Could not create body file" 1
+CANONICAL_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-send-canonical.XXXXXX") || { rm -f "$BODY_FILE"; die "Could not create canonical file" 1; }
+ENVELOPE_FILE=$(mktemp "${TMPDIR:-/tmp}/antenna-send-envelope.XXXXXX") || { rm -f "$BODY_FILE" "$CANONICAL_FILE"; die "Could not create envelope file" 1; }
+chmod 0600 "$BODY_FILE" "$CANONICAL_FILE" "$ENVELOPE_FILE"
+trap 'rm -f "$BODY_FILE" "$CANONICAL_FILE" "$ENVELOPE_FILE"' EXIT
 if [[ "$READ_STDIN" == "true" ]]; then
-  MESSAGE=$(cat)
+  cat >"$BODY_FILE"
 elif [[ ${#POSITIONAL[@]} -gt 0 ]]; then
-  MESSAGE="${POSITIONAL[*]}"
+  printf '%s' "${POSITIONAL[*]}" >"$BODY_FILE"
 else
   die "No message provided. Use positional arg or --stdin." 1
 fi
+python3 - "$BODY_FILE" <<'PY' || die "Message body must be valid UTF-8 without NUL bytes" 2
+import pathlib, sys
+data = pathlib.Path(sys.argv[1]).read_bytes()
+assert b"\0" not in data
+data.decode("utf-8")
+PY
 
 # ── Dependency check ────────────────────────────────────────────────────────
 
@@ -120,6 +133,9 @@ fi
 
 if ! command -v curl &>/dev/null; then
   die "curl not found — required for HTTP requests" 1
+fi
+if ! command -v openssl &>/dev/null; then
+  die "openssl not found — required for Ed25519 signatures" 1
 fi
 
 # ── Load peer config ────────────────────────────────────────────────────────
@@ -154,25 +170,32 @@ MAX_LEN=$(config_max_message_length)
 TARGET_SESSION="$SESSION"
 
 # Check allowed outbound peers
-ALLOWED=$(jq -r --arg peer "$PEER" '
-  .allowed_outbound_peers // [] | if (. | length) == 0 then "allowed"
+ALLOWED=$(jq -er --arg peer "$PEER" '
+  (.allowed_outbound_peers // []) | if type != "array" then error("invalid outbound allowlist")
+  elif length == 0 then "allowed"
   elif (. | index($peer)) then "allowed"
   else "denied" end
-' "$CONFIG_FILE" 2>/dev/null || echo "allowed")
+' "$CONFIG_FILE" 2>/dev/null || echo "invalid")
 
-if [[ "$ALLOWED" == "denied" ]]; then
+if [[ "$ALLOWED" != "allowed" ]]; then
   die "Peer '$PEER' is not in allowed_outbound_peers" 1
 fi
 
 # ── Validate message length ─────────────────────────────────────────────────
 
-MSG_LEN=${#MESSAGE}
+MSG_LEN=$(python3 - "$BODY_FILE" <<'PY'
+import pathlib, sys
+print(len(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")))
+PY
+)
 if [[ "$MSG_LEN" -gt "$MAX_LEN" ]]; then
   die "Message exceeds max length ($MSG_LEN > $MAX_LEN chars)" 2
 fi
 
 # ── REF-400: reject envelope markers in user-controlled fields ──────────────
-assert_no_envelope_markers "message body" "$MESSAGE"
+if grep -aFq '[ANTENNA_RELAY]' "$BODY_FILE" || grep -aFq '[/ANTENNA_RELAY]' "$BODY_FILE"; then
+  die "message body contains reserved envelope marker ([ANTENNA_RELAY] or [/ANTENNA_RELAY]); refuse to send" 2
+fi
 assert_no_envelope_markers "--subject" "$SUBJECT"
 assert_no_envelope_markers "--user" "$USER_NAME"
 assert_no_envelope_markers "--reply-to" "$REPLY_TO_OVERRIDE"
@@ -186,67 +209,55 @@ SELF_URL=$(peers_self_url)
 if [[ -z "$SELF_ID" ]]; then
   die "No self peer configured in antenna-peers.json (.self == true). Refusing to guess sender identity from hostname; run 'antenna setup' or repair the self peer entry." 1
 fi
+AUTH_MODE=$(peers_get "$PEER" auth_mode)
+[[ "$AUTH_MODE" == "ed25519-v1" ]] || die "Peer '$PEER' is not configured for ed25519-v1" 1
 
 REPLY_TO="${REPLY_TO_OVERRIDE:-${SELF_URL:+${SELF_URL}/hooks/agent}}"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# ── Load per-peer auth secret (if configured) ──────────────────────────────
-# The SELF peer's secret is what we include in outbound messages so the
-# recipient can verify our identity.
-SELF_SECRET=""
-SELF_SECRET_FILE=$(peers_get "$SELF_ID" peer_secret_file)
-if [[ -n "$SELF_SECRET_FILE" ]]; then
-  # Resolve relative paths against skill dir
-  if [[ "$SELF_SECRET_FILE" != /* ]]; then
-    SELF_SECRET_FILE="$SKILL_DIR/$SELF_SECRET_FILE"
-  fi
-  if [[ -f "$SELF_SECRET_FILE" ]]; then
-    SELF_SECRET=$(tr -d '[:space:]' < "$SELF_SECRET_FILE")
-  fi
-fi
+# ── Load local signing identity ─────────────────────────────────────────────
+PRIVATE_KEY_FILE=$(peers_get "$SELF_ID" signing_private_key_file)
+[[ -n "$PRIVATE_KEY_FILE" && "$PRIVATE_KEY_FILE" != /* ]] && PRIVATE_KEY_FILE="$SKILL_DIR/$PRIVATE_KEY_FILE"
+signature_private_key_ok "$PRIVATE_KEY_FILE" || die "Self peer has missing, unsafe, or invalid Ed25519 private key" 1
+MESSAGE_ID=$(signature_uuid_v4) || die "Could not generate message ID" 1
+PROTOCOL="antenna-ed25519-v1"
+
+signature_canonical_file "$CANONICAL_FILE" "$PROTOCOL" "$SELF_ID" "$TIMESTAMP" "$MESSAGE_ID" \
+  "$TARGET_SESSION" "$USER_NAME" "$REPLY_TO" "$SUBJECT" "$BODY_FILE" || die "Could not construct canonical message" 1
+SIGNATURE=$(signature_sign "$PRIVATE_KEY_FILE" "$CANONICAL_FILE") || die "Could not sign message" 1
 
 # ── Build envelope ──────────────────────────────────────────────────────────
 
-ENVELOPE="[ANTENNA_RELAY]
-from: ${SELF_ID}
-timestamp: ${TIMESTAMP}"
+{
+printf '[ANTENNA_RELAY]\nprotocol: %s\nfrom: %s\ntimestamp: %s\nmessage_id: %s\n' \
+  "$PROTOCOL" "$SELF_ID" "$TIMESTAMP" "$MESSAGE_ID"
 
 # Only include target_session if explicitly specified via --session.
 # Otherwise, the recipient resolves it from their own config.
 if [[ -n "$TARGET_SESSION" ]]; then
-  ENVELOPE="${ENVELOPE}
-target_session: ${TARGET_SESSION}"
-fi
-
-if [[ -n "$SELF_SECRET" ]]; then
-  ENVELOPE="${ENVELOPE}
-auth: ${SELF_SECRET}"
+  printf 'target_session: %s\n' "$TARGET_SESSION"
 fi
 
 if [[ -n "$USER_NAME" ]]; then
-  ENVELOPE="${ENVELOPE}
-user: ${USER_NAME}"
+  printf 'user: %s\n' "$USER_NAME"
 fi
 
 if [[ -n "$REPLY_TO" ]]; then
-  ENVELOPE="${ENVELOPE}
-reply_to: ${REPLY_TO}"
+  printf 'reply_to: %s\n' "$REPLY_TO"
 fi
 
 if [[ -n "$SUBJECT" ]]; then
-  ENVELOPE="${ENVELOPE}
-subject: ${SUBJECT}"
+  printf 'subject: %s\n' "$SUBJECT"
 fi
-
-ENVELOPE="${ENVELOPE}
-
-${MESSAGE}
-[/ANTENNA_RELAY]"
+printf 'signature: ed25519-v1:%s\n\n' "$SIGNATURE"
+cat "$BODY_FILE"
+printf '\n[/ANTENNA_RELAY]'
+} >"$ENVELOPE_FILE"
 
 # ── Build POST payload ──────────────────────────────────────────────────────
 
 PAYLOAD=$(jq -n \
-  --arg msg "$ENVELOPE" \
+  --rawfile msg "$ENVELOPE_FILE" \
   --arg agent "$PEER_AGENT" \
   --arg sk "hook:antenna" \
   --arg name "Antenna/${SELF_ID}" \
@@ -256,7 +267,8 @@ PAYLOAD=$(jq -n \
 
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "=== ENVELOPE ==="
-  echo "$ENVELOPE"
+  cat "$ENVELOPE_FILE"
+  echo
   echo ""
   echo "=== POST PAYLOAD ==="
   echo "$PAYLOAD" | jq .

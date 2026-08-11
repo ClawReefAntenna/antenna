@@ -5,6 +5,7 @@ test-results/
 antenna-config.json
 antenna-peers.json
 antenna-inbox.json
+state/
 
 # Secrets — never commit
 **/secrets/

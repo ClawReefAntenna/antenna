@@ -260,7 +260,8 @@ echo ""
 echo "── REF-2003 case 7: loose file perms (644) are flagged ────────────────"
 setup_skill_dir case7
 # Clean, registered peer secret but with perms 644 instead of 600.
-install -m 644 /dev/stdin "$SKILL_DIR/secrets/hooks_token_alice" <<<"leaky"
+printf '%s\n' leaky >"$SKILL_DIR/secrets/hooks_token_alice"
+chmod 644 "$SKILL_DIR/secrets/hooks_token_alice"
 
 out="$(run_doctor)"
 sec="$(extract_hygiene_section "$out")"

@@ -20,6 +20,7 @@ SECRETS_DIR="$SKILL_DIR/secrets"
 LOG_FILE="$SKILL_DIR/antenna.log"
 RATE_FILE="$SKILL_DIR/antenna-ratelimit.json"
 TEST_RESULTS_DIR="$SKILL_DIR/test-results"
+STATE_DIR="$SKILL_DIR/state"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -58,6 +59,7 @@ What it removes by default:
   - antenna-peers.json
   - antenna.log and rotated antenna.log.*
   - antenna-ratelimit.json
+  - state/ (replay cache)
   - test-results/
   - Antenna-owned secrets under skills/antenna/secrets/
   - Antenna agent/hooks entries from gateway config (unless --keep-gateway-config)
@@ -251,6 +253,7 @@ echo "  - $CONFIG_FILE"
 echo "  - $PEERS_FILE"
 echo "  - $LOG_FILE and rotated logs"
 echo "  - $RATE_FILE"
+echo "  - $STATE_DIR"
 echo "  - $TEST_RESULTS_DIR"
 echo "  - $SECRETS_DIR"
 if [[ "$PURGE_SKILL_DIR" == true ]]; then
@@ -277,6 +280,7 @@ fi
 remove_if_exists "$CONFIG_FILE"
 remove_if_exists "$PEERS_FILE"
 remove_if_exists "$RATE_FILE"
+remove_if_exists "$STATE_DIR"
 remove_if_exists "$TEST_RESULTS_DIR"
 remove_if_exists "$SECRETS_DIR"
 

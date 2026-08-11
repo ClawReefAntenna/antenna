@@ -650,6 +650,7 @@ antenna.log.*
 test-results/
 antenna-config.json
 antenna-peers.json
+state/
 
 # Secrets — never commit
 **/secrets/

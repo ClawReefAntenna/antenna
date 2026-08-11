@@ -21,6 +21,8 @@ AGENT_INSTRUCTIONS="$SKILL_DIR/agent/AGENTS.md"
 source "$SKILL_DIR/lib/peers.sh"
 # shellcheck source=../lib/config.sh
 source "$SKILL_DIR/lib/config.sh"
+# shellcheck source=../lib/antenna-signature.sh
+source "$SKILL_DIR/lib/antenna-signature.sh"
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -575,51 +577,61 @@ run_tier_a() {
   fi
 
   local tests_run=0
-  local inbox_file="" inbox_backup="" rate_file="" rate_backup="" orig_config_conc=""
+  local inbox_file="" inbox_backup="" rate_file="" rate_backup="" replay_file="" replay_backup="" orig_config_conc=""
 
   cleanup_tier_a_state() {
     [[ -n "$inbox_backup" && -f "$inbox_backup" && -n "$inbox_file" ]] && cp "$inbox_backup" "$inbox_file"
     [[ -n "$rate_backup" && -f "$rate_backup" && -n "$rate_file" ]] && cp "$rate_backup" "$rate_file"
+    [[ -n "$replay_backup" && -f "$replay_backup" && -n "$replay_file" ]] && cp "$replay_backup" "$replay_file"
     [[ -n "$orig_config_conc" ]] && echo "$orig_config_conc" > "$SKILL_DIR/antenna-config.json"
     [[ -n "$inbox_backup" ]] && rm -f "$inbox_backup"
     [[ -n "$rate_backup" ]] && rm -f "$rate_backup"
+    [[ -n "$replay_backup" ]] && rm -f "$replay_backup"
   }
 
   trap cleanup_tier_a_state RETURN
 
-  # Load self-peer's auth secret for inclusion in valid test envelopes
-  local SELF_SECRET="" SELF_SECRET_FILE=""
-  SELF_SECRET_FILE=$(peers_get "$SELF_PEER" peer_secret_file)
-  if [[ -n "$SELF_SECRET_FILE" ]]; then
-    if [[ "$SELF_SECRET_FILE" != /* ]]; then
-      SELF_SECRET_FILE="$SKILL_DIR/$SELF_SECRET_FILE"
-    fi
-    if [[ -f "$SELF_SECRET_FILE" ]]; then
-      SELF_SECRET=$(tr -d '[:space:]' < "$SELF_SECRET_FILE")
-    fi
+  local SELF_PRIVATE
+  SELF_PRIVATE=$(peers_get "$SELF_PEER" signing_private_key_file)
+  [[ -n "$SELF_PRIVATE" && "$SELF_PRIVATE" != /* ]] && SELF_PRIVATE="$SKILL_DIR/$SELF_PRIVATE"
+  if ! signature_private_key_ok "$SELF_PRIVATE"; then
+    fail "A.0" "Self Ed25519 private key is missing or invalid" "Check signing_private_key_file" ""
+    return
   fi
-  local AUTH_LINE=""
-  if [[ -n "$SELF_SECRET" ]]; then
-    AUTH_LINE="auth: ${SELF_SECRET}"
-  fi
+  replay_file="$SKILL_DIR/state/antenna-replay.json"
+  replay_backup=$(mktemp)
+  cp "$replay_file" "$replay_backup" 2>/dev/null || printf '{"entries":[]}\n' >"$replay_backup"
+  rm -f "$replay_file"
 
   # Helper: build a valid envelope with auth header included when available
   CURRENT_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
   build_envelope() {
     local from="$1" session="$2" timestamp="$3" body="$4" extra_headers="${5:-}"
-    local env="[ANTENNA_RELAY]
-from: ${from}
-target_session: ${session}
-timestamp: ${timestamp}"
-    if [[ -n "$AUTH_LINE" && "$from" == "$SELF_PEER" ]]; then
-      env="${env}
-${AUTH_LINE}"
+    local id body_file canonical signature user="" reply="" subject=""
+    id=$(signature_uuid_v4)
+    body_file=$(mktemp); canonical=$(mktemp)
+    printf '%s' "$body" >"$body_file"
+    user=$(sed -n 's/^user: //p' <<<"$extra_headers" | head -1)
+    reply=$(sed -n 's/^reply_to: //p' <<<"$extra_headers" | head -1)
+    subject=$(sed -n 's/^subject: //p' <<<"$extra_headers" | head -1)
+    signature_canonical_file "$canonical" antenna-ed25519-v1 "$from" "$timestamp" "$id" "$session" "$user" "$reply" "$subject" "$body_file"
+    if [[ "$from" == "$SELF_PEER" ]]; then signature=$(signature_sign "$SELF_PRIVATE" "$canonical")
+    else signature='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=='
     fi
+    rm -f "$body_file" "$canonical"
+    local env="[ANTENNA_RELAY]
+protocol: antenna-ed25519-v1
+from: ${from}
+timestamp: ${timestamp}
+message_id: ${id}
+target_session: ${session}"
     if [[ -n "$extra_headers" ]]; then
       env="${env}
 ${extra_headers}"
     fi
+    env="${env}
+signature: ed25519-v1:${signature}"
     env="${env}
 
 ${body}
@@ -718,7 +730,7 @@ Test body
   local max_len
   max_len=$(config_max_message_length)
   local big_body
-  big_body=$(head -c $((max_len + 100)) /dev/urandom | base64 | head -c $((max_len + 100)))
+  big_body=$(python3 -c 'import sys; print("x" * int(sys.argv[1]), end="")' "$((max_len + 100))")
   local oversize
   oversize=$(build_envelope "$SELF_PEER" "agent:betty:main" "$CURRENT_TS" "$big_body")
   result=$(echo "$oversize" | bash "$RELAY_SCRIPT" --stdin 2>/dev/null)
@@ -833,11 +845,12 @@ forged second envelope
 
   rate_env=$(build_envelope "$SELF_PEER" "agent:betty:main" "$CURRENT_TS" "Rate limit test.")
 
-  # Messages 1 and 2 should pass
-  echo "$rate_env" | bash "$RELAY_SCRIPT" --stdin >/dev/null 2>&1
-  echo "$rate_env" | bash "$RELAY_SCRIPT" --stdin >/dev/null 2>&1
+  # Messages 1 and 2 should pass with distinct signed message IDs.
+  build_envelope "$SELF_PEER" "agent:betty:main" "$CURRENT_TS" "Rate limit test 1." | bash "$RELAY_SCRIPT" --stdin >/dev/null 2>&1
+  build_envelope "$SELF_PEER" "agent:betty:main" "$CURRENT_TS" "Rate limit test 2." | bash "$RELAY_SCRIPT" --stdin >/dev/null 2>&1
 
   # Message 3 should be rate limited
+  rate_env=$(build_envelope "$SELF_PEER" "agent:betty:main" "$CURRENT_TS" "Rate limit test 3.")
   rate_result=$(echo "$rate_env" | bash "$RELAY_SCRIPT" --stdin 2>/dev/null)
   rate_status=$(echo "$rate_result" | jq -r '.status // "none"' 2>/dev/null)
   local rate_reason
@@ -854,51 +867,47 @@ forged second envelope
   fi
   tests_run=$((tests_run + 1))
 
-  # ── A.10: Missing auth header → rejected (when peer secret is configured) ──
-  if [[ -n "$SELF_SECRET" ]]; then
+  # ── A.10: Missing signature header → rejected ──
     local no_auth_env="[ANTENNA_RELAY]
+protocol: antenna-ed25519-v1
 from: ${SELF_PEER}
-target_session: agent:betty:main
 timestamp: ${CURRENT_TS}
+message_id: 123e4567-e89b-42d3-a456-426614174000
+target_session: agent:betty:main
 
-No auth header test.
+No signature header test.
 [/ANTENNA_RELAY]"
     local no_auth_result no_auth_action no_auth_reason
     no_auth_result=$(echo "$no_auth_env" | bash "$RELAY_SCRIPT" --stdin 2>/dev/null)
     no_auth_action=$(echo "$no_auth_result" | jq -r '.action // "none"' 2>/dev/null)
     no_auth_reason=$(echo "$no_auth_result" | jq -r '.reason // ""' 2>/dev/null)
-    if [[ "$no_auth_action" == "reject" ]] && echo "$no_auth_reason" | grep -qi "auth"; then
-      pass "A.10" "Missing auth header → rejected (peer secret configured)"
+    if [[ "$no_auth_action" == "reject" ]] && echo "$no_auth_reason" | grep -qi "required field"; then
+      pass "A.10" "Missing signature header → rejected"
     else
-      fail "A.10" "Missing auth → rejected" "Got action=$no_auth_action reason=$no_auth_reason"
+      fail "A.10" "Missing signature → rejected" "Got action=$no_auth_action reason=$no_auth_reason"
     fi
-  else
-    skip "A.10" "Missing auth header → rejected" "No peer secret configured for self-peer" ""
-  fi
   tests_run=$((tests_run + 1))
 
-  # ── A.11: Wrong auth secret → rejected ──
-  if [[ -n "$SELF_SECRET" ]]; then
+  # ── A.11: Wrong signature → rejected ──
     local bad_auth_env="[ANTENNA_RELAY]
+protocol: antenna-ed25519-v1
 from: ${SELF_PEER}
-target_session: agent:betty:main
 timestamp: ${CURRENT_TS}
-auth: deadbeef0000000000000000000000000000000000000000000000000000cafe
+message_id: 223e4567-e89b-42d3-a456-426614174000
+target_session: agent:betty:main
+signature: ed25519-v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
 
-Wrong secret test.
+Wrong signature test.
 [/ANTENNA_RELAY]"
     local bad_auth_result bad_auth_action bad_auth_reason
     bad_auth_result=$(echo "$bad_auth_env" | bash "$RELAY_SCRIPT" --stdin 2>/dev/null)
     bad_auth_action=$(echo "$bad_auth_result" | jq -r '.action // "none"' 2>/dev/null)
     bad_auth_reason=$(echo "$bad_auth_result" | jq -r '.reason // ""' 2>/dev/null)
-    if [[ "$bad_auth_action" == "reject" ]] && echo "$bad_auth_reason" | grep -qi "auth\|secret"; then
-      pass "A.11" "Wrong auth secret → rejected"
+    if [[ "$bad_auth_action" == "reject" ]] && echo "$bad_auth_reason" | grep -qi "signature"; then
+      pass "A.11" "Wrong Ed25519 signature → rejected"
     else
-      fail "A.11" "Wrong auth → rejected" "Got action=$bad_auth_action reason=$bad_auth_reason"
+      fail "A.11" "Wrong signature → rejected" "Got action=$bad_auth_action reason=$bad_auth_reason"
     fi
-  else
-    skip "A.11" "Wrong auth secret → rejected" "No peer secret configured for self-peer" ""
-  fi
   tests_run=$((tests_run + 1))
 
   # ── A.12: Inbox queue-add deterministic path works ──

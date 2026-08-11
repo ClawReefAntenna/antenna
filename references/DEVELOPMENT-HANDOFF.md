@@ -2,7 +2,7 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** SIG-001 review blockers repaired; follow-up review pending
+**Status:** SIG-001 independently cleared; next vertical slice not yet active
 
 ## The one-sentence picture
 
@@ -141,14 +141,13 @@ Specific concerns to resolve during the first read-only report:
 
 ## Recommended work order
 
-1. Complete SIG-001's isolated-suite rerun and follow-up independent review.
-2. Keep the task Active until the reviewer clears the repaired candidate.
-3. Add explicit plaintext-legacy migration only after SIG-001 clears.
-4. Add local `@alias` Distribution List fan-out.
-5. Add optional visible-recipient metadata, reply-all, and manual list sharing.
-6. Complete PUB-001's bounded API/wire specification and fixture-only
+1. Await authorization for the next bounded vertical slice.
+2. Add explicit plaintext-legacy migration only if SIG-002 is activated.
+3. Add local `@alias` Distribution List fan-out.
+4. Add optional visible-recipient metadata, reply-all, and manual list sharing.
+5. Complete PUB-001's bounded API/wire specification and fixture-only
    feasibility spike.
-7. Create a separate Public Group implementation branch from the validated
+6. Create a separate Public Group implementation branch from the validated
    signed-unicast/Distribution-List baseline, then implement relay and
    multi-recipient encryption together.
 

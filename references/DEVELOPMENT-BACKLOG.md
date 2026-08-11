@@ -6,7 +6,8 @@ and public-communication authority.
 
 ## Operating rules
 
-- Keep one task in **Active**.
+- Keep at most one task in **Active**; record `None` while awaiting authorization
+  for the next bounded slice.
 - Items in **Ready** may begin only after the active item is completed and its
   stated verification is satisfied.
 - Items in **Blocked / Betty decision required** are not implementation
@@ -15,36 +16,7 @@ and public-communication authority.
 
 ## Active
 
-### SIG-001 — Minimal Ed25519 signed unicast
-
-**Owner:** Annie
-**Goal:** implement the first vertical slice defined by
-`references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`: dedicated Ed25519
-identity keys, canonical signed envelopes, pinned-key verification, freshness,
-and replay rejection on the v1.5.2 baseline.
-
-**Non-goals:** group fan-out, ClawReef manifest integration, message encryption,
-automatic key rotation, HMAC compatibility, or release/publication.
-
-**Complexity gate:** stop for Betty review before adding legacy migration or
-group behavior, and immediately if the slice requires negotiation state,
-cross-host recovery, a journal, or more than approximately 300 net runtime
-lines beyond baseline.
-
-**Verification:** deterministic signature vectors; byte/parser, tamper,
-freshness, replay, missing-key, and wrong-key tests; Tier A; independent review;
-no public claims.
-
-**Progress (2026-08-11):** the initial independent review found key-path,
-allowlist, replay-capacity, and evidence blockers. The repair candidate now
-uses trust-checked/captured public keys, fail-closed explicit allowlists,
-rate-derived replay capacity, bounded input/configuration, and the expanded
-67/67 focused matrix. Hermetic Tier A passes 20/20. A complete isolated-suite
-rerun and follow-up independent review remain required. The runtime delta is
-approximately +290 net lines, below the 300-line stop threshold. Pairing/setup
-integration and live-host work have not begun. See
-`references/SIG-001-IMPLEMENTATION-REPORT.md` and
-`references/SIG-001-SECURITY-REVIEW-2026-08-11.md`.
+None. Awaiting authorization for the next bounded vertical slice.
 
 ## Ready
 
@@ -100,6 +72,24 @@ delegation. Antenna is A2A-aware, not A2A-dependent; do not begin an A2A
 adapter without a concrete request.
 
 ## Completed
+
+### SIG-001 — Minimal Ed25519 signed unicast
+
+**Decision:** implement `antenna-ed25519-v1` with dedicated identity keys,
+canonical signed envelopes, owner-controlled pinned-key verification,
+freshness, explicit fail-closed allowlists, and persistent replay rejection.
+**Implementation:** `0a00a77`; security repairs: `00ee65f`.
+**Verification:** focused matrix 67/67, hermetic Tier A 20/20, all 20
+deterministic scripts in an isolated seeded skill copy, syntax/diff checks, and
+independent follow-up security clearance with no blocker.
+**Complexity:** +289 net runtime lines against `bb599c7`, below the 300-line
+stop gate; no migration state machine, journal, recovery protocol, or second
+modern mode.
+**Boundary:** no setup/pairing integration, legacy migration, live-host change,
+push, tag, release, or public claim.
+**Records:** `references/ED25519-PROTOCOL-V1.md`,
+`references/SIG-001-IMPLEMENTATION-REPORT.md`, and
+`references/SIG-001-SECURITY-REVIEW-2026-08-11.md`.
 
 ### ARCH-SIG-001 — Choose asymmetric identity and broadcast architecture
 

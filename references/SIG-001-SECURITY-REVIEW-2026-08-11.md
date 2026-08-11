@@ -79,4 +79,17 @@ global limits bound admitted traffic, and transport-level request limiting
 remains an ingress/Gateway responsibility. The follow-up reviewer must assess
 that disposition rather than treating it as silently resolved.
 
-**Follow-up verdict:** pending.
+## Follow-up verdict
+
+**CLEAR SIG-001 at `00ee65f`.** The independent reviewer found no remaining
+blocking security issue. The reviewer independently reproduced the 67/67
+focused suite and Tier A 20/20, confirmed all four original blockers repaired,
+and accepted transport/Gateway limiting—not an unauthenticated relay bucket—as
+the correct boundary for pre-signature request throttling.
+
+Non-blocking future hardening notes are: document the owner-controlled install-
+directory assumption above `keys/`; enforce HTTP body limits at Gateway ingress;
+require `max_message_length` to be a JSON number rather than accepting an
+equivalent numeric string; apply string-array schema validation to inbound
+session allowlists; and optionally add a time-scheduled replay-capacity boundary
+test. None changes the SIG-001 gate verdict.

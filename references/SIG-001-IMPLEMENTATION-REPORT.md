@@ -4,8 +4,7 @@
 
 **Branch:** `dev/signature-minimal`
 
-**Status:** initial independent review completed; repair candidate awaiting
-follow-up review
+**Status:** complete and independently cleared at `00ee65f`
 
 ## Delivered vertical slice
 
@@ -58,10 +57,11 @@ threshold only to remediate concrete reviewed failure modes, remains below the
 300-line stop threshold, and still introduces no negotiation state, journal,
 recovery protocol, or second modern authentication mode.
 
-## Remaining gate
+## Gate result
 
-The initial review is recorded in
-`references/SIG-001-SECURITY-REVIEW-2026-08-11.md`. A fresh follow-up must clear
-the repaired candidate, particularly trusted key paths, allowlist semantics,
-and replay availability. Do not begin SIG-002 or live-host validation until it
-clears.
+The initial review and follow-up are recorded in
+`references/SIG-001-SECURITY-REVIEW-2026-08-11.md`. The follow-up independently
+reproduced the focused and Tier A evidence and cleared SIG-001 at `00ee65f` with
+no blocking security finding. SIG-002, pairing/setup integration, and any
+live-host validation remain separate work and were not authorized by this
+clearance.

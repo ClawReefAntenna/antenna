@@ -31,7 +31,7 @@ Establish one durable identity architecture for:
 
 - authenticated unicast;
 - local sender-side Distribution List fan-out;
-- optional, visible Distribution List metadata and reply-all; and
+- optional, visible Distribution List recipient context; and
 - later Public Groups under a separate architecture decision.
 
 The sender must never distribute its private signing key or a symmetric secret
@@ -110,7 +110,7 @@ block to the signed body:
 
 ```text
 [ANTENNA_META v=1]
-list: AGS Operations
+list: operations
 recipients: bettyxix,bettyxx,nexus
 [/ANTENNA_META]
 
@@ -119,7 +119,7 @@ Server maintenance tonight.
 
 The block contains only:
 
-- `list` — a human-readable sender-supplied display name; and
+- `list` — the sender's local Distribution List alias; and
 - `recipients` — sorted, deduplicated peer IDs from the send-time expansion.
 
 It carries no endpoints, hook tokens, public keys, group identifier, revision,
@@ -127,28 +127,20 @@ thread identifier, or delivery claim. Because it is part of the signed body,
 alteration invalidates the message signature. Older Antenna versions merely
 display it as ordinary text.
 
-The list name is descriptive, not authoritative. The signature proves only
-that the sender used that name and recipient list; it does not establish a
+The alias is descriptive, not authoritative. The signature proves only that
+the sender used that alias and recipient list; it does not establish a
 shared security identity or prove that every listed peer received the message.
 
-### Reply and sharing semantics
+### Reply semantics
 
-A visible list message may offer:
+The visible peer IDs are context, not a command or protocol object. A human can
+copy them, and an agent can read them and issue ordinary signed unicasts when
+asked. Antenna deliberately provides no reply-all parser or CLI. The embedded
+IDs grant no credentials, reachability, or trust.
 
-- **Reply** — ordinary signed unicast to the original sender; and
-- **Reply all** — a new fan-out to the union of the original sender and the
-  embedded recipients, excluding the replying peer.
-
-Reply-all sends only to peers already configured and reachable by the replier.
-Missing peers produce a warning; embedded peer IDs never grant credentials,
-reachability, or trust.
-
-Distribution Lists may be manually exported and imported so several operators
-can use the same local shorthand. A shared list contains its display name,
-preferred local alias, and peer IDs only. It contains no hook tokens or other
-credentials, has no synchronization or revision protocol, and remains a local
-snapshot after import. An alias collision requires an explicit rename or
-replacement choice.
+Distribution Lists remain simple local JSON address-book entries. Antenna does
+not define an export/import schema or mutation workflow; operators may copy a
+credential-free alias entry manually if that occasional need arises.
 
 ## Public Groups: separate architecture
 
@@ -166,8 +158,7 @@ specification is complete.
 2. **Complete:** add explicit `plaintext-legacy` migration support.
 3. **Complete:** add local `@alias` Distribution List fan-out for existing
    paired peers.
-4. **Complete:** add optional `--show-recipients`, reply-all, and manual list
-   export/import.
+4. **Complete:** add optional signed-body `--show-recipients` context only.
 5. **Next gate (PUB-001):** complete the bounded Public Group relay protocol
    specification and fixture-only feasibility proof.
 6. **Blocked pending PUB-001 review (PUB-002):** implement the ClawReef relay
@@ -208,7 +199,7 @@ Success requires independent verification that BettyXIX and BettyXX can:
 - exchange signed unicast in both directions;
 - reject tampering, replay, and unknown keys;
 - expand one local Distribution List into independent signed sends; and
-- parse visible list metadata and reply-all only to configured peers.
+- preserve and authenticate exact visible-recipient metadata and body bytes.
 
 Stop and reassess if Distribution Lists begin acquiring shared membership
 authority, synchronization, revisions, credentials, cross-host transaction

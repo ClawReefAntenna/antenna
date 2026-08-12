@@ -15,7 +15,7 @@ tagged, published, or installed on live hosts.
 |---|---|---|---|
 | 1 — Signed identity | Ed25519 sender identity, canonical signed envelopes, freshness and replay rejection | SIG-001 | Complete and independently reviewed |
 | 2 — Migration | Explicit `ed25519-v1` or warned `plaintext-legacy`; migration by fresh encrypted re-pair | SIG-002 | Complete and owner-reviewed |
-| 3 — Distribution Lists | Local `@alias` fan-out, visible recipients, reply-all and credential-free snapshots | DL-001, DL-002 | Complete and owner-reviewed |
+| 3 — Distribution Lists | Local `@alias` fan-out with optional signed visible-recipient context | DL-001, DL-002 | Complete and owner-reviewed |
 | 4 — Public Groups | Encrypted ClawReef-mediated current-membership delivery without pairwise hook-token disclosure | PUB-001, PUB-002 | Architecture approved; PUB-001 ready, no implementation begun |
 
 The project is exactly at the Phase 3 → Phase 4 boundary.
@@ -51,9 +51,9 @@ Controlling evidence:
 
 Distribution Lists are local address-book aliases, not protocol groups.
 `@alias` expands to independent existing unicasts. Optional visible-recipient
-metadata is part of the signed body; reply-all is a new locally trust-filtered
-fan-out; exported snapshots contain descriptive membership only and never
-credentials. There is no shared membership authority, revision, thread,
+metadata is part of the signed body. Antenna adds no reply-all or list-sharing
+workflow; agents and humans may use the visible peer IDs in ordinary sends.
+There is no shared membership authority, revision, thread,
 synchronization, retry, or delivery transaction.
 
 Controlling evidence:

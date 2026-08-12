@@ -106,9 +106,6 @@ Usage:
   antenna send <peer> [options] --stdin      Send message from stdin
   antenna send @alias [options] <message>    Fan out to a local Distribution List
   antenna send @alias --show-recipients ... Add signed visible-list metadata
-  antenna reply-all <sender> --source <file> [options] <message>
-  antenna lists export <alias> [--output <file>]
-  antenna lists import <file> [--alias <alias>] [--replace]
   antenna msg <peer> [message]               Quick send (plain host mode by default)
 
   antenna peers list                         List known peers
@@ -203,14 +200,6 @@ cmd_send() {
   else
     bash "$SCRIPTS_DIR/antenna-send.sh" "$@"
   fi
-}
-
-cmd_reply_all() {
-  bash "$SCRIPTS_DIR/antenna-list-send.sh" --reply-all "$@"
-}
-
-cmd_lists() {
-  bash "$SCRIPTS_DIR/antenna-lists.sh" "$@"
 }
 
 cmd_msg() {
@@ -1101,8 +1090,6 @@ case "$COMMAND" in
   uninstall) cmd_uninstall "$@" ;;
   doctor)   cmd_doctor "$@" ;;
   send)     cmd_send "$@" ;;
-  reply-all) cmd_reply_all "$@" ;;
-  lists)    cmd_lists "$@" ;;
   msg)      cmd_msg "$@" ;;
   peers)    cmd_peers "$@" ;;
   bundle)   cmd_bundle "$@" ;;

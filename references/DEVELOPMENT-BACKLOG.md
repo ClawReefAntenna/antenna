@@ -60,15 +60,18 @@ adapter without a concrete request.
 
 ## Completed
 
-### DL-002 — Visible recipients, reply-all, and list sharing
+### DL-002 — Visible recipient context
 
-**Decision:** visible metadata is a canonical signed-body prefix; reply-all is
-a new locally filtered fan-out; list sharing is a credential-free snapshot.
-**Verification:** focused DL-002 39/39, DL-001 regression 30/30, Tier A 20/20,
-full isolated deterministic suite 23 scripts with 0 failures, syntax/Python/diff
-checks clean; ShellCheck unavailable.
-**Complexity:** +235 net runtime lines against `a86f933`, below the 250-line
-review gate; no protocol/shared-state/retry/recovery behavior.
+**Decision:** retain only the canonical signed-body prefix containing the local
+alias and sorted/deduplicated peer IDs. Remove reply-all and list export/import;
+agents or humans can use the visible IDs in ordinary sends without permanent
+workflow machinery.
+**Verification:** visible-prefix 15/15, DL-001 regression 30/30, Tier A 20/20,
+and complete deterministic suite 23 scripts with 0 failures; syntax/Python/diff
+checks clean.
+**Complexity:** +36 net runtime lines against `a86f933`; the simplification
+removed 203 net runtime lines from `974331b`. No reply parser, snapshot schema,
+list mutation/locking, protocol, shared state, retry, or recovery behavior.
 **Boundary:** no implicit trust, credential import, group identity/revision/
 threading, ClawReef/Public Groups, live-host change, push, tag, or release.
 **Records:** `references/DL-002-SCOPE-CONTRACT.md` and
@@ -130,11 +133,12 @@ push, tag, release, or public claim.
 
 ### ARCH-DL-001 — Separate Distribution Lists from Public Groups
 
-**Decision:** Private Groups are local, optionally shareable Distribution List
-aliases. `@alias` expands to ordinary unicasts. `--show-recipients` may add a
-lean signed-body metadata block with list name and peer IDs for recognition and
-reply-all. Public Groups require a separate architecture decision rather than
-an extension of Distribution Lists; that decision is recorded below.
+**Decision:** Private Groups are local Distribution List aliases. `@alias`
+expands to ordinary unicasts. `--show-recipients` may add a lean signed-body
+metadata block with the alias and peer IDs for context. Antenna provides no
+automatic reply-all or list-sharing workflow. Public Groups require a separate
+architecture decision rather than an extension of Distribution Lists; that
+decision is recorded below.
 **Record:** `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`.
 **Authorization:** Corey approved the direction on 2026-08-11.
 

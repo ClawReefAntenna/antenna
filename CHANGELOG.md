@@ -24,21 +24,18 @@ For the complete version history prior to `1.3.0`, see:
 - **Local Distribution Lists.** `antenna send @alias ...` expands a strictly
   validated local list into independent existing unicasts with deterministic
   per-recipient results and no retry or delivery transaction.
-- **Visible recipients and reply-all.** `--show-recipients` optionally adds a
-  canonical signed-body metadata block. Reply-all starts a new fan-out only to
-  peers already configured and outbound-allowed by the replier.
-- **Credential-free list snapshots.** Manual list export/import carries only a
-  display name, preferred alias, and peer IDs, with strict validation and
-  explicit collision handling.
+- **Visible Distribution List recipients.** `--show-recipients` optionally adds
+  a canonical signed-body block containing the local alias and sorted,
+  deduplicated recipient peer IDs. Antenna adds no reply-all or list-management
+  protocol; recipients may use the visible context in ordinary sends.
 
 ### Security
 
 - Reusable plaintext authentication remains available only as the explicit
   `plaintext-legacy` compatibility mode. It is never accepted as fallback for
   an Ed25519 peer.
-- Distribution-list metadata and imported peer IDs grant no endpoint, token,
-  key, reachability, or trust. No group credential is embedded in messages or
-  shared snapshots.
+- Distribution-list metadata grants no endpoint, token, key, reachability, or
+  trust. No group credential is embedded in messages.
 
 ### Development boundary
 

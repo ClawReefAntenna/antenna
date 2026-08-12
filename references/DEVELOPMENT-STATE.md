@@ -38,8 +38,9 @@
 The signed-unicast and explicit legacy-migration slices are complete at
 `00ee65f` and `9992e6a`. DL-001 now adds bounded local `@alias` fan-out over the
 existing unicast sender, with strict validation-before-send and no delivery
-state or protocol change. DL-002 now adds canonical signed-body visible
-metadata, locally filtered reply-all, and credential-free manual snapshots.
+state or protocol change. DL-002 adds only canonical signed-body visible
+recipient context; reply-all and list export/import were removed after a
+complexity/value review.
 Public Group/ClawReef work has not begun. DL-002 owner review is complete and no
 task is Active pending authorization for the next bounded slice. See
 `references/DL-002-IMPLEMENTATION-REPORT.md`.

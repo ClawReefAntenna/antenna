@@ -89,11 +89,9 @@ August architecture replaces its private-group assumptions:
 - the alias expands into independent signed unicast sends to already-paired
   peers;
 - `--show-recipients` optionally prepends a signed-body `[ANTENNA_META v=1]`
-  block containing only list display name and sorted/deduplicated peer IDs;
-- visible-list messages may support reply-all to peers already configured by
-  the replier;
-- lists may be exported/imported as credential-free manual snapshots so users
-  can share the same shorthand;
+  block containing only the local alias and sorted/deduplicated peer IDs;
+- Antenna provides no reply-all parser/CLI or list export/import workflow;
+  humans and agents may use the visible peer IDs in ordinary sends;
 - there is no list ID, revision, thread, synchronization, persistent broadcast
   state, retry, or delivery transaction; and
 - Public Groups use the separate architecture in

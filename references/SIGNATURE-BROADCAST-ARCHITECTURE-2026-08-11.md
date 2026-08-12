@@ -159,9 +159,12 @@ specification is complete.
 3. **Complete:** add local `@alias` Distribution List fan-out for existing
    paired peers.
 4. **Complete:** add optional signed-body `--show-recipients` context only.
-5. **Next gate (PUB-001):** complete the bounded Public Group relay protocol
-   specification and fixture-only feasibility proof.
-6. **Blocked pending PUB-001 review (PUB-002):** implement the ClawReef relay
+5. **Current gate:** controlled live and release-candidate validation of
+   Phases 1–3; feature work remains frozen.
+6. **Paused before authorization (PUB-001):** only after demonstrated need and
+   explicit approval, complete the bounded Public Group relay protocol and
+   fixture-only feasibility proof.
+7. **Blocked pending PUB-001 review (PUB-002):** implement the ClawReef relay
    and multi-recipient encryption together; never
    expose a plaintext Public Group mode.
 

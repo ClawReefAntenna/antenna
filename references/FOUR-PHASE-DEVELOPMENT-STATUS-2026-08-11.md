@@ -16,9 +16,11 @@ tagged, published, or installed on live hosts.
 | 1 — Signed identity | Ed25519 sender identity, canonical signed envelopes, freshness and replay rejection | SIG-001 | Complete and independently reviewed |
 | 2 — Migration | Explicit `ed25519-v1` or warned `plaintext-legacy`; migration by fresh encrypted re-pair | SIG-002 | Complete and owner-reviewed |
 | 3 — Distribution Lists | Local `@alias` fan-out with optional signed visible-recipient context | DL-001, DL-002 | Complete and owner-reviewed |
-| 4 — Public Groups | Encrypted ClawReef-mediated current-membership delivery without pairwise hook-token disclosure | PUB-001, PUB-002 | Architecture approved; PUB-001 ready, no implementation begun |
+| 4 — Public Groups | Encrypted ClawReef-mediated current-membership delivery without pairwise hook-token disclosure | PUB-001, PUB-002 | Architecture recorded; phase paused before PUB-001 |
 
-The project is exactly at the Phase 3 → Phase 4 boundary.
+The project is at a validation boundary, not an automatic Phase 3 → Phase 4
+handoff. Phases 1–3 must prove themselves live and pass release-candidate review
+before PUB-001 may be reconsidered.
 
 ## Phase 1 — Signed identity
 
@@ -74,7 +76,7 @@ once to all current member public keys, and uploads one opaque ciphertext.
 ClawReef forwards the same ciphertext without a model call and cannot decrypt
 it. Direct unicast and Distribution Lists remain peer-to-peer.
 
-Phase 4 is split into two gates:
+Phase 4 is split into two gates, both currently blocked:
 
 1. **PUB-001 — bounded protocol and fixture-only feasibility proof.** Fix the
    sender authentication, request/wrapper schemas, key binding and pinning,
@@ -89,6 +91,10 @@ Phase 4 is split into two gates:
 PUB-001 is not authority to add a production endpoint, database migration,
 live credential, group UI, retry queue, content store, receipt system, shared
 group key, plaintext fallback, or LLM relay logic.
+
+PUB-001 may begin only after controlled live validation of Phases 1–3,
+release-candidate review, evidence of concrete Public Group need, and explicit
+authorization. Roadmap position alone is not sufficient.
 
 Controlling architecture:
 

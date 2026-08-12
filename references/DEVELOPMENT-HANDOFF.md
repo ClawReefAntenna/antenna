@@ -2,7 +2,8 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** Phases 1–3 complete locally; Phase 4 ready at PUB-001
+**Status:** Phases 1–3 complete locally; feature work frozen for live and
+release-candidate validation; Phase 4 paused before PUB-001
 
 ## The one-sentence picture
 
@@ -147,13 +148,14 @@ Specific concerns to resolve during the first read-only report:
 
 ## Recommended work order
 
-1. Await authorization for the next bounded vertical slice.
-2. Execute PUB-001 as a specification and fixture-only feasibility spike; do
-   not add production ClawReef endpoints, real credentials, or live delivery.
-3. Review PUB-001's identity/key/freshness/credential boundaries independently.
-4. Create a separate Public Group implementation branch from the validated
-   signed-unicast/Distribution-List baseline, then implement relay and
-   multi-recipient encryption together.
+1. Run controlled BettyXIX↔BettyXX validation of Ed25519 pairing/migration,
+   local Distribution List fan-out, and visible-recipient context.
+2. Complete the release-candidate code, security, packaging, and operator-doc
+   review for Phases 1–3; decide what is actually ready to publish.
+3. Measure whether live use demonstrates a concrete need for Public Groups.
+4. Reopen PUB-001 only with explicit authorization. If reopened, keep it a
+   specification and fixture-only feasibility spike before any production
+   ClawReef work.
 
 ## Retrieval anchors
 

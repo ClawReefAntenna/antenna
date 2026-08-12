@@ -2,8 +2,9 @@
 
 **Date:** 2026-08-11
 
-**Status:** approved Phase 4 architecture; PUB-001 ready, production
-implementation pending
+**Status:** recorded Phase 4 architecture; all work paused before PUB-001
+pending live validation, release-candidate review, demonstrated need, and
+explicit authorization
 
 **Dependencies:** validated Ed25519 signed unicast and local Distribution Lists
 
@@ -154,9 +155,11 @@ Stop and reassess if this work introduces a shared group secret, content store,
 distributed recovery protocol, automatic retry system, plaintext fallback, or
 an AI agent in the ClawReef delivery path.
 
-## PUB-001 execution boundary
+## PUB-001 authorization and execution boundary
 
-PUB-001 is a specification and fixture-only feasibility gate. It may create
+PUB-001 is not currently authorized. If reopened after Phases 1–3 prove
+themselves live and Public Group demand is demonstrated, it remains a
+specification and fixture-only feasibility gate. It may create
 normative request/wrapper schemas, deterministic local relay fixtures, fake
 member records, generated test keys, and bounded proof scripts. It must not:
 

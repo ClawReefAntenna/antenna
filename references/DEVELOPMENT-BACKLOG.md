@@ -16,32 +16,31 @@ and public-communication authority.
 
 ## Active
 
-None. Awaiting authorization for the next bounded vertical slice.
+None. Feature work is frozen pending controlled live validation and a
+release-candidate decision for Phases 1–3.
 
 Current phase map:
 `references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md` (Phases 1–3 complete
-locally; Phase 4 begins with PUB-001).
+locally; Phase 4 is paused before PUB-001).
 
 ## Ready
 
+None.
+
+## Blocked / Betty decision required
+
 ### PUB-001 — Public Group relay protocol and feasibility spike
 
-May begin only after signed unicast and Distribution Lists are stable. Fix the
-bounded API/wire contract in
-`references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md` and demonstrate with
-fixtures that one multi-recipient age ciphertext can be deterministically
-fanned out without a ClawReef model call. No production endpoint, database
-migration, real token, live delivery, group UI, retry/persistence, or public
-claim.
+Blocked until Phases 1–3 pass controlled BettyXIX↔BettyXX validation, complete
+release-candidate review, and receive an explicit decision that demonstrated
+Public Group demand justifies reopening Phase 4. If authorized later, PUB-001
+remains specification- and fixture-only: no production route, database
+migration, real token, live delivery, UI, retry/persistence, or public claim.
 
 ### PUB-002 — Encrypted ClawReef Public Group relay
 
-May begin only after PUB-001 review. Implement the deterministic ClawReef API
-and bounded fan-out together with Antenna multi-recipient encryption/decryption.
-No plaintext mode, shared group key, message persistence, retries, receipts, or
-LLM relay logic.
-
-## Blocked / Betty decision required
+Blocked behind PUB-001 authorization, completion, owner review, and independent
+security review. No production implementation authority exists.
 
 ### ART-001 — Retention policy for ignored local artifacts
 

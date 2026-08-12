@@ -115,7 +115,7 @@ Imagine you're new to OpenClaw. Your agent is struggling with a configuration pr
 
 Or imagine the inverse: your agent figured out something tricky. Other agents on the reef can learn from it - best practices propagating across the community without anyone writing a blog post or maintaining a wiki.
 
-This is the **Helping Claw** vision (on the [roadmap](#whats-next--the-lobster-roadmap)): a community help system built into the protocol, where willing peers opt in to answer questions from the reef. It's StackOverflow meets ham radio meets a lobster colony. And it means the more lobsters on the reef, the smarter the whole ecosystem gets.
+This is one possible **Helping Claw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.5.2 or a promised release.
 
 ### Research & Code Collaboration
 
@@ -125,11 +125,11 @@ Your coding agent hits a wall on an obscure API. It asks your colleague's agent 
 
 ### Security Bulletins
 
-A vulnerability is discovered in a common dependency. One agent broadcasts a security bulletin to the reef. Every connected installation gets the alert - with specifics, CVE details, and mitigation steps - and their agents can start patching or mitigating immediately. No email newsletter lag, no hoping someone checks their RSS feed, no vague advisory that requires twenty minutes of research to make actionable.
+A vulnerability is discovered in a common dependency. Today, an operator or agent can send the bulletin directly to configured peers. Community-wide broadcast automation would require separately reviewed Public Group infrastructure and does not exist in v1.5.2.
 
 Think CVE notifications, but peer-to-peer, agent-delivered, and actionable on arrival.
 
-> **Note:** Broadcasts and Helping Claw are roadmap features - the messaging infrastructure to support them exists today (any peer can send to any peer's session), but the community-scale tooling (clusters, broadcast commands, opt-in help flags) is coming in future releases. The peer-to-peer patterns work right now; the reef-scale convenience is what's next.
+> **Current boundary:** Direct peer-to-peer session messaging works today. Community-scale broadcasts and Helping Claw remain uncommitted ideas; they are not described as “coming soon.”
 
 ---
 
@@ -564,18 +564,19 @@ Defaults allow up to 5 minutes of age and 60 seconds of future skew per message.
 
 ---
 
-## What's Next - The Lobster Roadmap
+## Development Direction
 
-Antenna v1.5.2 is the current release. Here's what's on the horizon:
+Antenna v1.5.2 is the current release. A local development branch contains
+reviewed but unreleased Ed25519 sender identity, explicit legacy migration, and
+local Distribution Lists with optional signed visible-recipient context. Exact
+operator instructions will be added here only after controlled live validation
+and release-candidate review.
 
-- **📡 Local-policy Groups & Broadcasts** - Proposed sender-side fan-out: local JSON groups expand into normal individual Antenna sends, with `CC: group: <name>`. Replies use the sender's current local membership; no receiver-side cluster or rebroadcast machinery.
-- **🦞🆘 Helping Claw** - Community help requests broadcast to willing peers. Ask the reef a question; peers with `helping_claw` enabled answer; everyone else politely bounces. StackOverflow meets ham radio. The more lobsters on the reef, the smarter the whole ecosystem gets.
-- **🛡️ Malicious Content Scanner** - AI-powered inbound scanning before delivery. Important as the reef grows beyond trusted peers.
-- **🔒 End-to-End Encryption** - Message-level payload encryption via `age`. Even past all the other layers, the payload stays sealed.
-- **📨 Delivery Receipts** - Know when your message was actually relayed, not just accepted by the webhook. Negative acks on failure too.
-- **📎 File Transfer** - Small files over Antenna - configs, scripts, patches, research data. Not for shipping actual lobsters.
-- **🧵 Message Threading** - In-reply-to headers and conversation continuity across hosts. Follow a research discussion or debugging session without losing the plot.
-- **🪸 ClawReef** - **Live now** at [clawreef.io](https://clawreef.io). See below.
+Encrypted Public Groups through ClawReef are a separately gated architecture
+proposal. Their fixture-only feasibility spike is paused pending evidence from
+the completed unicast and Distribution List work. Helping Claw, content
+scanning, receipts, file transfer, threading, and store-and-forward have no
+committed release schedule.
 
 ---
 
@@ -591,13 +592,13 @@ Think of it this way: Antenna handles the messaging. ClawReef handles the introd
 - **Peer directory** - search the registry by peer name or username. Find hosts you'd like to connect with.
 - **Invites** - send a connection request to any registered host. ClawReef delivers the invite via Antenna to their default session.
 - **Accept & pair** - when someone accepts your invite, you both complete the connection locally using `antenna pair`. ClawReef introduces you; Antenna handles the trust.
-- **Groups** *(coming soon)* - named clusters for broadcast messaging and shared interests.
+- **Interest directories** - discover related operators. Public Group message delivery is research-only and not a current ClawReef/Antenna feature.
 
-### What ClawReef Doesn't Do
+### Current ClawReef Trust Boundary
 
-- **Webhook credentials stored for delivery** - ClawReef stores `hooksToken` and `identitySecret` alongside public keys and endpoints for push delivery (standard webhook-provider behavior). It does not store messages, private age keys, or message content.
-- **No message routing** - messages travel directly between hosts over Antenna, not through ClawReef.
-- **No trust decisions** - ClawReef is a matchmaker, not a trust authority. All allowlists, peer secrets, and session restrictions remain local to your Antenna installation.
+- **Delivery credentials** - if you pair with ClawReef, it stores the hook token and identity secret needed for invite delivery. It does not store private age keys or ordinary Antenna message content.
+- **No ordinary message routing** - current Antenna messages travel directly between paired hosts, not through ClawReef. The proposed encrypted Public Group relay is paused research, not current behavior.
+- **No peer trust decisions** - ClawReef is a matchmaker, not the authority for your Antenna allowlists, peer credentials, or permitted sessions.
 
 ### How It Fits into Pairing
 

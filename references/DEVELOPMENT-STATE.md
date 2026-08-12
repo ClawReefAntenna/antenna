@@ -42,14 +42,16 @@ state or protocol change. DL-002 adds only canonical signed-body visible
 recipient context; reply-all and list export/import were removed after a
 complexity/value review.
 Public Group/ClawReef work has not begun. DL-002 owner review is complete and no
-task is Active pending authorization for the next bounded slice. See
+task is Active while Phases 1–3 await live and release-candidate validation. See
 `references/DL-002-IMPLEMENTATION-REPORT.md`.
 
 Public Group work additionally requires the bounded PUB-001 API/wire
-specification and feasibility spike before an implementation branch is opened.
+specification and feasibility spike before an implementation branch is opened,
+but feature work is frozen pending live and release-candidate validation of
+Phases 1–3.
 The canonical phase map is
 `references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md`: Phases 1–3 are
-complete and reviewed locally; Phase 4 is ready to begin at PUB-001.
+complete and reviewed locally; Phase 4 is paused before PUB-001.
 
 The completed HMAC-minimal branch is retained as
 `archive/hmac-minimal-study`; it is evidence and a source of selectively

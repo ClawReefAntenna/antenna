@@ -141,7 +141,7 @@ Specific concerns to resolve during the first read-only report:
 
 ## Recommended work order
 
-1. Complete owner review of DL-002.
+1. Await authorization for the next bounded vertical slice.
 2. Complete PUB-001's bounded API/wire specification and fixture-only
    feasibility spike.
 3. Create a separate Public Group implementation branch from the validated

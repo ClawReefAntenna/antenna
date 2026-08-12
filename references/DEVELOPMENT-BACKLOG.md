@@ -16,7 +16,7 @@ and public-communication authority.
 
 ## Active
 
-None. DL-002 is implemented and awaiting owner review.
+None. Awaiting authorization for the next bounded vertical slice.
 
 ## Ready
 
@@ -66,7 +66,8 @@ review gate; no protocol/shared-state/retry/recovery behavior.
 **Boundary:** no implicit trust, credential import, group identity/revision/
 threading, ClawReef/Public Groups, live-host change, push, tag, or release.
 **Records:** `references/DL-002-SCOPE-CONTRACT.md` and
-`references/DL-002-IMPLEMENTATION-REPORT.md`.
+`references/DL-002-IMPLEMENTATION-REPORT.md`, plus
+`references/DL-002-OWNER-REVIEW-2026-08-11.md`.
 
 ### DL-001 — Local Distribution List fan-out
 

@@ -2,8 +2,8 @@
 
 **Branch:** `dev/signature-minimal`
 
-**Status:** implementation and deterministic verification complete; awaiting
-owner review
+**Status:** implementation, deterministic verification, and owner review
+complete
 
 DL-002 extends local Distribution Lists without changing an Antenna envelope or
 protocol. Rich list entries add a bounded display name while legacy arrays stay
@@ -51,3 +51,9 @@ The metadata body intentionally contains no sender field. A script invoking
 reply-all must therefore supply the already-authenticated original sender from
 the received envelope context. The command does not claim to authenticate a
 sender from a detached body file alone.
+
+Owner review found and repaired three pre-acceptance gaps: empty visible-message
+bodies, reserved metadata delimiters in the original body, and incomplete
+snapshot readiness warnings. A final cleanup repair installed the temporary-file
+trap before metadata construction so early validation failures do not leave
+protected body files behind. All verification above was rerun after the repairs.

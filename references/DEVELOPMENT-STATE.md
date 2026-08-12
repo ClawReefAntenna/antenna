@@ -39,8 +39,9 @@ The signed-unicast and explicit legacy-migration slices are complete at
 existing unicast sender, with strict validation-before-send and no delivery
 state or protocol change. DL-002 now adds canonical signed-body visible
 metadata, locally filtered reply-all, and credential-free manual snapshots.
-Public Group/ClawReef work has not begun. No task is Active pending owner review.
-See `references/DL-002-IMPLEMENTATION-REPORT.md`.
+Public Group/ClawReef work has not begun. DL-002 owner review is complete and no
+task is Active pending authorization for the next bounded slice. See
+`references/DL-002-IMPLEMENTATION-REPORT.md`.
 
 Public Group work additionally requires the bounded PUB-001 API/wire
 specification and feasibility spike before an implementation branch is opened.

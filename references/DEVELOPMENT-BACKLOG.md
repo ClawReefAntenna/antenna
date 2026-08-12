@@ -18,6 +18,10 @@ and public-communication authority.
 
 None. Awaiting authorization for the next bounded vertical slice.
 
+Current phase map:
+`references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md` (Phases 1–3 complete
+locally; Phase 4 begins with PUB-001).
+
 ## Ready
 
 ### PUB-001 — Public Group relay protocol and feasibility spike
@@ -26,7 +30,9 @@ May begin only after signed unicast and Distribution Lists are stable. Fix the
 bounded API/wire contract in
 `references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md` and demonstrate with
 fixtures that one multi-recipient age ciphertext can be deterministically
-fanned out without a ClawReef model call. No real tokens or live delivery.
+fanned out without a ClawReef model call. No production endpoint, database
+migration, real token, live delivery, group UI, retry/persistence, or public
+claim.
 
 ### PUB-002 — Encrypted ClawReef Public Group relay
 

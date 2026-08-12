@@ -10,6 +10,43 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+### Added
+
+- **Ed25519 sender identity (`antenna-ed25519-v1`).** Modern peers sign a
+  byte-preserving canonical envelope with a dedicated Ed25519 identity key;
+  receivers verify the sender against a locally pinned public key before
+  delivery. Freshness, exact message-ID replay rejection, strict parsing, and
+  fail-closed key/allowlist behavior are included.
+- **Explicit legacy migration.** Each peer selects exactly one authentication
+  mode: modern `ed25519-v1` or prominently warned `plaintext-legacy`. Existing
+  peers migrate by a fresh encrypted re-pair; there is no silent fallback,
+  negotiation, automatic downgrade, rotation protocol, or recovery journal.
+- **Local Distribution Lists.** `antenna send @alias ...` expands a strictly
+  validated local list into independent existing unicasts with deterministic
+  per-recipient results and no retry or delivery transaction.
+- **Visible recipients and reply-all.** `--show-recipients` optionally adds a
+  canonical signed-body metadata block. Reply-all starts a new fan-out only to
+  peers already configured and outbound-allowed by the replier.
+- **Credential-free list snapshots.** Manual list export/import carries only a
+  display name, preferred alias, and peer IDs, with strict validation and
+  explicit collision handling.
+
+### Security
+
+- Reusable plaintext authentication remains available only as the explicit
+  `plaintext-legacy` compatibility mode. It is never accepted as fallback for
+  an Ed25519 peer.
+- Distribution-list metadata and imported peer IDs grant no endpoint, token,
+  key, reachability, or trust. No group credential is embedded in messages or
+  shared snapshots.
+
+### Development boundary
+
+- Public Group delivery is not implemented. Its approved architecture and the
+  fixture-only PUB-001 gate are documented under `references/`; production
+  ClawReef endpoints, real credentials, live delivery, retries, persistence,
+  receipts, plaintext fallback, and LLM relay logic remain out of scope.
+
 ## [1.5.2] — 2026-05-18
 
 ### Added

@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-11
 
-**Status:** approved architecture; implementation not yet released
+**Status:** Phases 1–3 implemented and reviewed locally; Phase 4 architecture
+approved; none released
 
 **Baseline:** `bb599c7` / public v1.5.2 runtime
 
@@ -161,15 +162,21 @@ specification is complete.
 
 ## Implementation sequence
 
-1. Implement and review signed unicast.
-2. Add explicit `plaintext-legacy` migration support.
-3. Add local `@alias` Distribution List fan-out for existing paired peers.
-4. Add optional `--show-recipients`, reply-all, and manual list export/import.
-5. Complete the bounded Public Group relay protocol specification.
-6. Implement the ClawReef relay and multi-recipient encryption together; never
+1. **Complete:** implement and review signed unicast.
+2. **Complete:** add explicit `plaintext-legacy` migration support.
+3. **Complete:** add local `@alias` Distribution List fan-out for existing
+   paired peers.
+4. **Complete:** add optional `--show-recipients`, reply-all, and manual list
+   export/import.
+5. **Next gate (PUB-001):** complete the bounded Public Group relay protocol
+   specification and fixture-only feasibility proof.
+6. **Blocked pending PUB-001 review (PUB-002):** implement the ClawReef relay
+   and multi-recipient encryption together; never
    expose a plaintext Public Group mode.
 
 Each step is a vertical slice with a complexity review before the next begins.
+See `references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md` for the product-
+phase mapping and current release boundary.
 
 ## Non-goals for the first release
 

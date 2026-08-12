@@ -22,20 +22,38 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 
 | Version | Supported |
 |---------|-----------|
-| 1.3.0 (prepared next release) / current `main` | ✅ Current |
-| 1.2.21 - 1.2.22 (prepared interim release docs) | ⚠️  Historical release narrative only; upgrade to 1.3.0 when published |
-| 1.2.20 | ⚠️  Upgrade recommended (important post-release hardening landed after this tag) |
-| 1.2.0 – 1.2.19 | ⚠️  Upgrade strongly recommended (concurrency / security hardening landed after these) |
-| < 1.2 | ❌ Unsupported |
+| 1.5.2 / current public `main` | ✅ Current |
+| 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
+| 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |
+| < 1.3.0 | ❌ Unsupported |
 
-Important security-sensitive work landed after `1.2.20` and is now being rolled into the prepared `1.3.0` release, with `1.2.21` and `1.2.22` retained as internal release-history waypoints rather than the next planned public publish. That includes envelope-marker guard (REF-400), message freshness window (REF-402), relay temp-file hygiene (REF-403), self-id fallback removal (REF-404), constant-time identity-secret compare (REF-501), expired-bundle refusal (REF-601), plaintext bootstrap-bundle cleanup (REF-603), Himalaya `From:`-address resolution (REF-616), legacy raw-secret export non-TTY refusal (REF-605), gateway `hooks.token` preservation on setup rerun (REF-901), and operator `tools.exec` preservation on setup rerun (REF-903).
+The current public v1.5.2 release includes the envelope-marker guard (REF-400),
+message freshness window (REF-402), relay temp-file hygiene (REF-403), self-ID
+fallback removal (REF-404), constant-time plaintext identity-secret comparison
+(REF-501), expired-bundle refusal (REF-601), plaintext bootstrap-bundle cleanup
+(REF-603), Himalaya `From:`-address resolution (REF-616), legacy raw-secret
+export non-TTY refusal (REF-605), gateway `hooks.token` preservation on setup
+rerun (REF-901), and operator `tools.exec` preservation on setup rerun
+(REF-903).
+
+The `dev/signature-minimal` branch contains unreleased Ed25519 sender identity,
+explicit warned `plaintext-legacy` migration, and local Distribution Lists.
+Those changes are locally reviewed but are not part of a supported public
+version until they pass the separate merge, release, and rollout gates. Public
+Groups remain architecture only; no Public Group security claim is made.
 
 ## Security-Relevant Design
 
 Antenna's full security model is documented in the [Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md), the [User Guide](references/USER-GUIDE.md), and the [SKILL.md Trust Model](SKILL.md#trust-model). The following commitments are load-bearing and in scope for vulnerability reports:
 
 - **Script-first relay —** the relay agent is a courier that runs deterministic bash scripts. All envelope parsing, validation, formatting, and logging is done by `scripts/antenna-relay.sh` and friends. The LLM never parses, encodes, transforms, or modifies relayed content.
-- **Layered trust —** HTTPS transport, hook bearer token, per-peer identity secret (constant-time compared), peer allowlists (inbound and outbound), session allowlist (full keys only), envelope-marker guard, message-freshness window, rate limiting, and log sanitization.
+- **Layered trust in v1.5.2 —** HTTPS transport, hook bearer token, per-peer
+  plaintext identity secret (constant-time compared), peer allowlists (inbound
+  and outbound), session allowlist (full keys only), envelope-marker guard,
+  message-freshness window, rate limiting, and log sanitization. The raw
+  reusable identity secret is transmitted in each authenticated v1.5.2
+  envelope; operators should treat this as a known legacy limitation, not HMAC
+  or signature authentication.
 - **Layer A encrypted bootstrap —** peer onboarding uses `age`. Export streams bundle JSON directly into `age` with no plaintext temp file. Import decrypts to a temp file that is cleaned up on every exit path (normal return, validation failure, preview failure, write failure, `SIGINT`, `SIGTERM`). Expired bundles are refused by default; `--force-expired` is the disaster-recovery override. Legacy raw-secret export refuses non-TTY stdout.
 - **Read-only bundle verification —** `antenna bundle verify <file>` decrypts a received bootstrap bundle in place and validates shape / endpoint URL / freshness without touching `antenna-peers.json` or `antenna-config.json`. Human and `--json` output never print the raw hooks token or identity secret, only presence booleans. Shared validation logic in `lib/bundles.sh` keeps `bundle verify` and `peers exchange import` in agreement on what "valid" means.
 - **Self-identity is mandatory —** the sender refuses to run without `self_id` configured. There is no `$(hostname)` fallback.

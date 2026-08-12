@@ -1,6 +1,6 @@
 # DL-002 Scope Contract
 
-**Status:** Active implementation contract
+**Status:** completed and owner-reviewed
 
 ## Failure mode
 

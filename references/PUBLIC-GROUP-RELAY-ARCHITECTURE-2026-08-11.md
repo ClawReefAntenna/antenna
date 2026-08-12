@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-11
 
-**Status:** approved architecture; protocol details and implementation pending
+**Status:** approved Phase 4 architecture; PUB-001 ready, production
+implementation pending
 
 **Dependencies:** validated Ed25519 signed unicast and local Distribution Lists
 
@@ -152,6 +153,27 @@ Before opening the implementation branch, fix only these bounded details:
 Stop and reassess if this work introduces a shared group secret, content store,
 distributed recovery protocol, automatic retry system, plaintext fallback, or
 an AI agent in the ClawReef delivery path.
+
+## PUB-001 execution boundary
+
+PUB-001 is a specification and fixture-only feasibility gate. It may create
+normative request/wrapper schemas, deterministic local relay fixtures, fake
+member records, generated test keys, and bounded proof scripts. It must not:
+
+- expose a production ClawReef route;
+- migrate the real ClawReef database;
+- use or store a real hook token;
+- contact a live Antenna host;
+- add group-management UI;
+- retain message ciphertext after the fixture run; or
+- represent Public Groups as implemented or released.
+
+The proof succeeds only if one generated ciphertext is byte-identically fanned
+out to multiple fixture recipients, intended recipients decrypt and verify the
+original sender, ClawReef/non-members cannot decrypt, authorization and changed
+keys fail closed, and partial delivery is reported without retry or transaction
+state. PUB-002 remains blocked until this evidence receives owner and security
+review.
 
 ## Success criteria
 

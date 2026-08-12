@@ -12,8 +12,9 @@
   validation, delivery, and cleanup.
 - The current release line retains plaintext runtime-secret authentication with
   constant-time comparison. It does not include `lib/antenna-hmac.sh`.
-- Group/broadcast messaging is proposed, not implemented. The controlling
-  tracked architecture records are
+- Public Group messaging is proposed and not implemented. Local Distribution
+  Lists are implemented only on the unreleased development branch. The
+  controlling tracked architecture records are
   `references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md`. It separates
   local Distribution Lists from future Public Groups: `@alias` is only a local
   fan-out shorthand and optional visible recipients live in a signed body
@@ -32,7 +33,7 @@
   includes stale baselines, unpruned REF statuses, and obsolete architecture
   assumptions.
 
-## First maintenance objective
+## Current development position
 
 The signed-unicast and explicit legacy-migration slices are complete at
 `00ee65f` and `9992e6a`. DL-001 now adds bounded local `@alias` fan-out over the
@@ -45,6 +46,9 @@ task is Active pending authorization for the next bounded slice. See
 
 Public Group work additionally requires the bounded PUB-001 API/wire
 specification and feasibility spike before an implementation branch is opened.
+The canonical phase map is
+`references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md`: Phases 1–3 are
+complete and reviewed locally; Phase 4 is ready to begin at PUB-001.
 
 The completed HMAC-minimal branch is retained as
 `archive/hmac-minimal-study`; it is evidence and a source of selectively

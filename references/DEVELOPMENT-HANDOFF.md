@@ -2,7 +2,7 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** DL-002 local visible metadata, reply-all, and sharing implemented
+**Status:** Phases 1–3 complete locally; Phase 4 ready at PUB-001
 
 ## The one-sentence picture
 
@@ -12,6 +12,11 @@ local Distribution List aliases for bounded one-to-many fan-out; HMAC-minimal is
 preserved but will not be an intermediate public protocol. Public Groups use a
 separate encrypted ClawReef relay architecture after those foundations are
 stable.
+
+The canonical four-phase progress map is
+`references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md`. It distinguishes
+local completion from public release and maps SIG-001/SIG-002/DL-001/DL-002 to
+the original four product phases.
 
 ## Verified release timeline
 
@@ -31,9 +36,10 @@ branch called `v1.5` is part of it: it is a divergent historical line.
   `exec` `scripts/antenna-relay-deliver.sh <path>`.
 - The wrapper owns validation, local gateway delivery, and cleanup. The relay
   agent does not call `sessions_send` directly.
-- Current checked-out authentication is plaintext runtime-secret comparison with
-  a constant-time comparison helper. Inspect code rather than trusting older
- marketing/security prose.
+- Public v1.5.2 authentication is plaintext runtime-secret comparison with a
+  constant-time comparison helper. The checked-out `dev/signature-minimal`
+  branch instead contains reviewed `ed25519-v1` plus explicit warned
+  `plaintext-legacy`; neither is publicly released from this branch.
 - `age` is used for encrypted bootstrap exchange. That protects onboarding
  artifacts; it is distinct from per-message HMAC or message encryption.
 
@@ -108,7 +114,9 @@ For Public Groups:
   retry system, or content inspection.
 
 The old group/cluster sections in `references/ANTENNA-RELAY-FSD.md` are
-superseded by that design record. Group work remains proposed, not implemented.
+superseded by that design record. Local Distribution Lists are implemented only
+on the unreleased development branch; Public Groups remain proposed and
+unimplemented.
 
 ### Release authority
 
@@ -120,8 +128,8 @@ tags, GitHub Releases, ClawHub publishing, and public statements.
 The repository has two different documentation populations:
 
 - **Tracked/shipped:** `README.md`, `SKILL.md`, `CHANGELOG.md`, `SECURITY.md`,
-  and selected `references/` documents. Several still say v1.5.1, so audit
-  rather than repeat their version claims.
+  and selected `references/` documents. Public version claims were reconciled
+  to v1.5.2; `[Unreleased]` records development work without making it current.
 - **Ignored/local `docs/`:** planning, refactor notes, audit maps, security
   reviews, and design records. Useful, but not a source of current behavior.
 
@@ -142,9 +150,10 @@ Specific concerns to resolve during the first read-only report:
 ## Recommended work order
 
 1. Await authorization for the next bounded vertical slice.
-2. Complete PUB-001's bounded API/wire specification and fixture-only
-   feasibility spike.
-3. Create a separate Public Group implementation branch from the validated
+2. Execute PUB-001 as a specification and fixture-only feasibility spike; do
+   not add production ClawReef endpoints, real credentials, or live delivery.
+3. Review PUB-001's identity/key/freshness/credential boundaries independently.
+4. Create a separate Public Group implementation branch from the validated
    signed-unicast/Distribution-List baseline, then implement relay and
    multi-recipient encryption together.
 

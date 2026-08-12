@@ -1,6 +1,6 @@
 # SIG-002 Scope Contract
 
-**Status:** Active implementation contract
+**Status:** completed and owner-reviewed
 
 **Compatibility tier:** documented manual migration
 

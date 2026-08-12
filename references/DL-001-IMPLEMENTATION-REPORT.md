@@ -32,4 +32,5 @@ only if every unicast succeeds. Partial delivery is reported, not rolled back.
 Runtime growth is +127 net lines against `9992e6a`, below the 150-line stop
 gate. There is no retry, queue, persistent delivery state, transaction,
 recipient metadata, reply-all, sharing, group identity, protocol change,
-ClawReef integration, or Public Group behavior.
+ClawReef integration, or Public Group behavior. Owner review is recorded in
+`references/DL-001-OWNER-REVIEW-2026-08-11.md`.

@@ -71,8 +71,9 @@ suite 22 scripts with 0 failures, syntax and diff checks clean.
 stop gate; no protocol/state/retry/recovery behavior.
 **Boundary:** no recipient metadata, reply-all, export/import, group identity,
 ClawReef/Public Groups, live-host change, push, tag, release, or public claim.
-**Records:** `references/DL-001-SCOPE-CONTRACT.md` and
-`references/DL-001-IMPLEMENTATION-REPORT.md`.
+**Records:** `references/DL-001-SCOPE-CONTRACT.md`,
+`references/DL-001-IMPLEMENTATION-REPORT.md`, and
+`references/DL-001-OWNER-REVIEW-2026-08-11.md`.
 
 ### SIG-002 — Explicit plaintext-legacy migration
 

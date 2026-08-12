@@ -1,6 +1,9 @@
 {
-  "operations": [
-    "bettyxx",
-    "nexus"
-  ]
+  "operations": {
+    "display_name": "Operations",
+    "peers": [
+      "bettyxx",
+      "nexus"
+    ]
+  }
 }

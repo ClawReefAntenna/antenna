@@ -2,7 +2,7 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** DL-001 local Distribution List fan-out implemented and verified
+**Status:** DL-002 local visible metadata, reply-all, and sharing implemented
 
 ## The one-sentence picture
 
@@ -141,12 +141,10 @@ Specific concerns to resolve during the first read-only report:
 
 ## Recommended work order
 
-1. Await authorization for the next bounded vertical slice.
-2. Add optional visible-recipient metadata, reply-all, and manual list sharing
-   only if DL-002 is activated.
-3. Complete PUB-001's bounded API/wire specification and fixture-only
+1. Complete owner review of DL-002.
+2. Complete PUB-001's bounded API/wire specification and fixture-only
    feasibility spike.
-4. Create a separate Public Group implementation branch from the validated
+3. Create a separate Public Group implementation branch from the validated
    signed-unicast/Distribution-List baseline, then implement relay and
    multi-recipient encryption together.
 

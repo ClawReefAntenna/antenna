@@ -37,9 +37,10 @@
 The signed-unicast and explicit legacy-migration slices are complete at
 `00ee65f` and `9992e6a`. DL-001 now adds bounded local `@alias` fan-out over the
 existing unicast sender, with strict validation-before-send and no delivery
-state or protocol change. DL-002 visible recipients/reply-all/sharing and Public
-Group/ClawReef work have not begun. No task is Active pending authorization for
-the next vertical slice. See `references/DL-001-IMPLEMENTATION-REPORT.md`.
+state or protocol change. DL-002 now adds canonical signed-body visible
+metadata, locally filtered reply-all, and credential-free manual snapshots.
+Public Group/ClawReef work has not begun. No task is Active pending owner review.
+See `references/DL-002-IMPLEMENTATION-REPORT.md`.
 
 Public Group work additionally requires the bounded PUB-001 API/wire
 specification and feasibility spike before an implementation branch is opened.

@@ -16,16 +16,9 @@ and public-communication authority.
 
 ## Active
 
-None. Awaiting authorization for the next bounded vertical slice.
+None. DL-002 is implemented and awaiting owner review.
 
 ## Ready
-
-### DL-002 — Visible recipients, reply-all, and list sharing
-
-Add the optional signed-body `[ANTENNA_META v=1]` preamble produced by
-`--show-recipients`, containing only list display name and sorted/deduplicated
-peer IDs. Add reply-all to configured peers plus manual credential-free list
-export/import. No group ID, revision, threading, or synchronization.
 
 ### PUB-001 — Public Group relay protocol and feasibility spike
 
@@ -60,6 +53,20 @@ delegation. Antenna is A2A-aware, not A2A-dependent; do not begin an A2A
 adapter without a concrete request.
 
 ## Completed
+
+### DL-002 — Visible recipients, reply-all, and list sharing
+
+**Decision:** visible metadata is a canonical signed-body prefix; reply-all is
+a new locally filtered fan-out; list sharing is a credential-free snapshot.
+**Verification:** focused DL-002 39/39, DL-001 regression 30/30, Tier A 20/20,
+full isolated deterministic suite 23 scripts with 0 failures, syntax/Python/diff
+checks clean; ShellCheck unavailable.
+**Complexity:** +235 net runtime lines against `a86f933`, below the 250-line
+review gate; no protocol/shared-state/retry/recovery behavior.
+**Boundary:** no implicit trust, credential import, group identity/revision/
+threading, ClawReef/Public Groups, live-host change, push, tag, or release.
+**Records:** `references/DL-002-SCOPE-CONTRACT.md` and
+`references/DL-002-IMPLEMENTATION-REPORT.md`.
 
 ### DL-001 — Local Distribution List fan-out
 

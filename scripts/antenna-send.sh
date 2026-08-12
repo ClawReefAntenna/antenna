@@ -213,27 +213,37 @@ if ! SELF_ID=$(peers_single_self_id); then
 fi
 SELF_URL=$(peers_get "$SELF_ID" url)
 AUTH_MODE=$(peers_get "$PEER" auth_mode)
-[[ "$AUTH_MODE" == "ed25519-v1" ]] || die "Peer '$PEER' is not configured for ed25519-v1" 1
+case "$AUTH_MODE" in
+  ed25519-v1|plaintext-legacy) ;;
+  *) die "Peer '$PEER' has missing or unsupported auth_mode" 1 ;;
+esac
 
 REPLY_TO="${REPLY_TO_OVERRIDE:-${SELF_URL:+${SELF_URL}/hooks/agent}}"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# ── Load local signing identity ─────────────────────────────────────────────
-PRIVATE_KEY_FILE=$(peers_get "$SELF_ID" signing_private_key_file)
-[[ -n "$PRIVATE_KEY_FILE" && "$PRIVATE_KEY_FILE" != /* ]] && PRIVATE_KEY_FILE="$SKILL_DIR/$PRIVATE_KEY_FILE"
-signature_private_key_ok "$PRIVATE_KEY_FILE" || die "Self peer has missing, unsafe, or invalid Ed25519 private key" 1
-MESSAGE_ID=$(signature_uuid_v4) || die "Could not generate message ID" 1
-PROTOCOL="antenna-ed25519-v1"
-
-signature_canonical_file "$CANONICAL_FILE" "$PROTOCOL" "$SELF_ID" "$TIMESTAMP" "$MESSAGE_ID" \
-  "$TARGET_SESSION" "$USER_NAME" "$REPLY_TO" "$SUBJECT" "$BODY_FILE" || die "Could not construct canonical message" 1
-SIGNATURE=$(signature_sign "$PRIVATE_KEY_FILE" "$CANONICAL_FILE") || die "Could not sign message" 1
-
 # ── Build envelope ──────────────────────────────────────────────────────────
 
 {
-printf '[ANTENNA_RELAY]\nprotocol: %s\nfrom: %s\ntimestamp: %s\nmessage_id: %s\n' \
-  "$PROTOCOL" "$SELF_ID" "$TIMESTAMP" "$MESSAGE_ID"
+printf '[ANTENNA_RELAY]\n'
+if [[ "$AUTH_MODE" == "ed25519-v1" ]]; then
+  PRIVATE_KEY_FILE=$(peers_get "$SELF_ID" signing_private_key_file)
+  [[ -n "$PRIVATE_KEY_FILE" && "$PRIVATE_KEY_FILE" != /* ]] && PRIVATE_KEY_FILE="$SKILL_DIR/$PRIVATE_KEY_FILE"
+  signature_private_key_ok "$PRIVATE_KEY_FILE" || die "Self peer has missing, unsafe, or invalid Ed25519 private key" 1
+  MESSAGE_ID=$(signature_uuid_v4) || die "Could not generate message ID" 1
+  PROTOCOL="antenna-ed25519-v1"
+  signature_canonical_file "$CANONICAL_FILE" "$PROTOCOL" "$SELF_ID" "$TIMESTAMP" "$MESSAGE_ID" \
+    "$TARGET_SESSION" "$USER_NAME" "$REPLY_TO" "$SUBJECT" "$BODY_FILE" || die "Could not construct canonical message" 1
+  SIGNATURE=$(signature_sign "$PRIVATE_KEY_FILE" "$CANONICAL_FILE") || die "Could not sign message" 1
+  printf 'protocol: %s\nfrom: %s\ntimestamp: %s\nmessage_id: %s\n' "$PROTOCOL" "$SELF_ID" "$TIMESTAMP" "$MESSAGE_ID"
+else
+  SELF_SECRET_FILE=$(peers_get "$SELF_ID" peer_secret_file)
+  [[ -n "$SELF_SECRET_FILE" && "$SELF_SECRET_FILE" != /* ]] && SELF_SECRET_FILE="$SKILL_DIR/$SELF_SECRET_FILE"
+  legacy_secret_file_ok "$SELF_SECRET_FILE" || die "Self legacy identity secret is missing or unsafe" 1
+  SELF_SECRET=$(tr -d '[:space:]' <"$SELF_SECRET_FILE")
+  [[ "$SELF_SECRET" =~ ^[0-9a-f]{64}$ ]] || die "Self legacy identity secret is invalid" 1
+  echo "WARNING: plaintext-legacy sends a reusable identity secret in every envelope; re-pair to ed25519-v1." >&2
+  printf 'from: %s\ntimestamp: %s\n' "$SELF_ID" "$TIMESTAMP"
+fi
 
 # Only include target_session if explicitly specified via --session.
 # Otherwise, the recipient resolves it from their own config.
@@ -252,7 +262,12 @@ fi
 if [[ -n "$SUBJECT" ]]; then
   printf 'subject: %s\n' "$SUBJECT"
 fi
-printf 'signature: ed25519-v1:%s\n\n' "$SIGNATURE"
+if [[ "$AUTH_MODE" == "ed25519-v1" ]]; then
+  printf 'signature: ed25519-v1:%s\n' "$SIGNATURE"
+else
+  printf 'auth: %s\n' "$SELF_SECRET"
+fi
+printf '\n'
 cat "$BODY_FILE"
 printf '\n[/ANTENNA_RELAY]'
 } >"$ENVELOPE_FILE"

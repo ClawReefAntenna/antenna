@@ -137,6 +137,7 @@ fi
 header() { jq -r --arg k "$1" '.[$k] // empty' <<<"$HEADERS_JSON"; }
 PROTOCOL=$(header protocol); FROM=$(header from); TIMESTAMP=$(header timestamp)
 MESSAGE_ID=$(header message_id); SIGNATURE_HEADER=$(header signature)
+AUTH_HEADER=$(header auth)
 REPLY_TO=$(header reply_to); TARGET_SESSION=$(header target_session)
 SUBJECT=$(header subject); USER_NAME=$(header user)
 SIGNED_TARGET_SESSION="$TARGET_SESSION"
@@ -171,21 +172,14 @@ NONCE="${NONCE:--}"
 
 # ── Validate required fields ────────────────────────────────────────────────
 
-if [[ "$PROTOCOL" != "antenna-ed25519-v1" ]]; then
-  json_reject "Unsupported or missing protocol" "${FROM:-unknown}"
+if [[ -z "$FROM" || -z "$TIMESTAMP" ]]; then
+  if [[ "$PROTOCOL" == "antenna-ed25519-v1" ]]; then
+    json_reject "Signed envelope is missing a required field" "${FROM:-unknown}"
+  else
+    json_reject "Envelope is missing sender or timestamp" "${FROM:-unknown}"
+  fi
   exit 0
 fi
-if [[ -z "$FROM" || -z "$TIMESTAMP" || -z "$MESSAGE_ID" || -z "$SIGNATURE_HEADER" ]]; then
-  json_reject "Signed envelope is missing a required field" "${FROM:-unknown}"
-  exit 0
-fi
-if [[ ! "$MESSAGE_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
-  json_reject "Invalid message_id" "$FROM"; exit 0
-fi
-if [[ ! "$SIGNATURE_HEADER" =~ ^ed25519-v1:([A-Za-z0-9+/]{86}==)$ ]]; then
-  json_reject "Malformed Ed25519 signature" "$FROM"; exit 0
-fi
-SIGNATURE_VALUE="${BASH_REMATCH[1]}"
 
 if [[ -z "$TARGET_SESSION" ]]; then
   # Use default from config; if absent, build full key for main session
@@ -269,27 +263,33 @@ if (( FUTURE_SKEW_SECONDS > MAX_FUTURE_SKEW_SECONDS )); then
   exit 0
 fi
 
-# ── Pinned Ed25519 authentication ───────────────────────────────────────────
+# ── Exact per-peer authentication mode ──────────────────────────────────────
 AUTH_MODE=$(peers_get "$FROM" auth_mode)
-if [[ "$AUTH_MODE" != "ed25519-v1" ]]; then
-  json_reject "Peer is not configured for ed25519-v1" "$FROM"
-  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (peer not ed25519-v1)"
-  exit 0
-fi
-PUBLIC_KEY_FILE=$(peers_get "$FROM" signing_public_key_file)
-[[ -n "$PUBLIC_KEY_FILE" && "$PUBLIC_KEY_FILE" != /* ]] && PUBLIC_KEY_FILE="$SKILL_DIR/$PUBLIC_KEY_FILE"
-if ! signature_capture_public_key "$PUBLIC_KEY_FILE" "$SKILL_DIR/keys" "$PINNED_KEY_COPY"; then
-  json_reject "Pinned Ed25519 public key is missing or invalid" "$FROM"
-  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 public key)"
-  exit 0
-fi
-signature_canonical_file "$CANONICAL_FILE" "$PROTOCOL" "$FROM" "$TIMESTAMP" "$MESSAGE_ID" \
-  "$SIGNED_TARGET_SESSION" "$USER_NAME" "$REPLY_TO" "$SUBJECT" "$BODY_FILE" || { json_reject "Could not construct canonical message" "$FROM"; exit 0; }
-if ! signature_verify "$PINNED_KEY_COPY" "$CANONICAL_FILE" "$SIGNATURE_VALUE"; then
-  json_reject "Ed25519 signature verification failed" "$FROM"
-  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 signature)"
-  exit 0
-fi
+case "$AUTH_MODE" in
+  ed25519-v1)
+    [[ "$PROTOCOL" == "antenna-ed25519-v1" ]] || { json_reject "Unsupported or missing protocol" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 protocol)"; exit 0; }
+    [[ -n "$MESSAGE_ID" && -n "$SIGNATURE_HEADER" ]] || { json_reject "Signed envelope is missing a required field" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (missing Ed25519 field)"; exit 0; }
+    [[ -z "$AUTH_HEADER" ]] || { json_reject "Invalid Ed25519 envelope" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (mixed authentication fields)"; exit 0; }
+    [[ "$MESSAGE_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || { json_reject "Invalid message_id" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid message id)"; exit 0; }
+    [[ "$SIGNATURE_HEADER" =~ ^ed25519-v1:([A-Za-z0-9+/]{86}==)$ ]] || { json_reject "Malformed Ed25519 signature" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (malformed Ed25519 signature)"; exit 0; }
+    SIGNATURE_VALUE="${BASH_REMATCH[1]}"
+    PUBLIC_KEY_FILE=$(peers_get "$FROM" signing_public_key_file)
+    [[ -n "$PUBLIC_KEY_FILE" && "$PUBLIC_KEY_FILE" != /* ]] && PUBLIC_KEY_FILE="$SKILL_DIR/$PUBLIC_KEY_FILE"
+    signature_capture_public_key "$PUBLIC_KEY_FILE" "$SKILL_DIR/keys" "$PINNED_KEY_COPY" || { json_reject "Pinned Ed25519 public key is missing or invalid" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 public key)"; exit 0; }
+    signature_canonical_file "$CANONICAL_FILE" "$PROTOCOL" "$FROM" "$TIMESTAMP" "$MESSAGE_ID" "$SIGNED_TARGET_SESSION" "$USER_NAME" "$REPLY_TO" "$SUBJECT" "$BODY_FILE" || { json_reject "Could not construct canonical message" "$FROM"; exit 0; }
+    signature_verify "$PINNED_KEY_COPY" "$CANONICAL_FILE" "$SIGNATURE_VALUE" || { json_reject "Ed25519 signature verification failed" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid Ed25519 signature)"; exit 0; }
+    ;;
+  plaintext-legacy)
+    [[ -z "$PROTOCOL" && -z "$MESSAGE_ID" && -z "$SIGNATURE_HEADER" && "$AUTH_HEADER" =~ ^[0-9a-f]{64}$ ]] || { json_reject "Invalid plaintext-legacy envelope" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid plaintext-legacy envelope)"; exit 0; }
+    EXPECTED_SECRET_FILE=$(peers_get "$FROM" peer_secret_file)
+    [[ -n "$EXPECTED_SECRET_FILE" && "$EXPECTED_SECRET_FILE" != /* ]] && EXPECTED_SECRET_FILE="$SKILL_DIR/$EXPECTED_SECRET_FILE"
+    legacy_secret_file_ok "$EXPECTED_SECRET_FILE" || { json_reject "Legacy peer secret is missing or unsafe" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (unsafe legacy secret)"; exit 0; }
+    EXPECTED_SECRET=$(tr -d '[:space:]' <"$EXPECTED_SECRET_FILE")
+    [[ "$EXPECTED_SECRET" =~ ^[0-9a-f]{64}$ ]] && secret_equal_constant_time "$AUTH_HEADER" "$EXPECTED_SECRET" || { json_reject "Legacy peer authentication failed" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (invalid legacy secret)"; exit 0; }
+    log_entry "INBOUND | from:$FROM | peer_auth:plaintext-legacy | warning:reusable-secret"
+    ;;
+  *) json_reject "Peer has missing or unsupported auth_mode" "$FROM"; log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (unsupported auth mode)"; exit 0 ;;
+esac
 
 # ── Rate limiting ────────────────────────────────────────────────────────────
 
@@ -417,7 +417,9 @@ REPLAY_TTL=$((MAX_AGE_SECONDS + MAX_FUTURE_SKEW_SECONDS + 1))
 REPLAY_CAPACITY=$(replay_capacity_for_window "$REPLAY_TTL" "$GLOBAL_LIMIT") || {
   json_reject "Replay protection unavailable" "$FROM"; exit 0;
 }
-if replay_reserve "$REPLAY_CACHE" "$REPLAY_TTL" "$REPLAY_CAPACITY" "$FROM" "$MESSAGE_ID"; then
+if [[ "$AUTH_MODE" == "plaintext-legacy" ]]; then
+  : # v1.5.2-compatible envelopes have no message ID; freshness is the legacy bound.
+elif replay_reserve "$REPLAY_CACHE" "$REPLAY_TTL" "$REPLAY_CAPACITY" "$FROM" "$MESSAGE_ID"; then
   log_entry "INBOUND | from:$FROM | peer_auth:verified | message_id:$MESSAGE_ID"
 else
   replay_rc=$?

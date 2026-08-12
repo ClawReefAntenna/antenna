@@ -11,7 +11,7 @@ opening = b"[ANTENNA_RELAY]\n"
 closing = b"[/ANTENNA_RELAY]"
 allowed = {
     "protocol": 32, "from": 64, "timestamp": 32, "message_id": 36,
-    "signature": 128, "target_session": 128, "user": 64,
+    "signature": 128, "auth": 96, "target_session": 128, "user": 64,
     "reply_to": 256, "subject": 200,
 }
 

@@ -95,6 +95,16 @@ _signature_field() {
   printf '%s\n' "$value"
 }
 
+legacy_secret_file_ok() {
+  local file="$1" mode owner value
+  [[ -f "$file" && ! -L "$file" ]] || return 1
+  mode=$(stat -c '%a' "$file" 2>/dev/null) || return 1
+  owner=$(stat -c '%u' "$file" 2>/dev/null) || return 1
+  [[ "$owner" -eq "$(id -u)" ]] && (( (8#$mode & 077) == 0 )) || return 1
+  value=$(tr -d '[:space:]' <"$file")
+  [[ "$value" =~ ^[0-9a-f]{64}$ ]]
+}
+
 # signature_canonical_file out protocol from timestamp id target user reply subject body-file
 signature_canonical_file() {
   local out="$1" protocol="$2" from="$3" timestamp="$4" id="$5"

@@ -25,7 +25,7 @@ echo "── T1: relay log_entry lines for pre-body REJECTED paths carry nonce �
 declare -a EXPECTED_WITH_NONCE=(
   "status:REJECTED \(not in allowed_inbound_peers\)"
   "status:REJECTED \(unknown peer\)"
-  "status:REJECTED \(peer not ed25519-v1\)"
+  "status:REJECTED \(unsupported auth mode\)"
   "status:REJECTED \(invalid Ed25519 public key\)"
   "status:REJECTED \(invalid Ed25519 signature\)"
   "status:REJECTED \(replay detected\)"

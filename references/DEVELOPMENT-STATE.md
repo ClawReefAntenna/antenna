@@ -37,8 +37,9 @@
 The bounded SIG-001 signed-unicast core is implemented, deterministically
 verified, and independently cleared at `00ee65f`. Pairing/setup integration,
 legacy migration, Distribution Lists, and Public Group/ClawReef work have not
-begun. No task is Active pending authorization for the next vertical slice. See
-`references/SIG-001-IMPLEMENTATION-REPORT.md`.
+begun. SIG-002 adds an explicit, warned plaintext compatibility mode and manual
+encrypted re-pair migration without dual acceptance or protocol state. See
+`references/SIG-002-IMPLEMENTATION-REPORT.md`.
 
 Public Group work additionally requires the bounded PUB-001 API/wire
 specification and feasibility spike before an implementation branch is opened.

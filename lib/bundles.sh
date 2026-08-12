@@ -24,13 +24,16 @@ _ANTENNA_LIB_BUNDLES_LOADED=1
 # separately by validate_peer_url so we can emit a specific reason when
 # it's the URL that's wrong.
 _ANTENNA_BUNDLE_SHAPE_PRED='
-  .schema_version == 1 and
+  (.schema_version == 1 or .schema_version == 2) and
   .bundle_type == "antenna-bootstrap" and
   (.expires_at | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")) and
   (.from_peer_id | type == "string" and length > 0) and
   (.from_endpoint_url | type == "string" and length > 0) and
   (.from_hooks_token | type == "string" and length > 0) and
-  (.from_identity_secret | type == "string" and test("^[0-9a-f]{64}$")) and
+  (if .schema_version == 1 then (.from_identity_secret | type == "string" and test("^[0-9a-f]{64}$"))
+   elif .from_auth_mode == "plaintext-legacy" then (.from_identity_secret | type == "string" and test("^[0-9a-f]{64}$")) and (.from_signing_public_key == null)
+   elif .from_auth_mode == "ed25519-v1" then (.from_signing_public_key | type == "string" and startswith("-----BEGIN PUBLIC KEY-----")) and (.from_identity_secret == null)
+   else false end) and
   (.from_exchange_pubkey | type == "string" and startswith("age1"))
 '
 
@@ -54,8 +57,8 @@ bundle_shape_reason() {
   local v
 
   v=$(jq -r '.schema_version // empty' "$bundle_json" 2>/dev/null)
-  if [[ "$v" != "1" ]]; then
-    echo "schema_version must be 1 (got: ${v:-<missing>})" >&2
+  if [[ "$v" != "1" && "$v" != "2" ]]; then
+    echo "schema_version must be 1 or 2 (got: ${v:-<missing>})" >&2
     return 1
   fi
 
@@ -80,10 +83,11 @@ bundle_shape_reason() {
   v=$(jq -r '.from_hooks_token // empty' "$bundle_json" 2>/dev/null)
   [[ -n "$v" ]] || { echo "from_hooks_token missing or empty" >&2; return 1; }
 
-  v=$(jq -r '.from_identity_secret // empty' "$bundle_json" 2>/dev/null)
-  if ! [[ "$v" =~ ^[0-9a-f]{64}$ ]]; then
-    echo "from_identity_secret must be 64 lowercase hex chars" >&2
-    return 1
+  if [[ "$(jq -r '.schema_version' "$bundle_json")" == 1 ]]; then
+    v=$(jq -r '.from_identity_secret // empty' "$bundle_json" 2>/dev/null)
+    [[ "$v" =~ ^[0-9a-f]{64}$ ]] || { echo "from_identity_secret must be 64 lowercase hex chars" >&2; return 1; }
+  elif ! jq -e '(.from_auth_mode == "plaintext-legacy" and (.from_identity_secret|test("^[0-9a-f]{64}$")) and .from_signing_public_key == null) or (.from_auth_mode == "ed25519-v1" and (.from_signing_public_key|startswith("-----BEGIN PUBLIC KEY-----")) and .from_identity_secret == null)' "$bundle_json" >/dev/null; then
+    echo "schema v2 authentication fields are invalid or mixed" >&2; return 1
   fi
 
   v=$(jq -r '.from_exchange_pubkey // empty' "$bundle_json" 2>/dev/null)
@@ -153,6 +157,7 @@ bundle_summary_json() {
     from_display_name,
     from_endpoint_url,
     from_agent_id,
+    from_auth_mode: (if .schema_version == 1 then "plaintext-legacy" else .from_auth_mode end),
     from_exchange_pubkey,
     expected_peer_id,
     notes,

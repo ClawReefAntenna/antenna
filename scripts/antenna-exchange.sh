@@ -30,6 +30,8 @@ source "$SKILL_DIR/lib/config.sh"
 # and antenna-bundle.sh stay in lockstep.
 # shellcheck source=../lib/bundles.sh
 source "$SKILL_DIR/lib/bundles.sh"
+# shellcheck source=../lib/antenna-signature.sh
+source "$SKILL_DIR/lib/antenna-signature.sh"
 EXCHANGE_KEY_FILE="$SECRETS_DIR/antenna-exchange.agekey"
 EXCHANGE_PUB_FILE="$SECRETS_DIR/antenna-exchange.agepub"
 FALLBACK_LEGACY=false
@@ -73,6 +75,7 @@ Options for initiate / reply:
   --send-email                  Send bundle by email (requires gog or himalaya)
   --notes <text>                Optional operator note stored in bundle metadata
   --yes                         Accept defaults / confirmations non-interactively
+  --auth-mode <mode>            ed25519-v1 (default) or plaintext-legacy
   --legacy                      Use the weaker raw-secret fallback instead
 
 Options for import:
@@ -310,12 +313,25 @@ ensure_self_identity_secret() {
   if [[ ! -f "$abs" ]]; then
     openssl rand -hex 32 > "$abs"
     chmod 600 "$abs"
-    ok "Generated local runtime identity secret: $abs"
+    ok "Generated local runtime identity secret: $abs" >&2
   fi
   validate_runtime_secret "$(tr -d '[:space:]' < "$abs")"
   tmp=$(mktemp)
   jq --arg sid "$sid" --arg ref "$ref" '.[$sid].peer_secret_file = $ref' "$PEERS_FILE" > "$tmp" && mv "$tmp" "$PEERS_FILE"
   printf '%s\n' "$abs"
+}
+
+ensure_self_signing_identity() {
+  local sid private_ref="secrets/antenna-signing-private.pem" public_ref="secrets/antenna-signing-public.pem" tmp
+  sid="$(self_id)"; [[ -n "$sid" ]] || die "No self peer found in peers file."
+  if [[ ! -e "$(resolve_path "$private_ref")" && ! -e "$(resolve_path "$public_ref")" ]]; then
+    signature_keygen "$(resolve_path "$private_ref")" "$(resolve_path "$public_ref")" || die "Could not generate Ed25519 identity"
+  fi
+  signature_private_key_ok "$(resolve_path "$private_ref")" || die "Self Ed25519 private key is missing or unsafe"
+  tmp=$(mktemp)
+  jq --arg sid "$sid" --arg private "$private_ref" --arg public "$public_ref" \
+    '.[$sid].signing_private_key_file=$private | .[$sid].signing_public_key_file=$public' "$PEERS_FILE" >"$tmp" && mv "$tmp" "$PEERS_FILE"
+  printf '%s\n' "$(resolve_path "$public_ref")"
 }
 
 self_hooks_token_ref() {
@@ -702,7 +718,7 @@ EOF
 }
 
 ensure_peer_entry_updated() {
-  local peer_id="$1" url="$2" token_ref="$3" secret_ref="$4" agent_id="$5" display_name="$6" exchange_pubkey="$7"
+  local peer_id="$1" url="$2" token_ref="$3" secret_ref="$4" agent_id="$5" display_name="$6" exchange_pubkey="$7" auth_mode="${8:-}" signing_ref="${9:-}"
   local tmp preserve_self
   # REF-600 defense-in-depth: if the existing entry is flagged as self, keep it that way.
   preserve_self=$(jq -r --arg p "$peer_id" '.[$p].self // false | tostring' "$PEERS_FILE" 2>/dev/null || echo "false")
@@ -716,6 +732,7 @@ ensure_peer_entry_updated() {
     --arg display_name "$display_name" \
     --arg exchange_pubkey "$exchange_pubkey" \
     --arg preserve_self "$preserve_self" \
+    --arg auth_mode "$auth_mode" --arg signing_ref "$signing_ref" \
     '
     # Merge the provided fields into the existing entry, keeping existing
     # values for any empty-string inputs. Use `*` to preserve unmentioned keys.
@@ -733,6 +750,11 @@ ensure_peer_entry_updated() {
     # should prevent ever reaching this path for the self-peer, but this keeps
     # the invariant local to the writer.
     | if ($preserve_self == "true") then .[$peer].self = true else . end
+    | if $auth_mode == "ed25519-v1" then
+        .[$peer].auth_mode=$auth_mode | .[$peer].signing_public_key_file=$signing_ref | del(.[$peer].peer_secret_file)
+      elif $auth_mode == "plaintext-legacy" then
+        .[$peer].auth_mode=$auth_mode | del(.[$peer].signing_public_key_file)
+      else . end
     ' \
     "$PEERS_FILE" > "$tmp" && mv "$tmp" "$PEERS_FILE"
 }
@@ -786,7 +808,7 @@ legacy_import_runtime_secret() {
   existing_name="$(peer_field "$peer_id" 'display_name')"
   existing_pub="$(peer_field "$peer_id" 'exchange_public_key')"
 
-  ensure_peer_entry_updated "$peer_id" "$existing_url" "$existing_token_ref" "$secret_ref" "$existing_agent" "$existing_name" "$existing_pub"
+  ensure_peer_entry_updated "$peer_id" "$existing_url" "$existing_token_ref" "$secret_ref" "$existing_agent" "$existing_name" "$existing_pub" plaintext-legacy ""
   update_allowlists "$peer_id" true true
 
   ok "Imported legacy raw runtime identity secret for $peer_id"
@@ -800,8 +822,8 @@ legacy_import_runtime_secret() {
 # old temp-file variant had no cleanup trap, so a mid-flow `die` (bad pubkey,
 # disk full) or SIGINT would leave `/tmp/tmp.XXXXXXXX` behind with full secrets.
 build_plaintext_bundle_stdout() {
-  local target_peer_id="$1" notes="$2"
-  local sid display_name endpoint agent_id token_file token secret_file secret exchange_pubkey
+  local target_peer_id="$1" notes="$2" auth_mode="${3:-ed25519-v1}"
+  local sid display_name endpoint agent_id token_file token secret="" signing_public="" exchange_pubkey
   sid="$(self_id)"
   [[ -n "$sid" ]] || die "No self peer found in peers file. Run 'antenna setup' first."
 
@@ -829,9 +851,11 @@ https:// URL that peers can reach, then try again."
   token="$(read_token_file "$token_file")"
   [[ -n "$token" ]] || die "Self token file is empty: $token_file"
 
-  secret_file="$(ensure_self_identity_secret)"
-  secret="$(read_secret_file "$secret_file")"
-  validate_runtime_secret "$secret"
+  if [[ "$auth_mode" == "ed25519-v1" ]]; then
+    signing_public="$(cat "$(ensure_self_signing_identity)")"
+  elif [[ "$auth_mode" == "plaintext-legacy" ]]; then
+    secret="$(read_secret_file "$(ensure_self_identity_secret)")"; validate_runtime_secret "$secret"
+  else die "Unsupported bundle auth mode: $auth_mode"; fi
 
   ensure_exchange_keypair false >/dev/null
   exchange_pubkey="$(current_exchange_pubkey)"
@@ -847,11 +871,12 @@ https:// URL that peers can reach, then try again."
     --arg from_agent_id "$agent_id" \
     --arg from_hooks_token "$token" \
     --arg from_identity_secret "$secret" \
+    --arg from_auth_mode "$auth_mode" --arg from_signing_public_key "$signing_public" \
     --arg from_exchange_pubkey "$exchange_pubkey" \
     --arg expected_peer_id "$target_peer_id" \
     --arg notes "$notes" \
     '{
-      schema_version: 1,
+      schema_version: 2,
       bundle_type: "antenna-bootstrap",
       generated_at: $generated_at,
       expires_at: $expires_at,
@@ -861,7 +886,9 @@ https:// URL that peers can reach, then try again."
       from_endpoint_url: $from_endpoint_url,
       from_agent_id: (if $from_agent_id == "" then "antenna" else $from_agent_id end),
       from_hooks_token: $from_hooks_token,
-      from_identity_secret: $from_identity_secret,
+      from_auth_mode: $from_auth_mode,
+      from_identity_secret: (if $from_auth_mode == "plaintext-legacy" then $from_identity_secret else null end),
+      from_signing_public_key: (if $from_auth_mode == "ed25519-v1" then $from_signing_public_key else null end),
       from_exchange_pubkey: $from_exchange_pubkey,
       expected_peer_id: (if $expected_peer_id == "" then null else $expected_peer_id end),
       notes: (if $notes == "" then null else $notes end)
@@ -878,7 +905,7 @@ encrypt_bundle_from_stdin() {
 
 run_bundle_command() {
   local mode="$1" peer_id="$2" pubkey_arg="$3" pubkey_file_arg="$4" email="$5" account="$6" output_path="$7" print_bundle="$8" send_email="$9" notes="${10}" assume_yes="${11}" legacy_mode="${12}" email_subject="${13:-}" email_message="${14:-}" cc_self="${15:-false}"
-  local recipient_pubkey self_peer output_file existing_pubkey display_name
+  local recipient_pubkey self_peer output_file existing_pubkey display_name auth_mode="${16:-ed25519-v1}"
 
   self_peer="$(self_id)"
   [[ -n "$self_peer" ]] || die "No self peer found in peers file. Run 'antenna setup' first."
@@ -914,7 +941,7 @@ run_bundle_command() {
   # exists only in the pipe between processes and is never written to disk.
   # If age fails, the pipe fails loudly via set -o pipefail and no output file
   # is created; there is nothing on disk to leak or clean up.
-  build_plaintext_bundle_stdout "$peer_id" "$notes" | encrypt_bundle_from_stdin "$recipient_pubkey" "$output_file"
+  build_plaintext_bundle_stdout "$peer_id" "$notes" "$auth_mode" | encrypt_bundle_from_stdin "$recipient_pubkey" "$output_file"
 
   display_name="$(peer_field "$peer_id" 'display_name')"
   ok "Created encrypted bootstrap bundle for $peer_id${display_name:+ ($display_name)}"
@@ -1033,6 +1060,8 @@ print_import_preview() {
   echo "  Expires at:     $(jq -r '.expires_at // "—"' "$bundle_json")"
   echo "  Bundle ID:      $(jq -r '.bundle_id // "—"' "$bundle_json")"
   echo "  Exchange pubkey:$(jq -r '.from_exchange_pubkey' "$bundle_json")"
+  echo "  Authentication: $(jq -r 'if .schema_version == 1 then "plaintext-legacy" else .from_auth_mode end' "$bundle_json")"
+  [[ "$(jq -r 'if .schema_version == 1 then "plaintext-legacy" else .from_auth_mode end' "$bundle_json")" == plaintext-legacy ]] && warn "Legacy mode sends a reusable identity secret in every message. Re-pair to ed25519-v1 when both hosts are upgraded."
   echo "  Notes:          $(jq -r '.notes // "—"' "$bundle_json")"
   local expected_peer
   expected_peer=$(jq -r '.expected_peer_id // empty' "$bundle_json")
@@ -1057,7 +1086,7 @@ import_bundle() {
   local bundle_json peer_id display_name endpoint agent_id exchange_pubkey expected_peer self_peer
   local existing_url existing_name existing_token_ref existing_secret_ref existing_agent
   local token_ref token_abs secret_ref secret_abs add_inbound add_outbound
-  local hooks_token identity_secret
+  local hooks_token identity_secret auth_mode signing_public signing_ref="" signing_abs="" key_check=""
 
   bundle_json="$(decrypt_bundle_to_json "$input_path")"
   # REF-603: the decrypted bundle contains from_identity_secret + from_hooks_token
@@ -1088,9 +1117,19 @@ import_bundle() {
   expected_peer=$(jq -r '.expected_peer_id // empty' "$bundle_json")
   hooks_token=$(jq -r '.from_hooks_token' "$bundle_json")
   identity_secret=$(jq -r '.from_identity_secret' "$bundle_json")
+  auth_mode=$(jq -r 'if .schema_version == 1 then "plaintext-legacy" else .from_auth_mode end' "$bundle_json")
+  signing_public=$(jq -r '.from_signing_public_key // empty' "$bundle_json")
 
   validate_age_pubkey "$exchange_pubkey"
-  validate_runtime_secret "$identity_secret"
+  if [[ "$auth_mode" == "plaintext-legacy" ]]; then validate_runtime_secret "$identity_secret"
+  elif [[ "$auth_mode" == "ed25519-v1" ]]; then
+    key_check=$(mktemp); chmod 0600 "$key_check"; printf '%s\n' "$signing_public" >"$key_check"
+    openssl pkey -pubin -in "$key_check" -text_pub -noout 2>/dev/null | head -n1 | grep -q '^ED25519 Public-Key:' || { rm -f "$key_check"; die "Bundle Ed25519 public key is invalid"; }
+    rm -f "$key_check"
+    if [[ ! -e "$SKILL_DIR/keys" ]]; then (umask 077; mkdir -m 0700 "$SKILL_DIR/keys") || true; fi
+    [[ -d "$SKILL_DIR/keys" && ! -L "$SKILL_DIR/keys" ]] || die "Pinned-key directory is missing or unsafe: $SKILL_DIR/keys"
+    _signature_path_component_safe "$SKILL_DIR/keys" || die "Pinned-key directory is not owner-controlled"
+  else die "Unsupported bundle auth mode"; fi
 
   # REF-600: primary guard against self-identity hijack.
   # A bundle must never be allowed to overwrite the local self-peer entry.
@@ -1145,8 +1184,15 @@ them re-run 'antenna setup' with a distinct peer_id and issue a new bundle."
   mkdir -p "$(dirname "$token_abs")" "$(dirname "$secret_abs")"
 
   printf '%s' "$hooks_token" > "$token_abs"
-  printf '%s' "$identity_secret" > "$secret_abs"
-  chmod 600 "$token_abs" "$secret_abs"
+  chmod 600 "$token_abs"
+  if [[ "$auth_mode" == "plaintext-legacy" ]]; then
+    printf '%s' "$identity_secret" >"$secret_abs"; chmod 600 "$secret_abs"
+  else
+    signing_ref="keys/$(printf '%s' "$peer_id" | sha256sum | awk '{print $1}').ed25519.pem"
+    signing_abs="$(resolve_path "$signing_ref")"; printf '%s\n' "$signing_public" >"$signing_abs"; chmod 0644 "$signing_abs"
+    signature_public_key_ok "$signing_abs" "$SKILL_DIR/keys" || die "Bundle Ed25519 public key is invalid"
+    secret_ref=""
+  fi
 
   ensure_peer_entry_updated \
     "$peer_id" \
@@ -1155,13 +1201,13 @@ them re-run 'antenna setup' with a distinct peer_id and issue a new bundle."
     "$secret_ref" \
     "${agent_id:-$existing_agent}" \
     "${display_name:-$existing_name}" \
-    "$exchange_pubkey"
+    "$exchange_pubkey" "$auth_mode" "$signing_ref"
 
   update_allowlists "$peer_id" "$add_inbound" "$add_outbound"
 
   ok "Imported encrypted bootstrap bundle for $peer_id"
   info "Token file:  $token_abs"
-  info "Secret file: $secret_abs"
+  info "Authentication: $auth_mode"
   info "Allowlists: inbound=$add_inbound outbound=$add_outbound"
   log_entry "INBOUND-BOOTSTRAP | from:${peer_id} | status:imported | inbound:${add_inbound} | outbound:${add_outbound}"
 
@@ -1354,7 +1400,7 @@ cmd_initiate_or_reply() {
   shift || true
 
   local pubkey_arg="" pubkey_file_arg="" email="" account="" output_path=""
-  local print_bundle=false send_email=false notes="" assume_yes=false legacy_mode=false
+  local print_bundle=false send_email=false notes="" assume_yes=false legacy_mode=false auth_mode=ed25519-v1
   local email_subject="" email_message="" cc_self=false
 
   while [[ $# -gt 0 ]]; do
@@ -1371,13 +1417,15 @@ cmd_initiate_or_reply() {
       --send-email) send_email=true; shift ;;
       --notes) notes="$2"; shift 2 ;;
       --yes) assume_yes=true; shift ;;
+      --auth-mode) auth_mode="$2"; shift 2 ;;
       --legacy) legacy_mode=true; shift ;;
       -h|--help) usage; exit 0 ;;
       *) die "Unknown option for ${mode}: $1" ;;
     esac
   done
 
-  run_bundle_command "$mode" "$peer_id" "$pubkey_arg" "$pubkey_file_arg" "$email" "$account" "$output_path" "$print_bundle" "$send_email" "$notes" "$assume_yes" "$legacy_mode" "$email_subject" "$email_message" "$cc_self"
+  [[ "$auth_mode" == "ed25519-v1" || "$auth_mode" == "plaintext-legacy" ]] || die "--auth-mode must be ed25519-v1 or plaintext-legacy"
+  run_bundle_command "$mode" "$peer_id" "$pubkey_arg" "$pubkey_file_arg" "$email" "$account" "$output_path" "$print_bundle" "$send_email" "$notes" "$assume_yes" "$legacy_mode" "$email_subject" "$email_message" "$cc_self" "$auth_mode"
 }
 
 cmd_import() {

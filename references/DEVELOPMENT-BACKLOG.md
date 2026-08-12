@@ -20,12 +20,6 @@ None. Awaiting authorization for the next bounded vertical slice.
 
 ## Ready
 
-### SIG-002 — Explicit plaintext-legacy migration
-
-May begin only after SIG-001 complexity and security review. Add one explicit,
-warned legacy mode and a manual coordinated re-pairing procedure. No dual
-acceptance or automatic migration.
-
 ### DL-001 — Local Distribution List fan-out
 
 May begin only after signed unicast is stable. Reserve `@alias` for local lists
@@ -72,6 +66,18 @@ delegation. Antenna is A2A-aware, not A2A-dependent; do not begin an A2A
 adapter without a concrete request.
 
 ## Completed
+
+### SIG-002 — Explicit plaintext-legacy migration
+
+**Decision:** each peer selects exactly one `auth_mode`: modern `ed25519-v1` or
+warned `plaintext-legacy`; migration is a manual fresh encrypted re-pair.
+**Verification:** focused auth 72/72, migration/bundle 8/8, Tier A 20/20,
+REF-1501 16/16, and all 21 deterministic scripts in an isolated seeded copy.
+**Complexity:** +81 net runtime lines against `a6a5757`, below the 200-line
+stop gate; no negotiation, dual acceptance, journal, retry, or recovery state.
+**Boundary:** no live-host change, push, tag, release, or public claim.
+**Records:** `references/SIG-002-SCOPE-CONTRACT.md` and
+`references/SIG-002-IMPLEMENTATION-REPORT.md`.
 
 ### SIG-001 — Minimal Ed25519 signed unicast
 

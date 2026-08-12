@@ -364,5 +364,34 @@ jq -e '.reason == "Envelope exceeds raw byte limit"' <<<"$response" >/dev/null \
   && ok "raw envelope cap rejects before parsing" || no "raw envelope cap rejects before parsing"
 cp "$TMP/config.saved" "$TMP/receiver/antenna-config.json"
 
+# SIG-002 exact-mode compatibility: plaintext is explicit and never dual-mode.
+legacy=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+printf '%s' "$legacy" >"$TMP/sender/secrets/legacy.secret"
+printf '%s' "$legacy" >"$TMP/receiver/secrets/legacy.secret"
+chmod 0600 "$TMP/sender/secrets/legacy.secret" "$TMP/receiver/secrets/legacy.secret"
+jq '.sender.peer_secret_file="secrets/legacy.secret" | .receiver.auth_mode="plaintext-legacy"' "$TMP/sender/antenna-peers.json" >"$TMP/p" && mv "$TMP/p" "$TMP/sender/antenna-peers.json"
+jq '.sender.auth_mode="plaintext-legacy" | .sender.peer_secret_file="secrets/legacy.secret"' "$TMP/receiver/antenna-peers.json" >"$TMP/p" && mv "$TMP/p" "$TMP/receiver/antenna-peers.json"
+(cd "$TMP/sender" && bash scripts/antenna-send.sh receiver --dry-run 'legacy body') >"$TMP/legacy-dry" 2>"$TMP/legacy-warning"
+awk '/^=== ENVELOPE ===$/{on=1;next}/^=== POST PAYLOAD ===$/{on=0}on' "$TMP/legacy-dry" >"$TMP/legacy-envelope"
+response=$(relay_file "$TMP/legacy-envelope")
+jq -e '.status == "ok"' <<<"$response" >/dev/null && grep -q 'plaintext-legacy sends' "$TMP/legacy-warning" \
+  && ok "explicit legacy mode warns and relays" || no "explicit legacy mode warns and relays"
+sed '/^auth:/i protocol: antenna-ed25519-v1' "$TMP/legacy-envelope" >"$TMP/mixed-envelope"
+response=$(relay_file "$TMP/mixed-envelope")
+jq -e '.reason == "Invalid plaintext-legacy envelope"' <<<"$response" >/dev/null \
+  && ok "legacy peer rejects mixed signed fields" || no "legacy peer rejects mixed signed fields"
+jq '.sender.auth_mode="ed25519-v1" | .sender.signing_public_key_file="keys/sender-public.pem"' "$TMP/receiver/antenna-peers.json" >"$TMP/p" && mv "$TMP/p" "$TMP/receiver/antenna-peers.json"
+response=$(relay_file "$TMP/legacy-envelope")
+jq -e '.reason == "Unsupported or missing protocol"' <<<"$response" >/dev/null \
+  && ok "Ed25519 peer rejects legacy envelope" || no "Ed25519 peer rejects legacy envelope"
+jq '.receiver.auth_mode="missing"' "$TMP/sender/antenna-peers.json" >"$TMP/p" && mv "$TMP/p" "$TMP/sender/antenna-peers.json"
+(cd "$TMP/sender" && bash scripts/antenna-send.sh receiver --dry-run test) >/dev/null 2>&1 \
+  && no "sender rejects unknown mode" || ok "sender rejects unknown mode"
+jq '.sender.auth_mode="plaintext-legacy"' "$TMP/receiver/antenna-peers.json" >"$TMP/p" && mv "$TMP/p" "$TMP/receiver/antenna-peers.json"
+chmod 0644 "$TMP/receiver/secrets/legacy.secret"
+response=$(relay_file "$TMP/legacy-envelope")
+jq -e '.reason == "Legacy peer secret is missing or unsafe"' <<<"$response" >/dev/null \
+  && ok "relay rejects unsafe legacy secret mode" || no "relay rejects unsafe legacy secret mode"
+
 echo "RESULT: pass=$pass fail=$fail"
 (( fail == 0 ))

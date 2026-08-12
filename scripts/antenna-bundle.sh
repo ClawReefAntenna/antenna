@@ -208,14 +208,15 @@ cmd_verify() {
   esac
 
   # ── Step 5: sensitive-field presence (signal, not value) ──────────────
-  local has_tok has_sec
+  local has_tok has_sec bundle_mode
   has_tok=$(jq -r '(.from_hooks_token // "") | length' "$bundle_json" 2>/dev/null)
   has_sec=$(jq -r '(.from_identity_secret // "") | length' "$bundle_json" 2>/dev/null)
+  bundle_mode=$(jq -r 'if .schema_version == 1 then "plaintext-legacy" else .from_auth_mode // empty end' "$bundle_json" 2>/dev/null)
   if [[ "$has_tok" == "0" || -z "$has_tok" ]]; then
     reasons+=("sensitive: from_hooks_token missing")
     $json_mode || fail "from_hooks_token is missing (would break relay auth on import)"
   fi
-  if [[ "$has_sec" == "0" || -z "$has_sec" ]]; then
+  if [[ "$bundle_mode" == "plaintext-legacy" && ( "$has_sec" == "0" || -z "$has_sec" ) ]]; then
     reasons+=("sensitive: from_identity_secret missing")
     $json_mode || fail "from_identity_secret is missing"
   fi

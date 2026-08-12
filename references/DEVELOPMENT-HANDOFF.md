@@ -2,7 +2,7 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** SIG-001 independently cleared; next vertical slice not yet active
+**Status:** SIG-002 explicit legacy migration implemented and verified
 
 ## The one-sentence picture
 

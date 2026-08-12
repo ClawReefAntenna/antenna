@@ -80,7 +80,7 @@ BAD_URL="$TEST_ROOT/bad-url.json"
 EXPIRED="$TEST_ROOT/expired.json"
 
 write_bundle "$GOOD"        "2099-12-31T23:59:59Z" "https://test.example.com"
-write_bundle "$BAD_SCHEMA"  "2099-12-31T23:59:59Z" "https://test.example.com" 2
+write_bundle "$BAD_SCHEMA"  "2099-12-31T23:59:59Z" "https://test.example.com" 3
 write_bundle "$BAD_URL"     "2099-12-31T23:59:59Z" "main"
 write_bundle "$EXPIRED"     "2000-01-01T00:00:00Z" "https://test.example.com"
 
@@ -134,10 +134,10 @@ if [[ $rc -eq 1 ]]; then
 else
   fail "T2: bad schema_version should exit 1, got $rc" "$out"
 fi
-if grep -q 'schema_version must be 1' <<<"$out"; then
+if grep -q 'schema_version must be 1 or 2' <<<"$out"; then
   pass "T2: specific schema_version reason emitted"
 else
-  fail "T2: expected 'schema_version must be 1' reason" "$out"
+  fail "T2: expected 'schema_version must be 1 or 2' reason" "$out"
 fi
 
 # ── T3: malformed URL (devon1545 "main" regression) ─────────────────────

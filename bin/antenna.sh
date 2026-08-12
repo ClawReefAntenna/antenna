@@ -104,6 +104,7 @@ Usage:
 
   antenna send <peer> [options] <message>    Send a message to a peer
   antenna send <peer> [options] --stdin      Send message from stdin
+  antenna send @alias [options] <message>    Fan out to a local Distribution List
   antenna msg <peer> [message]               Quick send (plain host mode by default)
 
   antenna peers list                         List known peers
@@ -171,6 +172,7 @@ Send options:
 
 Examples:
   antenna msg <peer> "What's the weather like over there?"
+  antenna send @operations "Server maintenance tonight"
   antenna msg <peer>                      # prompts for message interactively
   echo "long message" | antenna send <peer> --stdin --user "Your Name"
 EOF
@@ -192,7 +194,11 @@ cmd_uninstall() {
 }
 
 cmd_send() {
-  bash "$SCRIPTS_DIR/antenna-send.sh" "$@"
+  if [[ "${1:-}" == @* ]]; then
+    bash "$SCRIPTS_DIR/antenna-list-send.sh" "$@"
+  else
+    bash "$SCRIPTS_DIR/antenna-send.sh" "$@"
+  fi
 }
 
 cmd_msg() {

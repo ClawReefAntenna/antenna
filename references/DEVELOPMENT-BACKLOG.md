@@ -20,12 +20,6 @@ None. Awaiting authorization for the next bounded vertical slice.
 
 ## Ready
 
-### DL-001 — Local Distribution List fan-out
-
-May begin only after signed unicast is stable. Reserve `@alias` for local lists
-of already-paired peers, expand each list into ordinary signed unicast sends,
-and report partial delivery without retries, persistence, or atomicity.
-
 ### DL-002 — Visible recipients, reply-all, and list sharing
 
 Add the optional signed-body `[ANTENNA_META v=1]` preamble produced by
@@ -66,6 +60,19 @@ delegation. Antenna is A2A-aware, not A2A-dependent; do not begin an A2A
 adapter without a concrete request.
 
 ## Completed
+
+### DL-001 — Local Distribution List fan-out
+
+**Decision:** reserve local `@alias` names and expand a strictly validated,
+sorted/deduplicated member list into independent existing unicast sends.
+**Verification:** focused matrix 30/30, Tier A 20/20, full isolated deterministic
+suite 22 scripts with 0 failures, syntax and diff checks clean.
+**Complexity:** +127 net runtime lines against `9992e6a`, below the 150-line
+stop gate; no protocol/state/retry/recovery behavior.
+**Boundary:** no recipient metadata, reply-all, export/import, group identity,
+ClawReef/Public Groups, live-host change, push, tag, release, or public claim.
+**Records:** `references/DL-001-SCOPE-CONTRACT.md` and
+`references/DL-001-IMPLEMENTATION-REPORT.md`.
 
 ### SIG-002 — Explicit plaintext-legacy migration
 

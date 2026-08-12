@@ -4,6 +4,7 @@ antenna.log.*
 test-results/
 antenna-config.json
 antenna-peers.json
+antenna-lists.json
 antenna-inbox.json
 state/
 

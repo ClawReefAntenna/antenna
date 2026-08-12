@@ -2,13 +2,13 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** SIG-002 explicit legacy migration implemented and verified
+**Status:** DL-001 local Distribution List fan-out implemented and verified
 
 ## The one-sentence picture
 
 Antenna v1.5.2 is the published plaintext-authentication baseline. New work on
 `dev/signature-minimal` moves directly to Ed25519 sender signatures and uses
-local Distribution List aliases for later one-to-many fan-out; HMAC-minimal is
+local Distribution List aliases for bounded one-to-many fan-out; HMAC-minimal is
 preserved but will not be an intermediate public protocol. Public Groups use a
 separate encrypted ClawReef relay architecture after those foundations are
 stable.
@@ -142,12 +142,11 @@ Specific concerns to resolve during the first read-only report:
 ## Recommended work order
 
 1. Await authorization for the next bounded vertical slice.
-2. Add explicit plaintext-legacy migration only if SIG-002 is activated.
-3. Add local `@alias` Distribution List fan-out.
-4. Add optional visible-recipient metadata, reply-all, and manual list sharing.
-5. Complete PUB-001's bounded API/wire specification and fixture-only
+2. Add optional visible-recipient metadata, reply-all, and manual list sharing
+   only if DL-002 is activated.
+3. Complete PUB-001's bounded API/wire specification and fixture-only
    feasibility spike.
-6. Create a separate Public Group implementation branch from the validated
+4. Create a separate Public Group implementation branch from the validated
    signed-unicast/Distribution-List baseline, then implement relay and
    multi-recipient encryption together.
 

@@ -34,12 +34,12 @@
 
 ## First maintenance objective
 
-The bounded SIG-001 signed-unicast core is implemented, deterministically
-verified, and independently cleared at `00ee65f`. SIG-002 adds an explicit,
-warned plaintext compatibility mode and manual encrypted re-pair migration
-without dual acceptance or protocol state. Distribution Lists and Public
-Group/ClawReef implementation have not begun. See
-`references/SIG-002-IMPLEMENTATION-REPORT.md`.
+The signed-unicast and explicit legacy-migration slices are complete at
+`00ee65f` and `9992e6a`. DL-001 now adds bounded local `@alias` fan-out over the
+existing unicast sender, with strict validation-before-send and no delivery
+state or protocol change. DL-002 visible recipients/reply-all/sharing and Public
+Group/ClawReef work have not begun. No task is Active pending authorization for
+the next vertical slice. See `references/DL-001-IMPLEMENTATION-REPORT.md`.
 
 Public Group work additionally requires the bounded PUB-001 API/wire
 specification and feasibility spike before an implementation branch is opened.

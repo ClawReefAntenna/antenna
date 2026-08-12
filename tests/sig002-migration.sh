@@ -47,6 +47,8 @@ jq -e '.alpha.auth_mode=="plaintext-legacy"' "$TMP/beta/antenna-peers.json" >/de
   && ok "schema v1 import maps explicitly to legacy" || no "schema v1 legacy mapping"
 
 jq '.from_signing_public_key="-----BEGIN PUBLIC KEY-----\nbogus\n-----END PUBLIC KEY-----"' "$TMP/ed.json" >"$TMP/bad-key.json"
+bundle_shape_reason "$TMP/bad-key.json" >/dev/null 2>&1 \
+  && no "bundle verifier rejects invalid Ed25519 PEM" || ok "bundle verifier rejects invalid Ed25519 PEM"
 age -a -r "$beta_pub" -o "$TMP/bad-key.age" "$TMP/bad-key.json"
 before_peers=$(sha256sum "$TMP/beta/antenna-peers.json" | awk '{print $1}')
 before_token=$(sha256sum "$TMP/beta/secrets/hooks_token_alpha" | awk '{print $1}')

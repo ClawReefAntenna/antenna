@@ -71,13 +71,15 @@ adapter without a concrete request.
 
 **Decision:** each peer selects exactly one `auth_mode`: modern `ed25519-v1` or
 warned `plaintext-legacy`; migration is a manual fresh encrypted re-pair.
-**Verification:** focused auth 72/72, migration/bundle 8/8, Tier A 20/20,
-REF-1501 16/16, and all 21 deterministic scripts in an isolated seeded copy.
-**Complexity:** +81 net runtime lines against `a6a5757`, below the 200-line
+**Verification:** focused auth 72/72, migration/bundle 9/9, Tier A 20/20,
+REF-1501 16/16, the deterministic scripts in an isolated seeded copy, and
+owner security review with no remaining blocker.
+**Complexity:** +95 net runtime lines against `a6a5757`, below the 200-line
 stop gate; no negotiation, dual acceptance, journal, retry, or recovery state.
 **Boundary:** no live-host change, push, tag, release, or public claim.
-**Records:** `references/SIG-002-SCOPE-CONTRACT.md` and
-`references/SIG-002-IMPLEMENTATION-REPORT.md`.
+**Records:** `references/SIG-002-SCOPE-CONTRACT.md`,
+`references/SIG-002-IMPLEMENTATION-REPORT.md`, and
+`references/SIG-002-SECURITY-REVIEW-2026-08-11.md`.
 
 ### SIG-001 — Minimal Ed25519 signed unicast
 

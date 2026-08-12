@@ -90,6 +90,22 @@ bundle_shape_reason() {
     echo "schema v2 authentication fields are invalid or mixed" >&2; return 1
   fi
 
+  if [[ "$(jq -r '.schema_version' "$bundle_json")" == 2 &&
+        "$(jq -r '.from_auth_mode' "$bundle_json")" == "ed25519-v1" ]]; then
+    local key_check
+    v=$(jq -r '.from_signing_public_key' "$bundle_json")
+    (( ${#v} <= 1024 )) || { echo "from_signing_public_key is oversized" >&2; return 1; }
+    key_check=$(mktemp) || { echo "could not stage Ed25519 public key validation" >&2; return 1; }
+    chmod 0600 "$key_check"
+    printf '%s\n' "$v" >"$key_check"
+    if ! openssl pkey -pubin -in "$key_check" -text_pub -noout 2>/dev/null | head -n1 | grep -q '^ED25519 Public-Key:'; then
+      rm -f "$key_check"
+      echo "from_signing_public_key is not a valid Ed25519 public key" >&2
+      return 1
+    fi
+    rm -f "$key_check"
+  fi
+
   v=$(jq -r '.from_exchange_pubkey // empty' "$bundle_json" 2>/dev/null)
   if [[ "$v" != age1* ]]; then
     echo "from_exchange_pubkey must start with \"age1\" (got: ${v:-<missing>})" >&2
@@ -162,6 +178,7 @@ bundle_summary_json() {
     expected_peer_id,
     notes,
     has_hooks_token: ((.from_hooks_token // "") | length > 0),
-    has_identity_secret: ((.from_identity_secret // "") | length > 0)
+    has_identity_secret: ((.from_identity_secret // "") | length > 0),
+    has_signing_public_key: ((.from_signing_public_key // "") | length > 0)
   }' "$bundle_json" 2>/dev/null
 }

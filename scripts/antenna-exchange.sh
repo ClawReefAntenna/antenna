@@ -1086,7 +1086,7 @@ import_bundle() {
   local bundle_json peer_id display_name endpoint agent_id exchange_pubkey expected_peer self_peer
   local existing_url existing_name existing_token_ref existing_secret_ref existing_agent
   local token_ref token_abs secret_ref secret_abs add_inbound add_outbound
-  local hooks_token identity_secret auth_mode signing_public signing_ref="" signing_abs="" key_check=""
+  local hooks_token identity_secret auth_mode signing_public signing_ref="" signing_abs=""
 
   bundle_json="$(decrypt_bundle_to_json "$input_path")"
   # REF-603: the decrypted bundle contains from_identity_secret + from_hooks_token
@@ -1123,9 +1123,6 @@ import_bundle() {
   validate_age_pubkey "$exchange_pubkey"
   if [[ "$auth_mode" == "plaintext-legacy" ]]; then validate_runtime_secret "$identity_secret"
   elif [[ "$auth_mode" == "ed25519-v1" ]]; then
-    key_check=$(mktemp); chmod 0600 "$key_check"; printf '%s\n' "$signing_public" >"$key_check"
-    openssl pkey -pubin -in "$key_check" -text_pub -noout 2>/dev/null | head -n1 | grep -q '^ED25519 Public-Key:' || { rm -f "$key_check"; die "Bundle Ed25519 public key is invalid"; }
-    rm -f "$key_check"
     if [[ ! -e "$SKILL_DIR/keys" ]]; then (umask 077; mkdir -m 0700 "$SKILL_DIR/keys") || true; fi
     [[ -d "$SKILL_DIR/keys" && ! -L "$SKILL_DIR/keys" ]] || die "Pinned-key directory is missing or unsafe: $SKILL_DIR/keys"
     _signature_path_component_safe "$SKILL_DIR/keys" || die "Pinned-key directory is not owner-controlled"

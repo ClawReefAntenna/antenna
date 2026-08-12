@@ -101,7 +101,7 @@ legacy_secret_file_ok() {
   mode=$(stat -c '%a' "$file" 2>/dev/null) || return 1
   owner=$(stat -c '%u' "$file" 2>/dev/null) || return 1
   [[ "$owner" -eq "$(id -u)" ]] && (( (8#$mode & 077) == 0 )) || return 1
-  value=$(tr -d '[:space:]' <"$file")
+  value=$(<"$file")
   [[ "$value" =~ ^[0-9a-f]{64}$ ]]
 }
 

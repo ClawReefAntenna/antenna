@@ -34,7 +34,9 @@ explicitly re-pair with `--auth-mode plaintext-legacy`; every legacy send warns.
 
 Focused evidence covers exact-mode send/relay behavior, downgrade rejection,
 unsafe/missing credentials, mutually exclusive v2 bundles, schema-v1 legacy
-mapping, public-key pinning, and no mutation on malformed PEM. The hermetic Tier
-A passed 20/20; REF-1501 passed 16/16; the complete isolated deterministic
-suite passed all 21 scripts. SIG-002 adds +81 net runtime lines against
-`a6a5757`, below its 200-line stop gate.
+mapping, public-key pinning, shared verifier/import Ed25519 validation, and no
+mutation on malformed PEM. The focused authentication suite passed 72/72, the
+migration suite passed 9/9, hermetic Tier A passed 20/20, REF-1501 passed 16/16,
+and the deterministic scripts passed in an isolated seeded copy. SIG-002 adds
++95 net runtime lines against `a6a5757`, below its 200-line stop gate. Owner
+review is recorded in `references/SIG-002-SECURITY-REVIEW-2026-08-11.md`.

@@ -40,6 +40,14 @@ host owner's authenticated ClawReef account-management session. That browser
 session protects key administration; it is not a credential carried on every
 Public Group send.
 
+Initial enrollment requires a fresh server challenge signed by the proposed
+host key. Normal replacement requires the authenticated owner session plus a
+signature from the currently registered key. Lost-key recovery is an explicit
+account-recovery operation: it revokes the old key immediately, removes or
+suspends the host's posting memberships, increments affected group revisions,
+and requires members to approve the new fingerprint before trusting it. A
+session cookie alone must not silently replace an active host identity key.
+
 Fingerprints are lowercase SHA-256 hex over the DER Ed25519 public key or the
 UTF-8 age-recipient string, respectively.
 
@@ -58,6 +66,13 @@ recipient records excluding the sender. Each recipient record contains:
 Every record must be complete, unique, syntactically valid, and binding-valid.
 Missing or malformed keys fail the entire snapshot. The sender validates local
 pins before encryption.
+
+Recipients maintain the same locally pinned identity roster for permitted
+group senders. That roster is refreshed from complete group membership data
+before messages are admitted; the delivery wrapper is never an authority for
+the sender key. A first-seen identity or any later key change follows the
+group's explicit trust policy and is never silently accepted from an inbound
+message.
 
 `keyset_digest` is lowercase SHA-256 over length-prefixed canonical recipient
 records sorted by `host_id`. It covers host ID, identity fingerprint, age
@@ -116,15 +131,23 @@ current revision, and key-set digest before fan-out. It also reserves
 fan-out. A duplicate submission fails closed; replay state never contains
 ciphertext or plaintext.
 
+The HTTP parser accepts one JSON object only, rejects duplicate or unknown
+keys, requires exact primitive types and bounded UTF-8 lengths, and rejects
+non-canonical UUIDs, timestamps, base64, hashes, and integers. The body-size
+limit is enforced before buffering or JSON parsing. Signature verification and
+verified-sender admission limits occur before age ciphertext decoding and hash
+work wherever the signed metadata permits.
+
 Unknown, disabled, revoked, or wrongly signed hosts receive the same generic
 authentication failure so the endpoint does not become a host-key oracle.
 Removing a member, muting its posting permission, disabling the host, or
 replacing/revoking its registered key takes effect on the next submission.
 
 Replay records contain only sender host ID, message ID, and reservation time.
-They remain for 360 seconds (the five-minute age plus one-minute future-skew
-window), use a unique `(sender_host_id, message_id)` constraint, and fail closed
-if reservation storage is unavailable or over its rate-derived bound.
+They remain for at least 420 seconds (the complete five-minute age plus
+one-minute future-skew window and a one-minute pruning margin), use a unique
+`(sender_host_id, message_id)` constraint, and fail closed if reservation
+storage is unavailable or over its rate-derived bound.
 
 Initial admission limits are 10 submissions per verified sender per minute, 60
 per group per minute, and 300 globally per minute, plus a conservative
@@ -138,8 +161,12 @@ does not imply universal delivery.
 
 ## 6. Deterministic fan-out
 
-ClawReef resolves the current active recipients again after admission and
-makes at most one attempt per recipient with concurrency 32, a five-second
+ClawReef performs authorization, group-revision/key-set comparison, replay
+reservation, and capture of the exact eligible recipient IDs in one local
+database transaction. That committed recipient snapshot is the send's
+authorization point. New members are never added after encryption; membership
+changes committed afterward apply to the next message. ClawReef then makes at
+most one attempt per captured recipient with concurrency 32, a five-second
 per-recipient timeout, and a 45-second whole-request deadline. Every downstream
 JSON wrapper contains exactly `protocol` (`antenna-public-group-delivery-v1`),
 group ID, revision, sender host ID, message ID, ciphertext format, size, hash,
@@ -165,16 +192,38 @@ only to the narrow outbound-delivery code path. Operator views expose only a
 presence flag and replacement/revocation action. Decryption, use, rotation, and
 failure are metadata-audited without token values.
 
+Each encrypted token record authenticates its host ID, credential purpose, and
+record version as AES-GCM additional authenticated data so database-row
+swapping fails closed. Public Group delivery must not launch until existing
+owner APIs stop returning raw hook tokens or identity secrets.
+
+Outbound delivery permits only a previously verified HTTPS endpoint belonging
+to that host. URL parsing, DNS resolution, redirect handling, and connection
+address checks must prevent loopback, link-local, metadata-service, credential-
+in-URL, DNS-rebinding, and redirect-based SSRF. Any intentionally supported
+private/tailnet range requires an explicit deployment allowlist; redirects are
+disabled by default.
+
 ## 7. Recipient admission
 
 The recipient verifies wrapper size/hash, decrypts with its local age private
 key, strictly parses the inner object, reconstructs the canonical bytes,
-verifies the sender's pinned Ed25519 key, checks that wrapper and inner group,
+verifies the sender's already pinned Ed25519 key, checks that wrapper and inner group,
 revision, sender, and message ID match, then applies freshness, message-ID
 replay state, and local group/session policy before delivery or quarantine. Any
 failure rejects without plaintext delivery.
 
-## 8. Compatibility and recovery
+## 8. Trust limitation
+
+ClawReef is the authoritative membership service. It cannot decrypt a message
+encrypted to the legitimate approved key set, but a fully compromised
+membership service could add an attacker-controlled member key to a later
+snapshot unless membership changes are independently approved or signed. v1
+must state this limitation and must not claim confidentiality against a
+malicious membership authority. Key transparency or owner-signed membership
+epochs are future hardening, not silently implied v1 behavior.
+
+## 9. Compatibility and recovery
 
 There is no compatibility mode because Public Groups have not shipped. Unknown
 protocols fail closed. Recovery from membership/key conflict, rejected

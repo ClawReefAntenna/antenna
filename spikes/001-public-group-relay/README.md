@@ -26,7 +26,7 @@ and writes no database.
 
 ## Verdict
 
-**VALIDATED — 21/21 checks passed.** The corrected proof uses the registered
+**VALIDATED — 25/25 checks passed.** The hardened proof uses the registered
 Ed25519 host key as the submission credential, with no separate Public Group
 API key. It includes actual multi-recipient age encryption, byte-identical
 fan-out, recipient decryption and sender verification, non-member/ClawReef

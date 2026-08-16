@@ -20,6 +20,7 @@ from typing import Any
 
 INNER_PROTOCOL = "antenna-public-group-ed25519-v1"
 SUBMIT_PROTOCOL = "antenna-public-group-submit-v1"
+DELIVERY_PROTOCOL = "antenna-public-group-delivery-v1"
 BINDING_PROTOCOL = "antenna-age-key-binding-v1"
 MAX_RECIPIENTS = 256
 MAX_BODY = 64 * 1024
@@ -233,7 +234,12 @@ class FixtureRegistry:
             ]), record["age_binding_signature"], self.work)
         return {"group_id": self.group_id, "group_revision": self.revision, "members": records, "keyset_digest": keyset_digest(records)}
 
-    def submit(self, request: dict[str, Any], fail: set[str] | None = None) -> tuple[dict[str, Any], dict[str, bytes]]:
+    def submit(
+        self,
+        request: dict[str, Any],
+        fail: set[str] | None = None,
+        before_fanout: Any | None = None,
+    ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
         expected = {"protocol", "group_id", "group_revision", "keyset_digest", "sender_host_id", "message_id", "created_at", "ciphertext_format", "ciphertext_size", "ciphertext_sha256", "ciphertext_base64", "submission_signature"}
         if set(request) != expected or request["protocol"] != SUBMIT_PROTOCOL or request["ciphertext_format"] != "age-v1":
             raise Rejected("invalid submission schema")
@@ -261,6 +267,7 @@ class FixtureRegistry:
         current = self.snapshot(sender_id)
         if request["group_revision"] != current["group_revision"] or request["keyset_digest"] != current["keyset_digest"]:
             raise Rejected("stale group revision or key set")
+        authorized_recipients = [self.hosts[member["host_id"]] for member in current["members"]]
         replay_key = (sender_id, request["message_id"])
         if replay_key in self.seen_submissions:
             raise Rejected("duplicate submission")
@@ -269,16 +276,19 @@ class FixtureRegistry:
             raise Rejected("sender rate limit exceeded")
         self.sender_submissions[sender_id] = count + 1
         self.seen_submissions.add(replay_key)
-        deliveries: dict[str, bytes] = {}
+        if before_fanout:
+            before_fanout()
+        deliveries: dict[str, dict[str, Any]] = {}
         results: list[dict[str, str]] = []
-        for host in self.recipients(sender_id):
+        for host in authorized_recipients:
             self.attempts[host.host_id] = self.attempts.get(host.host_id, 0) + 1
             if fail and host.host_id in fail:
                 results.append({"member_id": host.host_id, "status": "failed"})
                 continue
             wrapper = {
+                "protocol": DELIVERY_PROTOCOL,
                 "group_id": self.group_id,
-                "group_revision": self.revision,
+                "group_revision": request["group_revision"],
                 "sender_host_id": sender_id,
                 "message_id": request["message_id"],
                 "ciphertext_format": "age-v1",
@@ -287,7 +297,7 @@ class FixtureRegistry:
                 "ciphertext": ciphertext,
             }
             assert "hook_token" not in wrapper and host.hook_token not in repr(wrapper)
-            deliveries[host.host_id] = wrapper["ciphertext"]
+            deliveries[host.host_id] = wrapper
             results.append({"member_id": host.host_id, "status": "accepted"})
         response = {"accepted": sum(item["status"] == "accepted" for item in results), "failed": sum(item["status"] != "accepted" for item in results), "results": results}
         assert "token" not in json.dumps(response).lower()
@@ -385,6 +395,56 @@ def verify_inner(cleartext: bytes, sender_public: Path, work: Path) -> dict[str,
     return value
 
 
+def admit_delivery(
+    wrapper: dict[str, Any],
+    recipient: AgeIdentity,
+    pinned_sender_public: Path,
+    allowed_group_id: str,
+    allowed_sender_id: str,
+    seen: set[tuple[str, str]],
+    work: Path,
+) -> dict[str, Any]:
+    expected = {
+        "protocol", "group_id", "group_revision", "sender_host_id",
+        "message_id", "ciphertext_format", "ciphertext_size",
+        "ciphertext_sha256", "ciphertext",
+    }
+    if set(wrapper) != expected or wrapper["protocol"] != DELIVERY_PROTOCOL:
+        raise Rejected("invalid delivery wrapper")
+    ciphertext = wrapper["ciphertext"]
+    if not isinstance(ciphertext, bytes):
+        raise Rejected("invalid ciphertext type")
+    if (
+        wrapper["ciphertext_format"] != "age-v1"
+        or wrapper["ciphertext_size"] != len(ciphertext)
+        or len(ciphertext) > MAX_CIPHERTEXT
+        or wrapper["ciphertext_sha256"] != sha(ciphertext)
+    ):
+        raise Rejected("delivery ciphertext mismatch")
+    inner = verify_inner(decrypt_age(ciphertext, recipient, work), pinned_sender_public, work)
+    comparisons = (
+        ("group_id", allowed_group_id),
+        ("sender_host_id", allowed_sender_id),
+        ("group_revision", wrapper["group_revision"]),
+        ("message_id", wrapper["message_id"]),
+    )
+    for name, expected_value in comparisons:
+        if wrapper.get(name) != expected_value or inner.get(name) != expected_value:
+            raise Rejected("wrapper and inner mismatch")
+    try:
+        created = calendar.timegm(time.strptime(inner["timestamp"], "%Y-%m-%dT%H:%M:%SZ"))
+    except (TypeError, ValueError) as exc:
+        raise Rejected("invalid inner timestamp") from exc
+    now = int(time.time())
+    if created < now - 300 or created > now + 60:
+        raise Rejected("stale or future inner message")
+    replay_key = (inner["sender_host_id"], inner["message_id"])
+    if replay_key in seen:
+        raise Rejected("recipient replay detected")
+    seen.add(replay_key)
+    return inner
+
+
 def expect_rejected(label: str, operation: Any, passed: list[str]) -> None:
     try:
         operation()
@@ -446,12 +506,15 @@ def main() -> None:
         request["submission_signature"] = sender.signing.sign(submission_canonical(request), work)
         response, deliveries = registry.submit(request)
         assert response["accepted"] == 2 and response["failed"] == 0
-        assert deliveries[alice.host_id] == ciphertext == deliveries[bob.host_id]
+        assert deliveries[alice.host_id]["ciphertext"] == ciphertext == deliveries[bob.host_id]["ciphertext"]
         passed.append("one byte-identical ciphertext fanned to all recipients")
         print("PASS: one byte-identical ciphertext fanned to all recipients")
 
         for member in (alice, bob):
-            verified = verify_inner(decrypt_age(deliveries[member.host_id], member.age, work), sender.signing.public, work)
+            verified = admit_delivery(
+                deliveries[member.host_id], member.age, sender.signing.public,
+                group_id, sender.host_id, set(), work,
+            )
             assert verified["body"] == body
             assert verified["group_id"] == request["group_id"]
             assert verified["group_revision"] == request["group_revision"]
@@ -459,6 +522,38 @@ def main() -> None:
             assert verified["message_id"] == request["message_id"]
         passed.append("all intended recipients decrypt and verify original sender")
         print("PASS: all intended recipients decrypt and verify original sender")
+
+        alice_seen: set[tuple[str, str]] = set()
+        admit_delivery(
+            deliveries[alice.host_id], alice.age, sender.signing.public,
+            group_id, sender.host_id, alice_seen, work,
+        )
+        expect_rejected(
+            "recipient replay fails closed",
+            lambda: admit_delivery(
+                deliveries[alice.host_id], alice.age, sender.signing.public,
+                group_id, sender.host_id, alice_seen, work,
+            ),
+            passed,
+        )
+        mismatched_wrapper = dict(deliveries[alice.host_id])
+        mismatched_wrapper["message_id"] = str(uuid.uuid4())
+        expect_rejected(
+            "wrapper and inner mismatch fails closed",
+            lambda: admit_delivery(
+                mismatched_wrapper, alice.age, sender.signing.public,
+                group_id, sender.host_id, set(), work,
+            ),
+            passed,
+        )
+        expect_rejected(
+            "unpinned sender key fails recipient verification",
+            lambda: admit_delivery(
+                deliveries[alice.host_id], alice.age, outsider.signing.public,
+                group_id, sender.host_id, set(), work,
+            ),
+            passed,
+        )
 
         expect_rejected("non-member cannot decrypt", lambda: decrypt_age(ciphertext, outsider.age, work), passed)
         expect_rejected("ClawReef cannot decrypt", lambda: decrypt_age(ciphertext, clawreef, work), passed)
@@ -530,6 +625,17 @@ def main() -> None:
         assert all(host.hook_token not in json.dumps(partial_response) for host in (sender, alice, bob, outsider))
         passed.append("responses and wrappers expose no hook token")
         print("PASS: responses and wrappers expose no hook token")
+
+        snapshot_registry = FixtureRegistry(work, group_id, 7, [sender, alice, bob, outsider], {sender.host_id: True, alice.host_id: True, bob.host_id: True, outsider.host_id: False})
+        def add_member_after_authorization() -> None:
+            snapshot_registry.members[outsider.host_id] = True
+            snapshot_registry.revision += 1
+        _snapshot_response, snapshot_deliveries = snapshot_registry.submit(
+            request, before_fanout=add_member_after_authorization
+        )
+        assert set(snapshot_deliveries) == {alice.host_id, bob.host_id}
+        passed.append("authorization snapshot prevents post-encryption member injection")
+        print("PASS: authorization snapshot prevents post-encryption member injection")
 
         stress_identities = [AgeIdentity.create(work, f"stress-age-{index:03d}") for index in range(MAX_RECIPIENTS)]
         started = time.monotonic()

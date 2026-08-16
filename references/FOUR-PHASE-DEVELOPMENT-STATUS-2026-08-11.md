@@ -17,11 +17,12 @@ published, or claimed as a public release.
 | 1 — Signed identity | Ed25519 sender identity, canonical signed envelopes, freshness and replay rejection | SIG-001 | Complete and independently reviewed |
 | 2 — Migration | Explicit `ed25519-v1` or warned `plaintext-legacy`; migration by fresh encrypted re-pair | SIG-002 | Complete and owner-reviewed |
 | 3 — Distribution Lists | Local `@alias` fan-out with optional signed visible-recipient context | DL-001, DL-002 | Complete and owner-reviewed |
-| 4 — Public Groups | Encrypted ClawReef-mediated current-membership delivery without pairwise hook-token disclosure | PUB-001, PUB-002 | PUB-001 fixture VALIDATED; paused before PUB-002 review/authorization |
+| 4 — Public Groups | Encrypted ClawReef-mediated current-membership delivery without pairwise hook-token disclosure | PUB-001, PUB-002 | PUB-001 owner-accepted/security-cleared; paused before PUB-002 authorization |
 
 Phases 1–3 passed controlled three-host and release-candidate review. Corey
-authorized PUB-001 on 2026-08-16; its protocol and fixture are ready for owner
-and independent security review. This is not automatic PUB-002 authority.
+authorized and owner-accepted PUB-001 on 2026-08-16. Its protocol and 25/25
+fixture passed independent security review. This is not automatic PUB-002
+implementation authority.
 
 ## Phase 1 — Signed identity
 
@@ -79,13 +80,13 @@ it. Direct unicast and Distribution Lists remain peer-to-peer.
 
 Phase 4 is split into two gates:
 
-1. **PUB-001 — VALIDATED; review pending.** The bounded protocol fixes the
+1. **PUB-001 — COMPLETE.** The bounded protocol fixes the
    signature-only sender authentication, request/wrapper schemas, key binding and pinning,
    membership/key-set freshness, recipient decrypt contract, limits, result
    semantics, metadata logging, and token-storage controls. Prove one-ciphertext
    multi-recipient fan-out with fixtures only—no real tokens or live delivery.
-2. **PUB-002 — blocked.** Only after PUB-001 owner and independent security
-   review, build the ClawReef endpoint and credential custody together with Antenna
+2. **PUB-002 — awaiting authorization.** After explicit implementation
+   authorization, build the ClawReef endpoint and credential custody together with Antenna
    multi-recipient encryption/decryption, then run a controlled multi-host
    matrix.
 
@@ -94,7 +95,8 @@ live credential, group UI, retry queue, content store, receipt system, shared
 group key, plaintext fallback, or LLM relay logic.
 
 PUB-001's prerequisites and explicit authorization were satisfied. Its
-fixture-only proof passed 21/21 checks; see
+fixture-only proof passed 25/25 checks and its security review cleared the
+architecture for bounded implementation; see
 `references/PUB-001-FEASIBILITY-REPORT-2026-08-16.md`. Roadmap position and a
 successful spike are still not production implementation authority.
 

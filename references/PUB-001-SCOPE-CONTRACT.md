@@ -1,7 +1,7 @@
 # PUB-001 Scope Contract
 
 **Authorized:** 2026-08-16
-**Status:** Corrected fixture VALIDATED — owner and independent security review pending
+**Status:** Complete — owner accepted and security-reviewed 2026-08-16
 **Compatibility:** none; Public Groups have never been released
 
 ## User-visible outcome
@@ -65,6 +65,10 @@ transaction state. Operator correction and a new send are the only recovery.
 - Unregistered and disabled hosts, removed or muted members, rate excess,
   stale membership/key-set, missing keys, changed keys, altered ciphertext,
   and wrong signatures fail closed.
+- Recipient wrapper/inner mismatch, recipient replay, and an unpinned sender
+  key fail closed.
+- One committed authorization snapshot determines the exact fan-out set; a
+  member added after that snapshot is not contacted.
 - A simulated member failure is reported after one attempt without retry.
 - No response or delivered wrapper exposes any member hook token.
 - The temporary run retains no ciphertext after exit.

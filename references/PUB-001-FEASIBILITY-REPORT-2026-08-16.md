@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-16
 **Verdict:** VALIDATED
-**Status:** ready for owner and independent security review; PUB-002 remains
-blocked
+**Status:** owner accepted and security-reviewed; PUB-002 implementation remains
+separately gated
 
 ## Question
 
@@ -54,7 +54,7 @@ Command:
 PYTHONDONTWRITEBYTECODE=1 python3 spikes/001-public-group-relay/proof.py
 ```
 
-Final result: **21/21 passed**. The corrected proof was rerun successfully after
+Final result: **25/25 passed**. The hardened proof was rerun successfully after
 each security refinement. It demonstrated:
 
 - one ciphertext copied byte-identically to two normal recipients;
@@ -65,6 +65,9 @@ each security refinement. It demonstrated:
   recipient key, changed
   pinned key, altered ciphertext, hash tamper, and wrong Ed25519 signer all
   failed closed;
+- recipient replay, wrapper/inner mismatch, and an unpinned sender key failed
+  closed;
+- a member added after the committed authorization snapshot was not contacted;
 - one simulated member failure produced one success and one failure after one
   attempt each, with no retry or transaction state;
 - delivered wrappers and responses exposed no hook token;
@@ -116,5 +119,7 @@ The core design is feasible without plaintext access, pairwise hook-token
 disclosure, shared group secrets, retries, a content store, or an LLM in the
 relay path. No PUB-001 kill criterion was triggered.
 
-PUB-002 should remain blocked until Corey accepts this protocol boundary and an
-independent security review clears it.
+Corey accepted this protocol boundary on 2026-08-16. The independent security
+review in `PUB-001-SECURITY-REVIEW-2026-08-16.md` clears the architecture for a
+bounded PUB-002 implementation while preserving explicit pre-deployment
+security blockers and separate implementation authority.

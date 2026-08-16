@@ -46,10 +46,14 @@ fan-outs passed. See
 `references/VAL-001-VALIDATION-REPORT-2026-08-15.md`.
 
 Current phase map:
-`references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md` (Phases 1–3 complete
-locally; Phase 4 is paused before PUB-001).
+`references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md` (Phases 1–3 validated;
+PUB-001 complete; Phase 4 is paused before PUB-002 authorization).
 
 ## Active
+
+None. Awaiting explicit PUB-002 implementation authorization.
+
+## Completed
 
 ### PUB-001 — Public Group relay protocol and feasibility spike
 
@@ -58,15 +62,15 @@ It may define the API/wire contract and run generated local fixtures only. It
 must not expose a production route, migrate a database, use a real credential,
 contact a live Antenna host, add UI, retain ciphertext, or claim availability.
 
-**Status:** corrected signature-only design complete; VALIDATED with 21/21
-fixture checks and ready for owner plus independent security review. PUB-002
-remains blocked. No Public Group submission API key is required.
+**Status:** Complete — owner accepted and independently security-reviewed on
+2026-08-16. The signature-only fixture passes 25/25. The architecture is
+cleared for bounded PUB-002 implementation, but implementation, deployment,
+and publication remain separately gated. No Public Group API key is required.
 
 **Evidence:** `references/PUB-001-SCOPE-CONTRACT.md`,
 `references/PUBLIC-GROUP-PROTOCOL-V1.md`, and
-`references/PUB-001-FEASIBILITY-REPORT-2026-08-16.md`.
-
-## Completed
+`references/PUB-001-FEASIBILITY-REPORT-2026-08-16.md`, and
+`references/PUB-001-SECURITY-REVIEW-2026-08-16.md`.
 
 ### REL-001 — Phases 1–3 release-candidate review
 
@@ -88,8 +92,9 @@ Public publication is deliberately deferred until Public Groups are enabled.
 
 ### PUB-002 — Encrypted ClawReef Public Group relay
 
-Blocked behind PUB-001 authorization, completion, owner review, and independent
-security review. No production implementation authority exists.
+PUB-001, owner acceptance, and security review are complete. PUB-002 now awaits
+Corey's explicit implementation authorization. No production implementation,
+live-test, deployment, or publication authority exists.
 
 ### ART-001 — Retention policy for ignored local artifacts
 

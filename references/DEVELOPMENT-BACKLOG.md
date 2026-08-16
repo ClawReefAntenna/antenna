@@ -98,6 +98,19 @@ adapter without a concrete request.
 
 ## Completed
 
+### DL-003 — Per-recipient Distribution List session routing
+
+**Decision:** replace the unreleased string-only member draft with one strict
+object-entry schema: required `peer`, optional full `session`. Omission delegates
+routing to the recipient; an explicit session is passed only to that member.
+Command-level `--session` is rejected for lists so local policy cannot be
+silently overridden.
+**Boundary:** local address-book fan-out only. No synchronized membership,
+self-delivery, reply-all, group identity, shared trust, retries, or ClawReef
+Public Group behavior.
+**Authorization:** Corey approved the clean schema break on 2026-08-15 before
+any public Distribution List release.
+
 ### DL-002 — Visible recipient context
 
 **Decision:** retain only the canonical signed-body prefix containing the local

@@ -258,7 +258,16 @@ antenna msg <peer> --session "agent:x:channel" "…"  # target specific session
 antenna msg <peer> --subject "Re: Config" "…"       # with subject line
 antenna send <peer> --stdin                         # from stdin
 antenna send <peer> --dry-run "text"                # preview envelope
+antenna send @lab-monitors "check in"               # per-recipient list routing
+antenna send @lab-monitors --show-recipients "…"    # signed alias + peer context
 ```
+
+Distribution Lists are local `antenna-lists.json` address books. Every member
+is an object with required `peer` and optional full `session` fields. An
+explicit session targets that remote session; omitting it delegates routing to
+the recipient's configured default. Lists reject string-only entries,
+duplicates, self, unknown fields, and command-level `--session` before any
+network call. See `antenna-lists.example.json` for the canonical schema.
 
 ### Pairing & Peers
 

@@ -106,7 +106,7 @@ Usage:
 
   antenna send <peer> [options] <message>    Send a message to a peer
   antenna send <peer> [options] --stdin      Send message from stdin
-  antenna send @alias [options] <message>    Fan out to a local Distribution List
+  antenna send @alias [options] <message>    Fan out with per-recipient routing
   antenna send @alias --show-recipients ... Add signed visible-list metadata
   antenna msg <peer> [message]               Quick send (plain host mode by default)
 

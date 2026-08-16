@@ -78,10 +78,12 @@ For peer onboarding, Antenna now prefers **Layer A encrypted bootstrap exchange*
 Live runtime files are local installation state:
 - `antenna-config.json`
 - `antenna-peers.json`
+- `antenna-lists.json` (optional local Distribution Lists)
 
 Tracked reference files live beside them:
 - `antenna-config.example.json`
 - `antenna-peers.example.json`
+- `antenna-lists.example.json`
 
 Use `antenna setup` for normal installation; use the `*.example.json` files for schema reference or manual recovery.
 
@@ -158,6 +160,34 @@ Key fields:
 - `exchange_public_key` — peer's `age` public key for Layer A exchange
 - `self` — marks the local host entry
 
+### `antenna-lists.json`
+
+Distribution Lists use one canonical object-entry schema. Each entry requires
+the peer ID and may pin a full remote session key:
+
+```json
+{
+  "lab-monitors": [
+    {
+      "peer": "lab1",
+      "session": "agent:chem:monitor1"
+    },
+    {
+      "peer": "lab2"
+    }
+  ]
+}
+```
+
+- `peer` is required and must name a configured, outbound-allowed remote peer.
+- `session` is optional. When present, only that recipient receives an
+  explicit `target_session`. When absent, Antenna omits the field and the
+  recipient resolves its own default session.
+- The local self peer, duplicate peers, string-only entries, unknown fields,
+  malformed sessions, and mixed schemas are rejected before any send occurs.
+- Session routing belongs to the list. Command-level `--session` is rejected
+  for Distribution List sends.
+
 ## Usage
 
 ### Send a message
@@ -169,6 +199,8 @@ antenna msg <peer> --subject "Config sync" "Here's the block you need..."
 antenna msg <peer> --session "agent:<agent-id>:mychannel" "Your message"  # explicit session override
 echo "Long message body..." | antenna send <peer> --stdin
 antenna send <peer> --dry-run "Test message"
+antenna send @lab-monitors "Check in"                    # per-entry sessions
+antenna send @lab-monitors --show-recipients "Check in" # signed list context
 ```
 
 > **Session resolution:** When `--session` is omitted, `target_session` is left out of the

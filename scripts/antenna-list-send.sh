@@ -14,7 +14,7 @@ source "$SKILL_DIR/lib/antenna-signature.sh"
 die() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 
 SHOW=false READ_STDIN=false
-MEMBERS=() OPTIONS=() POSITIONAL=()
+MEMBERS=() SESSIONS=() OPTIONS=() POSITIONAL=()
 [[ $# -ge 1 ]] || die "Usage: antenna send @alias ..."
 ALIAS_REF="$1"; shift
 [[ "$ALIAS_REF" =~ ^@[a-z0-9][a-z0-9._-]{0,63}$ ]] || die "Invalid distribution-list alias"
@@ -23,7 +23,8 @@ ALIAS="${ALIAS_REF#@}"; LABEL="@$ALIAS"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --show-recipients) SHOW=true; shift ;;
-    --session|--subject|--user|--reply-to) [[ $# -ge 2 ]] || die "$1 requires a value"; OPTIONS+=("$1" "$2"); shift 2 ;;
+    --session) die "Distribution List sessions belong in antenna-lists.json; command-level --session is not supported" ;;
+    --subject|--user|--reply-to) [[ $# -ge 2 ]] || die "$1 requires a value"; OPTIONS+=("$1" "$2"); shift 2 ;;
     --dry-run|--json) OPTIONS+=("$1"); shift ;;
     --stdin) READ_STDIN=true; shift ;;
     -*) die "Unknown option: $1" ;;
@@ -37,14 +38,27 @@ done
 jq -e 'type=="object" and length<=100 and all(to_entries[];
   (.key|test("^[a-z0-9][a-z0-9._-]{0,63}$")) and
   (.value|type)=="array" and (.value|length)>0 and (.value|length)<=100 and
-  all(.value[]; type=="string" and test("^[a-z0-9][a-z0-9._-]{0,63}$")))' \
+  all(.value[];
+    type=="object" and
+    ((keys - ["peer", "session"])|length)==0 and
+    (.peer|type)=="string" and (.peer|test("^[a-z0-9][a-z0-9._-]{0,63}$")) and
+    ((has("session")|not) or
+      ((.session|type)=="string" and
+       (.session|length)<=128 and
+       (.session|test("^agent:[A-Za-z0-9][A-Za-z0-9._-]{0,63}:[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"))))
+  ) and
+  (([.value[].peer]|unique|length)==(.value|length)))' \
   "$LISTS_FILE" >/dev/null 2>&1 || die "Malformed or oversized antenna-lists.json"
 jq -e --arg alias "$ALIAS" 'has($alias)' "$LISTS_FILE" >/dev/null || die "Unknown distribution list: @$ALIAS"
-mapfile -t MEMBERS < <(jq -r --arg alias "$ALIAS" '.[$alias] | unique | sort[]' "$LISTS_FILE")
+while IFS=$'\t' read -r member session; do
+  MEMBERS+=("$member")
+  SESSIONS+=("$session")
+done < <(jq -r --arg alias "$ALIAS" '.[$alias] | sort_by(.peer)[] | [.peer, (.session // "")] | @tsv' "$LISTS_FILE")
 
 SELF_ID=$(peers_single_self_id) || die "Expected exactly one configured self peer"
 VALID=() NEED_ED=false NEED_LEGACY=false
-for member in "${MEMBERS[@]}"; do
+for i in "${!MEMBERS[@]}"; do
+  member="${MEMBERS[$i]}"
   if [[ "$member" == "$SELF_ID" ]]; then
     die "Distribution list $LABEL contains self peer '$member'"
   fi
@@ -78,9 +92,13 @@ fi
 RESULTS=$(mktemp "${TMPDIR:-/tmp}/antenna-list-results.XXXXXX"); OUT=$(mktemp "${TMPDIR:-/tmp}/antenna-list-out.XXXXXX"); ERR=$(mktemp "${TMPDIR:-/tmp}/antenna-list-err.XXXXXX")
 chmod 0600 "$RESULTS" "$OUT" "$ERR"
 overall=0
-for member in "${MEMBERS[@]}"; do
+for i in "${!MEMBERS[@]}"; do
+  member="${MEMBERS[$i]}"
+  session="${SESSIONS[$i]}"
+  member_options=("${OPTIONS[@]}")
+  [[ -z "$session" ]] || member_options+=(--session "$session")
   set +e
-  if [[ "$SEND_STDIN" == true ]]; then bash "$SENDER" "$member" "${OPTIONS[@]}" --stdin <"$BODY" >"$OUT" 2>"$ERR"; else bash "$SENDER" "$member" "${OPTIONS[@]}" "${POSITIONAL[@]}" >"$OUT" 2>"$ERR"; fi
+  if [[ "$SEND_STDIN" == true ]]; then bash "$SENDER" "$member" "${member_options[@]}" --stdin <"$BODY" >"$OUT" 2>"$ERR"; else bash "$SENDER" "$member" "${member_options[@]}" "${POSITIONAL[@]}" >"$OUT" 2>"$ERR"; fi
   rc=$?; set -e; [[ ! -s "$ERR" ]] || cat "$ERR" >&2; [[ $rc -eq 0 ]] || overall=1
   if jq -e . "$OUT" >/dev/null 2>&1; then jq -n --arg peer "$member" --argjson rc "$rc" --slurpfile sender "$OUT" '{peer:$peer,ok:($rc==0),exit_code:$rc,sender:$sender[0]}' >>"$RESULTS"; else jq -n --arg peer "$member" --argjson rc "$rc" --rawfile output "$OUT" '{peer:$peer,ok:($rc==0),exit_code:$rc,sender_output:$output}' >>"$RESULTS"; fi
 done

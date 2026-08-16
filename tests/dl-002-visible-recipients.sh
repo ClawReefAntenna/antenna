@@ -32,7 +32,7 @@ for p in alpha beta gamma; do printf token >"$SKILL/secrets/$p.token"; done
 chmod 600 "$SKILL/secrets/"*
 export CALL_LOG="$ROOT/calls"
 : >"$CALL_LOG"
-printf '%s\n' '{"ops":["gamma","alpha","alpha"],"legacy":["beta"]}' >"$SKILL/antenna-lists.json"
+printf '%s\n' '{"ops":[{"peer":"gamma","session":"agent:chem:monitor7"},{"peer":"alpha","session":"agent:chem:monitor1"}],"delegated":[{"peer":"beta"}]}' >"$SKILL/antenna-lists.json"
 
 OUT=$(bash "$SKILL/bin/antenna.sh" send @ops --show-recipients 'hello world' 2>"$ROOT/err"); RC=$?
 expected='[ANTENNA_META v=1]
@@ -65,15 +65,15 @@ done
 
 : >"$CALL_LOG"
 printf 'tail\n\n' >"$ROOT/body"
-bash "$SKILL/bin/antenna.sh" send @legacy --show-recipients --stdin <"$ROOT/body" >"$ROOT/out" 2>"$ROOT/err"
+bash "$SKILL/bin/antenna.sh" send @delegated --show-recipients --stdin <"$ROOT/body" >"$ROOT/out" 2>"$ROOT/err"
 expected_file="$ROOT/expected"
-printf '[ANTENNA_META v=1]\nlist: legacy\nrecipients: beta\n[/ANTENNA_META]\n\n' >"$expected_file"
+printf '[ANTENNA_META v=1]\nlist: delegated\nrecipients: beta\n[/ANTENNA_META]\n\n' >"$expected_file"
 cat "$ROOT/body" >>"$expected_file"
 expect "show-recipients preserves terminal body bytes" jq -e --arg b "$(base64 -w0 "$expected_file")" \
   '.[0].body_b64==$b' "$CALL_LOG" --slurp >/dev/null
 
 : >"$CALL_LOG"
-bash "$SKILL/bin/antenna.sh" send @legacy plain >"$ROOT/out" 2>"$ROOT/err"
+bash "$SKILL/bin/antenna.sh" send @delegated plain >"$ROOT/out" 2>"$ROOT/err"
 expect "default list send remains unprefixed" jq -e \
   '.[0].body_b64=="" and (.[0].args|contains("plain"))' "$CALL_LOG" --slurp >/dev/null
 

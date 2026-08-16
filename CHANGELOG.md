@@ -25,7 +25,11 @@ For the complete version history prior to `1.3.0`, see:
   negotiation, automatic downgrade, rotation protocol, or recovery journal.
 - **Local Distribution Lists.** `antenna send @alias ...` expands a strictly
   validated local list into independent existing unicasts with deterministic
-  per-recipient results and no retry or delivery transaction.
+  per-recipient results and no retry or delivery transaction. Each canonical
+  object entry requires `peer` and may include a full `session`; omitted
+  sessions delegate routing to the recipient. Because this feature was
+  unreleased, the earlier string-only draft schema was removed rather than
+  retained as permanent compatibility surface.
 - **Visible Distribution List recipients.** `--show-recipients` optionally adds
   a canonical signed-body block containing the local alias and sorted,
   deduplicated recipient peer IDs. Antenna adds no reply-all or list-management

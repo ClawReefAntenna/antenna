@@ -573,6 +573,13 @@ and local Distribution Lists with optional signed visible-recipient context.
 The exact candidate passed controlled three-host live validation before release
 preparation.
 
+Each local Distribution List member records a required peer ID and an optional
+full session key. A pinned session targets that recipient directly; omitting it
+lets the receiving relay choose its default. This supports mixed groups such as
+`lab1 → agent:chem:monitor1`, `lab2 → agent:chem:monitor7`, and an operator host
+that deliberately uses recipient-default routing. List sends do not accept one
+global `--session` override.
+
 Encrypted Public Groups through ClawReef are a separately gated architecture
 proposal. Their fixture-only feasibility spike is paused pending evidence from
 the completed unicast and Distribution List work. Helping Claw, content

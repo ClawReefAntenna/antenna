@@ -615,7 +615,7 @@ Portability cleanup. Removed hardcoded host/user/model assumptions from shareabl
 
 ### Changed
 - `relay_agent_model` reverted from `"mini"` alias to full `"openai/gpt-5.4"` provider/model ID
-- `agent/AGENTS.md` — replaced hardcoded `/home/corey/clawd/...` paths with relative/config-driven resolution
+- `agent/AGENTS.md` — replaced hardcoded installation-specific home paths with relative/config-driven resolution
 - `agent/TOOLS.md` — same path portability fix
 - `SKILL.md` — generic `<placeholder>` examples instead of installation-specific names and URLs
 - `README.md` — same generic examples treatment

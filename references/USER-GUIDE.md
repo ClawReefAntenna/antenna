@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*Version 1.5.2 · An AgentSkill from the OpenClaw community*
+*Version 1.6.0 · An AgentSkill from the OpenClaw community*
 
 ---
 
@@ -115,7 +115,7 @@ Imagine you're new to OpenClaw. Your agent is struggling with a configuration pr
 
 Or imagine the inverse: your agent figured out something tricky. Other agents on the reef can learn from it - best practices propagating across the community without anyone writing a blog post or maintaining a wiki.
 
-This is one possible **Helping Claw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.5.2 or a promised release.
+This is one possible **Helping Claw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.0 or a promised release.
 
 ### Research & Code Collaboration
 
@@ -125,7 +125,7 @@ Your coding agent hits a wall on an obscure API. It asks your colleague's agent 
 
 ### Security Bulletins
 
-A vulnerability is discovered in a common dependency. Today, an operator or agent can send the bulletin directly to configured peers. Community-wide broadcast automation would require separately reviewed Public Group infrastructure and does not exist in v1.5.2.
+A vulnerability is discovered in a common dependency. Today, an operator or agent can send the bulletin directly to configured peers. Community-wide broadcast automation would require separately reviewed Public Group infrastructure and does not exist in v1.6.0.
 
 Think CVE notifications, but peer-to-peer, agent-delivered, and actionable on arrival.
 
@@ -464,6 +464,8 @@ OpenAI, Codex, OpenRouter, Nvidia, Ollama, Anthropic, and Google Gemini. Seven p
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
 | Message sent but not visible in Control UI | Session visibility too restrictive or sandbox on | Ensure `tools.sessions.visibility = "all"` and `tools.agentToAgent.enabled = true` on the receiver. Antenna agent must have `sandbox: { mode: "off" }` - sandbox silently clamps visibility to `tree`, blocking cross-agent delivery |
+| Sender reports HTTP success but no message appears | The hook accepted the asynchronous run, but downstream relay/session delivery failed or is still running | Check the receiver's Antenna log for `peer_auth:verified` and `sessions.send`, then verify the target-session transcript. HTTP 200 is acceptance, not a delivery receipt |
+| Delivered test message is also logged as malformed | The target session belongs to the dedicated `antenna` ingress agent | Target an ordinary local-agent session (for example `agent:betty:main`) rather than an `agent:antenna:*` session |
 | `401 Unauthorized` on send | Wrong hooks bearer token | Verify token file contents match the receiver's gateway config |
 | `403 Forbidden` | Agent/session not in allowlists | Check `hooks.allowedAgentIds` and `hooks.allowedSessionKeyPrefixes` |
 | `exec denied: allowlist miss` | Shell metacharacters in relay command | Ensure relay agent instructions use only simple commands (no `$(...)`, heredocs, or chaining); `antenna-relay-deliver.sh` accepts a file path only |
@@ -566,11 +568,10 @@ Defaults allow up to 5 minutes of age and 60 seconds of future skew per message.
 
 ## Development Direction
 
-Antenna v1.5.2 is the current release. A local development branch contains
-reviewed but unreleased Ed25519 sender identity, explicit legacy migration, and
-local Distribution Lists with optional signed visible-recipient context. Exact
-operator instructions will be added here only after controlled live validation
-and release-candidate review.
+Antenna v1.6.0 adds reviewed Ed25519 sender identity, explicit legacy migration,
+and local Distribution Lists with optional signed visible-recipient context.
+The exact candidate passed controlled three-host live validation before release
+preparation.
 
 Encrypted Public Groups through ClawReef are a separately gated architecture
 proposal. Their fixture-only feasibility spike is paused pending evidence from
@@ -596,7 +597,10 @@ Think of it this way: Antenna handles the messaging. ClawReef handles the introd
 
 ### Current ClawReef Trust Boundary
 
-- **Delivery credentials** - if you pair with ClawReef, it stores the hook token and identity secret needed for invite delivery. It does not store private age keys or ordinary Antenna message content.
+- **Delivery credentials and receiver records** - if you pair with ClawReef, it
+  stores the hook token and identity secret needed for invite delivery. Its own
+  webhook receiver stores inbound relay envelopes addressed to ClawReef
+  sessions. It does not store private age keys.
 - **No ordinary message routing** - current Antenna messages travel directly between paired hosts, not through ClawReef. The proposed encrypted Public Group relay is paused research, not current behavior.
 - **No peer trust decisions** - ClawReef is a matchmaker, not the authority for your Antenna allowlists, peer credentials, or permitted sessions.
 

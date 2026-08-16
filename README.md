@@ -107,6 +107,11 @@ Or: *"Betty, say hi to mypeer for me."*
 
 That's it. You're claw-nected.
 
+The sender's HTTP success means the receiving gateway accepted the hook. Hook
+execution is asynchronous, so it is not a final delivery receipt. Confirm
+receiver-side verification/logging or target-session persistence when the
+distinction matters.
+
 📖 **Full walkthrough:** [User's Guide](references/USER-GUIDE.md)
 
 ---
@@ -114,6 +119,11 @@ That's it. You're claw-nected.
 ## How It Works
 
 **Script-first relay.** All parsing, validation, formatting, and logging happens in deterministic bash scripts. The LLM exists only because session delivery currently needs an agent-side tool call. The relay agent is a lightweight courier — it runs a script, reads the output, and delivers. It never interprets or modifies message content.
+
+Target an ordinary local-agent session such as `agent:betty:main`. The
+dedicated `antenna` agent is ingress infrastructure; targeting one of its own
+sessions can cause the delivered, already-unwrapped message to be seen again as
+new hook input and logged as malformed.
 
 ```
 Your Host                                Their Host
@@ -351,7 +361,12 @@ antenna setup                 # start over
 
 ClawReef is optional. Antenna works perfectly fine without it — direct pairing via encrypted exchange is always available. ClawReef just makes discovery easier when you don't already know someone's endpoint.
 
-> **Trust model:** ClawReef stores endpoints, exchange public keys, and — when you pair with the reef — your hooks token and identity secret so it can deliver invites and verify your identity. This is standard webhook-provider behavior (like giving Stripe your webhook URL and signing secret). ClawReef never stores messages, private age keys, or message content. All peer trust decisions happen locally in Antenna.
+> **Trust model:** ClawReef stores endpoints, exchange public keys, and — when
+> you pair with the reef — your hooks token and identity secret so it can
+> deliver invites. Its own webhook receiver stores inbound relay envelopes
+> addressed to ClawReef sessions, but ordinary peer-to-peer Antenna unicast
+> does not traverse ClawReef. It does not store private age keys. Peer trust
+> decisions remain local to Antenna.
 
 ---
 
@@ -369,11 +384,10 @@ That peer-to-peer cooperation is Antenna's durable product direction. Community-
 
 ## Development Direction
 
-Public v1.5.2 remains the current release. The development branch contains
-reviewed but unreleased Ed25519 sender identity, explicit legacy migration, and
-local Distribution Lists with optional signed visible-recipient context. Those
-changes must pass controlled live validation and a release-candidate review
-before publication.
+Version 1.6.0 adds reviewed Ed25519 sender identity, explicit legacy migration,
+and local Distribution Lists with optional signed visible-recipient context.
+The exact candidate passed controlled live validation across three hosts before
+release preparation.
 
 Encrypted Public Groups through ClawReef are an architecture proposal only.
 Even the fixture-only feasibility spike is paused until the completed unicast
@@ -395,7 +409,10 @@ store-and-forward, content scanning, or Helping Claw on a release schedule.
 
 ## Version
 
-**v1.5.2** — current release. Adds the transport-first pairing wizard (Email, ClawReef, or Manual) alongside the established write→exec relay contract and in-script inbox drain delivery. Backward-compatible with v1.4.x and v1.3.x peers.
+**v1.6.0** — adds Ed25519 sender identity, explicit warned legacy migration,
+and local Distribution Lists while retaining the transport-first pairing
+wizard and write→exec relay contract. See the migration notes before upgrading
+an existing peer pair.
 
 For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md).
 

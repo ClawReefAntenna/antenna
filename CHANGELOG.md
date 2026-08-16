@@ -10,6 +10,8 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-08-15
+
 ### Added
 
 - **Ed25519 sender identity (`antenna-ed25519-v1`).** Modern peers sign a
@@ -37,7 +39,28 @@ For the complete version history prior to `1.3.0`, see:
 - Distribution-list metadata grants no endpoint, token, key, reachability, or
   trust. No group credential is embedded in messages.
 
-### Development boundary
+### Fixed
+
+- `antenna status` now audits the pinned public key selected by an
+  `ed25519-v1` peer instead of incorrectly warning that its intentionally
+  absent legacy secret leaves the sender unverified.
+- Non-interactive setup now defaults to the host's configured primary model
+  and rejects an explicitly selected relay model when OpenClaw reports that it
+  is unavailable on that host.
+- CLI installation skips unwritable PATH directories and reliably falls back
+  to `~/.local/bin/antenna`.
+- The bundle-verifier regression now creates its own isolated runtime fixture
+  instead of depending on untracked developer configuration.
+
+### Validation
+
+- Passed a controlled three-host matrix covering clean install, legacy
+  migration, all six signed-unicast directions, replay/tamper/freshness/
+  allowlist negative controls, and three-origin Distribution List fan-out.
+- Documented that hook HTTP success is asynchronous acceptance rather than a
+  final delivery receipt.
+
+### Product boundary
 
 - Public Group delivery is not implemented. Its approved architecture and the
   fixture-only PUB-001 gate are documented under `references/`; production

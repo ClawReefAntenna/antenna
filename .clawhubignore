@@ -28,3 +28,19 @@ references/DL-*-OWNER-REVIEW-*.md
 references/SIG-*-SCOPE-CONTRACT.md
 references/SIG-*-IMPLEMENTATION-REPORT.md
 references/SIG-*-SECURITY-REVIEW-*.md
+
+# OpenClaw workspace/bootstrap files can appear when this checkout is used as
+# an agent workspace. They are installation-local identity/state, never skill
+# payload.
+AGENTS.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+openclaw-workspace-state.json
+
+# Controlled live-validation evidence is retained in Git/project records, not
+# shipped to operators through ClawHub.
+references/VAL-*.md
+tests/rel-001-release-readiness.sh

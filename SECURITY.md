@@ -22,12 +22,14 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 
 | Version | Supported |
 |---------|-----------|
-| 1.5.2 / current public `main` | ✅ Current |
+| 1.6.0 | ✅ Current |
+| 1.5.2 | ⚠️ Upgrade recommended |
 | 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
 | 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |
 | < 1.3.0 | ❌ Unsupported |
 
-The current public v1.5.2 release includes the envelope-marker guard (REF-400),
+The current v1.6.0 release includes Ed25519 sender signatures, exact message-ID
+replay rejection, the envelope-marker guard (REF-400),
 message freshness window (REF-402), relay temp-file hygiene (REF-403), self-ID
 fallback removal (REF-404), constant-time plaintext identity-secret comparison
 (REF-501), expired-bundle refusal (REF-601), plaintext bootstrap-bundle cleanup
@@ -36,23 +38,21 @@ export non-TTY refusal (REF-605), gateway `hooks.token` preservation on setup
 rerun (REF-901), and operator `tools.exec` preservation on setup rerun
 (REF-903).
 
-The `dev/signature-minimal` branch contains unreleased Ed25519 sender identity,
-explicit warned `plaintext-legacy` migration, and local Distribution Lists.
-Those changes are locally reviewed but are not part of a supported public
-version until they pass the separate merge, release, and rollout gates. Public
-Groups remain architecture only; no Public Group security claim is made.
+Version 1.6.0 also includes explicit warned `plaintext-legacy` migration and
+local Distribution Lists. Public Groups remain architecture only; no Public
+Group security claim is made.
 
 ## Security-Relevant Design
 
 Antenna's full security model is documented in the [Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md), the [User Guide](references/USER-GUIDE.md), and the [SKILL.md Trust Model](SKILL.md#trust-model). The following commitments are load-bearing and in scope for vulnerability reports:
 
 - **Script-first relay —** the relay agent is a courier that runs deterministic bash scripts. All envelope parsing, validation, formatting, and logging is done by `scripts/antenna-relay.sh` and friends. The LLM never parses, encodes, transforms, or modifies relayed content.
-- **Layered trust in v1.5.2 —** HTTPS transport, hook bearer token, per-peer
-  plaintext identity secret (constant-time compared), peer allowlists (inbound
-  and outbound), session allowlist (full keys only), envelope-marker guard,
-  message-freshness window, rate limiting, and log sanitization. The raw
-  reusable identity secret is transmitted in each authenticated v1.5.2
-  envelope; operators should treat this as a known legacy limitation, not HMAC
+- **Layered trust in v1.6.0 —** HTTPS transport, hook bearer token, locally
+  pinned Ed25519 sender public keys, exact message-ID replay rejection, peer
+  allowlists (inbound and outbound), session allowlist (full keys only),
+  envelope-marker guard, message-freshness window, rate limiting, and log
+  sanitization. The explicitly selected `plaintext-legacy` compatibility mode
+  still transmits a reusable identity secret and must not be mistaken for HMAC
   or signature authentication.
 - **Layer A encrypted bootstrap —** peer onboarding uses `age`. Export streams bundle JSON directly into `age` with no plaintext temp file. Import decrypts to a temp file that is cleaned up on every exit path (normal return, validation failure, preview failure, write failure, `SIGINT`, `SIGTERM`). Expired bundles are refused by default; `--force-expired` is the disaster-recovery override. Legacy raw-secret export refuses non-TTY stdout.
 - **Read-only bundle verification —** `antenna bundle verify <file>` decrypts a received bootstrap bundle in place and validates shape / endpoint URL / freshness without touching `antenna-peers.json` or `antenna-config.json`. Human and `--json` output never print the raw hooks token or identity secret, only presence booleans. Shared validation logic in `lib/bundles.sh` keeps `bundle verify` and `peers exchange import` in agreement on what "valid" means.
@@ -64,10 +64,14 @@ Antenna's full security model is documented in the [Relay Protocol FSD](referenc
 
 These are openly acknowledged trade-offs and limitations of the current design. They are **not** vulnerabilities — they are intentional boundaries. Reports that rediscover them will be politely closed.
 
-- **Sandbox off on the relay agent.** The Antenna agent runs with `sandbox: { mode: "off" }` because OpenClaw sandboxing silently clamps session visibility to `tree`, which breaks the deliver script's gateway RPC calls. The mitigations are: a restrictive `tools.deny` list on the agent (blocking web, browser, image, cron, memory tools), peer authentication via per-peer identity secret, peer and session allowlists, rate limiting, envelope-marker and freshness guards, and the script-first relay design that keeps the LLM out of the content path. Default advice is also **not** to set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides have been shown to cause silent relay failure. Operators who intentionally customize `tools.exec` are on their own trust boundary; setup reruns now preserve those overrides (REF-903) so we don't clobber an informed choice.
-- **Secrets at rest.** Hooks tokens and per-peer runtime identity secrets are stored as plaintext files with `chmod 600`. No encryption at rest. `antenna status` audits permissions and flags anything looser than `600`. If your host filesystem is untrusted, Antenna is not the right transport.
+- **Sandbox off on the relay agent.** The Antenna agent runs with `sandbox: { mode: "off" }` because OpenClaw sandboxing silently clamps session visibility to `tree`, which breaks the deliver script's gateway RPC calls. The mitigations are: a restrictive `tools.deny` list on the agent (blocking web, browser, image, cron, memory tools), peer authentication, peer and session allowlists, rate limiting, envelope-marker and freshness guards, and the script-first relay design that keeps the LLM out of the content path. Default advice is also **not** to set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides have been shown to cause silent relay failure. Operators who intentionally customize `tools.exec` are on their own trust boundary; setup reruns now preserve those overrides (REF-903) so we don't clobber an informed choice.
+- **Secrets at rest.** Hooks tokens, Ed25519 private signing keys, exchange
+  private keys, and any `plaintext-legacy` identity secrets are stored as
+  plaintext files with restrictive permissions. No encryption at rest.
+  `antenna status` audits the active credential type and permissions. If your
+  host filesystem is untrusted, Antenna is not the right transport.
 - **Email is convenience transport only.** The optional `--send-email` path for bootstrap bundles and public keys uses Himalaya to deliver already-encrypted (`age`) artifacts. Email is not part of the trust model; a compromised email account cannot impersonate a peer or read bundle contents without the recipient's `age` private key.
-- **ClawReef is a discovery surface, not a trust broker.** ClawReef stores endpoints, exchange public keys, and — if you pair with the reef — your hooks token and identity secret so it can deliver invites and verify your identity (standard webhook-provider behavior). ClawReef does not store messages, private age keys, or message content. All peer-trust decisions happen locally in Antenna.
+- **ClawReef is a discovery surface, not a trust broker.** ClawReef stores endpoints, exchange public keys, and — if you pair with the reef — your hooks token and identity secret so it can deliver invites. Its own webhook receiver stores inbound relay envelopes addressed to ClawReef sessions. Ordinary peer-to-peer Antenna unicast does not traverse ClawReef, private age keys are not stored there, and peer-trust decisions happen locally in Antenna.
 - **Untrusted input framing is advisory.** Relayed content is framed with a security notice so receiving agents treat it as external input, but enforcement ultimately depends on the receiving agent's own behavior. This is why the relay-agent itself is kept deliberately thin and non-interpreting.
 
 For deeper architectural detail, see [`references/ANTENNA-RELAY-FSD.md`](references/ANTENNA-RELAY-FSD.md) and the historical security assessments in `docs/` (repo-only, not shipped with the skill).

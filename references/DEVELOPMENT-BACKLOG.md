@@ -14,10 +14,36 @@ and public-communication authority.
   authority. Record evidence or a proposal, then wait for a decision.
 - Update this ledger in the commit that completes a tracked work item.
 
-## Active
+## Completed
 
-None. Feature work is frozen pending controlled live validation and a
-release-candidate decision for Phases 1–3.
+### VAL-001 — Controlled three-host validation of Phases 1–3
+
+Validate the reviewed-but-unreleased Antenna work across BettyXIX, BettyXX,
+and clean-install control host BettyXVIII without changing the public release,
+publishing artifacts, or opening Public Group work.
+
+**Included:** inventory all three hosts; select and record the exact candidate;
+exercise fresh Ed25519 pairing, explicit `plaintext-legacy` migration by fresh
+encrypted re-pair, signed unicast in both directions, replay/freshness and
+wrong-key rejection, local Distribution List fan-out, and visible-recipient
+context. BettyXVIII is the clean-install/canary lane; BettyXX exercises
+historical-state migration; BettyXIX is the candidate/control lane.
+
+**Acceptance:** all three hosts and their rollback points are recorded; positive
+paths succeed in both directions where applicable; negative security paths
+fail closed; no peer outside the test set is contacted; logs contain no
+private keys, runtime secrets, or unredacted bootstrap bundles; the public
+v1.5.2 installation remains recoverable; and a bounded validation report is
+reviewed before REL-001 begins.
+
+**Status:** Complete — passed 2026-08-15. All three hosts deliberately retain
+the exact candidate pending REL-001.
+
+**Evidence:** immutable candidate and rollback manifests, deterministic suites,
+fresh Ed25519 pairing, explicit legacy migration, six signed unicast paths,
+six live negative controls, and all three two-recipient Distribution List
+fan-outs passed. See
+`references/VAL-001-VALIDATION-REPORT-2026-08-15.md`.
 
 Current phase map:
 `references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md` (Phases 1–3 complete
@@ -25,7 +51,20 @@ locally; Phase 4 is paused before PUB-001).
 
 ## Ready
 
-None.
+### REL-001 — Phases 1–3 release-candidate review
+
+After VAL-001 passes, review the exact validated candidate for code, security,
+packaging, migration/operator documentation, versioning, and release hygiene.
+
+**Acceptance:** validation evidence is linked; all deterministic and focused
+tests pass from a clean candidate; packaged contents contain no internal or
+sensitive artifacts; public documentation distinguishes v1.5.2 from the new
+candidate; remaining risks and rollback instructions are explicit; and a
+separate decision is recorded for push, tag, GitHub Release, ClawHub, rollout,
+and announcement.
+
+**Status:** Ready — VAL-001 passed. Begin with the five release-review findings
+and isolated-session artifact recorded in the validation report.
 
 ## Blocked / Betty decision required
 

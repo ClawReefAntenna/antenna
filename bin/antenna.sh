@@ -40,6 +40,8 @@ source "$SKILL_DIR/lib/config.sh"
 # available to cmd_peers add/update mutation paths.
 # shellcheck source=../lib/peers.sh
 source "$SKILL_DIR/lib/peers.sh"
+# shellcheck source=../lib/antenna-signature.sh
+source "$SKILL_DIR/lib/antenna-signature.sh"
 
 # ── Peer-shape validation helpers ────────────────────────────────────────────
 # Only iterate entries that look like real peers (object with a .url string).
@@ -1000,11 +1002,26 @@ cmd_status() {
       warnings=$((warnings + 1))
     fi
 
-    # Check per-peer secret file
-    local psf
+    # Check the credential selected by this peer's explicit authentication
+    # mode. Ed25519 peers intentionally have no reusable peer secret.
+    local auth_mode is_self psf signing_key
+    auth_mode=$(jq -r --arg p "$peer_id" '.[$p].auth_mode // empty' "$PEERS_FILE" 2>/dev/null)
+    is_self=$(jq -r --arg p "$peer_id" '.[$p].self == true' "$PEERS_FILE" 2>/dev/null)
     psf=$(jq -r --arg p "$peer_id" '.[$p].peer_secret_file // empty' "$PEERS_FILE" 2>/dev/null)
-    if [[ -z "$psf" ]]; then
-      echo "  ⚠  $peer_id: no per-peer secret configured (sender identity unverified)"
+
+    if [[ "$auth_mode" == "ed25519-v1" && "$is_self" != "true" ]]; then
+      signing_key=$(jq -r --arg p "$peer_id" '.[$p].signing_public_key_file // empty' "$PEERS_FILE" 2>/dev/null)
+      if [[ -n "$signing_key" && "$signing_key" != /* ]]; then
+        signing_key="$SKILL_DIR/$signing_key"
+      fi
+      if [[ -n "$signing_key" ]] && signature_public_key_ok "$signing_key" "$SKILL_DIR/keys"; then
+        echo "  ✓  $peer_id: pinned Ed25519 public key OK"
+      else
+        echo "  ⚠  $peer_id: pinned Ed25519 public key missing or unsafe (${signing_key:-not configured})"
+        warnings=$((warnings + 1))
+      fi
+    elif [[ -z "$psf" ]]; then
+      echo "  ⚠  $peer_id: no plaintext-legacy peer secret configured"
       warnings=$((warnings + 1))
     else
       # Resolve relative paths

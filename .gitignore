@@ -7,6 +7,8 @@ antenna-peers.json
 antenna-lists.json
 antenna-inbox.json
 state/
+__pycache__/
+*.py[cod]
 
 # Secrets — never commit
 **/secrets/
@@ -49,3 +51,20 @@ antenna-inbox.json.bak.*
 # Retired secrets (moved out of secrets/ during cleanup, never shipped)
 secrets.retired/
 agent/memory
+
+# OpenClaw may initialize a checkout itself as an agent workspace. These
+# installation-local root files are not part of the Antenna source tree.
+/AGENTS.md
+/HEARTBEAT.md
+/IDENTITY.md
+/SOUL.md
+/TOOLS.md
+/USER.md
+/openclaw-workspace-state.json
+
+# Private infrastructure inventories/rollback manifests retained outside the
+# public source history. The sanitized validation report remains tracked.
+/references/VAL-001-INVENTORY-2026-08-15.md
+/references/VAL-001-PRECHANGE-MANIFEST-2026-08-15.md
+/references/VAL-001-ROLLOUT-RESTORE-2026-08-15.md
+/references/VAL-001-THREE-HOST-MATRIX-2026-08-15.md

@@ -461,7 +461,17 @@ else
     fi
   fi
   AGENT_ID="$NI_AGENT"
-  RELAY_MODEL="${NI_MODEL:-openai/gpt-4o-mini}"
+
+  # Prefer the host's configured default. A baked-in model name can be valid
+  # elsewhere but unavailable on a clean host.
+  _host_default_model=""
+  for _gw_cand in "$HOME/.openclaw/openclaw.json" "/home/$USER/.openclaw/openclaw.json"; do
+    if [[ -f "$_gw_cand" ]]; then
+      _host_default_model=$(jq -r '.agents.defaults.model.primary // empty' "$_gw_cand" 2>/dev/null || true)
+      break
+    fi
+  done
+  RELAY_MODEL="${NI_MODEL:-${_host_default_model:-openai/gpt-4o-mini}}"
 
   # Resolve model alias if --model matched an alias name
   if [[ -n "$NI_MODEL" ]]; then
@@ -478,6 +488,27 @@ else
         break
       fi
     done
+  fi
+
+  # OpenClaw exposes the models allowed for this installation. When that
+  # inventory is available, fail before mutating config rather than installing
+  # a relay agent that cannot run. Older OpenClaw builds without this JSON
+  # surface remain supported by skipping the check.
+  _openclaw_model_bin=""
+  for _oc_cand in "openclaw" "$HOME/.local/bin/openclaw" "$HOME/.npm-global/bin/openclaw" "/usr/local/bin/openclaw"; do
+    if command -v "$_oc_cand" >/dev/null 2>&1 || [[ -x "$_oc_cand" ]]; then
+      _openclaw_model_bin="$_oc_cand"
+      break
+    fi
+  done
+  if [[ -n "$_openclaw_model_bin" ]]; then
+    _model_status=$("$_openclaw_model_bin" models status --json 2>/dev/null || true)
+    if jq -e '.allowed | type == "array" and length > 0' >/dev/null 2>&1 <<<"$_model_status" \
+      && ! jq -e --arg model "$RELAY_MODEL" '.allowed | index($model) != null' >/dev/null 2>&1 <<<"$_model_status"; then
+      err "Relay model is not available on this host: $RELAY_MODEL"
+      info "Choose one reported by: openclaw models status --json"
+      exit 1
+    fi
   fi
 
   # Inbox settings (non-interactive)
@@ -914,9 +945,10 @@ header "═══ Putting Antenna on Your PATH ═══"
 ANTENNA_BIN="$SKILL_DIR/bin/antenna.sh"
 SYMLINK_TARGET=""
 
-# Prefer /usr/local/bin; fall back to ~/.local/bin
+# Prefer a writable PATH directory. Merely being on PATH is insufficient:
+# selecting an unwritable /usr/local/bin prevented the user-local fallback.
 for candidate in /usr/local/bin "$HOME/.local/bin"; do
-  if [[ -d "$candidate" ]] && echo "$PATH" | tr ':' '\n' | grep -qx "$candidate"; then
+  if [[ -d "$candidate" && -w "$candidate" ]] && echo "$PATH" | tr ':' '\n' | grep -qx "$candidate"; then
     SYMLINK_TARGET="$candidate/antenna"
     break
   fi
@@ -956,7 +988,7 @@ if [[ -n "$SYMLINK_TARGET" ]]; then
       ok "Symlinked antenna CLI → $SYMLINK_TARGET (with sudo)"
     else
       warn "Could not create symlink at $SYMLINK_TARGET"
-      echo "  Manual fix: ln -s $ANTENNA_BIN /usr/local/bin/antenna"
+      echo "  Manual fix: ln -s $ANTENNA_BIN $SYMLINK_TARGET"
     fi
   fi
 else

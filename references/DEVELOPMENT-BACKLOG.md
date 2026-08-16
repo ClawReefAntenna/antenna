@@ -58,8 +58,9 @@ It may define the API/wire contract and run generated local fixtures only. It
 must not expose a production route, migrate a database, use a real credential,
 contact a live Antenna host, add UI, retain ciphertext, or claim availability.
 
-**Status:** implementation complete; VALIDATED with 19/19 fixture checks and
-ready for owner plus independent security review. PUB-002 remains blocked.
+**Status:** corrected signature-only design complete; VALIDATED with 21/21
+fixture checks and ready for owner plus independent security review. PUB-002
+remains blocked. No Public Group submission API key is required.
 
 **Evidence:** `references/PUB-001-SCOPE-CONTRACT.md`,
 `references/PUBLIC-GROUP-PROTOCOL-V1.md`, and

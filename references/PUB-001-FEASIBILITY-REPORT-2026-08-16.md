@@ -25,9 +25,9 @@ credential, changes no database, and retains no ciphertext.
 
 ## Chosen protocol shape
 
-1. A scoped account bearer token authorizes use of the Public Group API and
-   binds the call to an account-owned sender host.
-2. An outer Ed25519 signature binds the sender host, group/revision, exact
+1. An outer Ed25519 signature, verified against the sender host's registered
+   active public key, authenticates the submission without a separate API key.
+2. That signature binds the sender host, group/revision, exact
    key-set digest, message ID, timestamp, and ciphertext size/hash. ClawReef
    verifies this without decrypting.
 3. An independently signed inner Public Group message is encrypted once with
@@ -39,9 +39,12 @@ credential, changes no database, and retains no ciphertext.
    current member exactly once. It keeps no plaintext/ciphertext message store
    and performs no retry or atomic rollback.
 
-This makes the bearer token an API authorization credential, not the sole
-proof of authorship. Downstream OpenClaw hook tokens remain separate and never
-enter group member data, delivered wrappers, or API responses.
+The host public key is enrolled or changed through the owner's authenticated
+ClawReef account-management session. Submission identity then comes from the
+signature, while current Registry records independently authorize membership,
+posting role, mute state, and rate limits. Downstream OpenClaw hook tokens
+remain separate and never enter group member data, delivered wrappers, or API
+responses.
 
 ## Evidence
 
@@ -51,14 +54,15 @@ Command:
 PYTHONDONTWRITEBYTECODE=1 python3 spikes/001-public-group-relay/proof.py
 ```
 
-Final result: **19/19 passed**. The final proof was rerun successfully after
+Final result: **21/21 passed**. The corrected proof was rerun successfully after
 each security refinement. It demonstrated:
 
 - one ciphertext copied byte-identically to two normal recipients;
 - both recipients decrypted the exact inner object and verified the sender;
 - a non-member and a ClawReef non-recipient identity could not decrypt;
-- duplicate submission, wrong-account token, missing scope, removed sender,
-  stale timestamp, stale revision/key set, missing recipient key, changed
+- duplicate submission, unregistered host, disabled host, removed or muted
+  sender, sender-rate excess, stale timestamp, stale revision/key set, missing
+  recipient key, changed
   pinned key, altered ciphertext, hash tamper, and wrong Ed25519 signer all
   failed closed;
 - one simulated member failure produced one success and one failure after one
@@ -66,7 +70,7 @@ each security refinement. It demonstrated:
 - delivered wrappers and responses exposed no hook token;
 - no ciphertext artifact survived the fixture run; and
 - actual age encryption to the proposed 256-recipient ceiling produced a
-  25,671-byte ciphertext in approximately 0.10 seconds on BETTYXIX; the first and last
+  25,671-byte ciphertext in approximately 0.09 seconds on BETTYXIX; the first and last
   recipients both decrypted the original object.
 
 The existing Antenna release-readiness test also passed 9/9, and the ClawHub
@@ -92,9 +96,10 @@ future hardening option, not a hidden PUB-002 dependency.
 
 ## Remaining PUB-002 review points
 
-- Implement and review the specified `public-groups:send` account-token scope,
-  expiry, revocation, rate, and replay middleware; CR-PROD-002 should expose no
-  broader bearer authority by default.
+- Implement and review host-key enrollment/replacement/revocation, generic
+  signature-authentication failures, pre-verification abuse limits, and
+  verified-host/group rate and replay middleware. CR-PROD-002 is not a Public
+  Group dependency.
 - Design encrypted-at-rest hook-token custody and narrowly auditable egress.
 - Define the operator approval UX for first-use pins and legitimate key
   changes; never auto-accept a changed key.

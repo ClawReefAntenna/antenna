@@ -6,10 +6,9 @@
 
 ## 1. Security roles
 
-- The account bearer token authorizes a ClawReef account to call the dedicated
-  Public Group submission API. It does not prove message authorship.
-- The sender host's Ed25519 key signs the outer submission so ClawReef can
-  authenticate the host and exact ciphertext without decrypting it.
+- The sender host's registered Ed25519 key authenticates the outer submission
+  and binds the exact ciphertext without ClawReef decrypting it. No separate
+  Public Group API key is issued or required.
 - The same host identity signs the inner message so recipients authenticate
   the original sender after decryption.
 - Each recipient's age/X25519 key provides payload confidentiality. ClawReef
@@ -35,6 +34,11 @@ age-recipient fingerprint. Any later change stops the send until the operator
 explicitly approves new pins. Self-signing prevents silent age-key replacement
 under a stable pinned identity; TOFU cannot protect a first observation from a
 fully compromised directory. Key transparency is future hardening.
+
+The public identity key is enrolled, replaced, or revoked only through the
+host owner's authenticated ClawReef account-management session. That browser
+session protects key administration; it is not a credential carried on every
+Public Group send.
 
 Fingerprints are lowercase SHA-256 hex over the DER Ed25519 public key or the
 UTF-8 age-recipient string, respectively.
@@ -99,32 +103,38 @@ The sender posts the JSON request to
 - `ciphertext_base64`; and
 - `submission_signature`.
 
-The caller supplies `Authorization: Bearer <account-token>`. The token must be
-active, unexpired, scoped `public-groups:send`, and owned by the account that
-owns `sender_host_id`. ClawReef then requires an active sender membership with
-permission to post.
-
 The outer Ed25519 signature covers every request field except
 `ciphertext_base64` and `submission_signature`; the exact ciphertext is bound
-through its size and SHA-256. ClawReef checks canonical base64, decoded size,
-hash, freshness, lowercase UUID v4 message ID, current membership, revision,
-key-set digest, and the sender host's registered Ed25519 key before fan-out.
-It also reserves `(sender_host_id, message_id)` in bounded metadata-only replay
-state before fan-out. A duplicate submission fails closed; replay state never
-contains ciphertext or plaintext.
+through its size and SHA-256. ClawReef first applies bounded HTTP body and
+pre-authentication IP/global admission limits, then looks up the active
+registered host key for `sender_host_id` and verifies the outer signature.
+Only after signature verification does it authorize active group membership,
+posting role, and mute state and apply sender/group limits. It then checks
+canonical base64, decoded size, hash, freshness, lowercase UUID v4 message ID,
+current revision, and key-set digest before fan-out. It also reserves
+`(sender_host_id, message_id)` in bounded metadata-only replay state before
+fan-out. A duplicate submission fails closed; replay state never contains
+ciphertext or plaintext.
+
+Unknown, disabled, revoked, or wrongly signed hosts receive the same generic
+authentication failure so the endpoint does not become a host-key oracle.
+Removing a member, muting its posting permission, disabling the host, or
+replacing/revoking its registered key takes effect on the next submission.
 
 Replay records contain only sender host ID, message ID, and reservation time.
 They remain for 360 seconds (the five-minute age plus one-minute future-skew
 window), use a unique `(sender_host_id, message_id)` constraint, and fail closed
 if reservation storage is unavailable or over its rate-derived bound.
 
-Initial admission limits are 10 submissions per sender per minute, 60 per group
-per minute, and 300 globally per minute. Exceeding any limit returns HTTP 429.
-Malformed requests return 400, bad/missing bearer authentication 401, ownership
-or membership denial 403, stale revision/key set or replay 409, oversized input
-413, and unavailable replay/admission storage 503. A fully processed fan-out
-returns 200 even when individual members fail; the body carries the partial
-result and therefore does not imply universal delivery.
+Initial admission limits are 10 submissions per verified sender per minute, 60
+per group per minute, and 300 globally per minute, plus a conservative
+pre-verification IP/global request limit. Exceeding any limit returns HTTP 429.
+Malformed requests return 400, unregistered/disabled hosts or invalid sender
+signatures return a generic 401, membership/role/mute denial returns 403, stale
+revision/key set or replay returns 409, oversized input 413, and unavailable
+replay/admission storage 503. A fully processed fan-out returns 200 even when
+individual members fail; the body carries the partial result and therefore
+does not imply universal delivery.
 
 ## 6. Deterministic fan-out
 
@@ -168,5 +178,6 @@ failure rejects without plaintext delivery.
 
 There is no compatibility mode because Public Groups have not shipped. Unknown
 protocols fail closed. Recovery from membership/key conflict, rejected
-credentials, or partial delivery is operator correction followed by a new
-message with a new UUID; there is no automatic retry or transaction journal.
+identity or authorization, or partial delivery is operator correction followed
+by a new message with a new UUID; there is no automatic retry or transaction
+journal.

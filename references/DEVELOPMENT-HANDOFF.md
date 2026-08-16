@@ -154,7 +154,8 @@ Specific concerns to resolve during the first read-only report:
    review for Phases 1–3; decide what is actually ready to publish.
 3. Measure whether live use demonstrates a concrete need for Public Groups.
 4. **Complete:** PUB-001 was explicitly authorized and kept to a specification
-   plus generated local fixture. Review its protocol and 19/19 evidence.
+   plus generated local fixture. Review its corrected signature-only protocol
+   and 21/21 evidence; no separate Public Group sender API key is required.
 5. Do not open PUB-002 until owner and independent security review clear the
    recorded boundary.
 

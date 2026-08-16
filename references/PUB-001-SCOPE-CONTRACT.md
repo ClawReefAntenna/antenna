@@ -1,7 +1,7 @@
 # PUB-001 Scope Contract
 
 **Authorized:** 2026-08-16
-**Status:** Active
+**Status:** Corrected fixture VALIDATED — owner and independent security review pending
 **Compatibility:** none; Public Groups have never been released
 
 ## User-visible outcome
@@ -12,9 +12,10 @@ end-to-end confidentiality and verify the original Antenna sender.
 
 ## Smallest safe solution
 
-- One scoped account bearer token authenticates access to the submission API.
-- One outer Ed25519 signature authenticates the sender host, request metadata,
-  and exact ciphertext hash before ClawReef fans anything out.
+- The sender host's registered Ed25519 public key authenticates the submission;
+  no separate Public Group API key is issued or required.
+- One outer Ed25519 signature binds the sender host, request metadata, and exact
+  ciphertext hash before ClawReef authorizes or fans anything out.
 - One independently signed inner Public Group message is age-encrypted once to
   every current recipient.
 - ClawReef rechecks current membership and the exact key-set digest, then makes
@@ -27,8 +28,8 @@ None in PUB-001. All identities, credentials, membership records, ciphertext,
 delivery results, and trust pins are generated beneath one temporary directory
 and removed when the proof exits.
 
-PUB-002 would require account API-token records/scopes, host identity and age
-key-binding records, group membership/revision data, bounded metadata-only
+PUB-002 would require host identity and age-key-binding records, group
+membership/revision data, bounded metadata-only
 submission replay state, encrypted hook-token custody, and local recipient
 trust pins. That production state is not authorized here.
 
@@ -41,8 +42,9 @@ listener, package installation, retry engine, or recovery journal.
 
 ## Failure handling
 
-Reject malformed authentication, signatures, memberships, revisions, key
-sets, key bindings, pins, ciphertext hashes, and limits. Partial downstream
+Reject unregistered, disabled, wrongly signed, removed, muted, or rate-limited
+senders, plus malformed signatures, memberships, revisions, key sets, key
+bindings, pins, ciphertext hashes, and limits. Partial downstream
 delivery returns a bounded per-member result without retry, rollback, or
 transaction state. Operator correction and a new send are the only recovery.
 
@@ -60,8 +62,9 @@ transaction state. Operator correction and a new send are the only recovery.
 - One ciphertext is byte-identically presented to multiple recipients.
 - Every intended recipient decrypts and verifies the original sender.
 - ClawReef and a non-member cannot decrypt.
-- Wrong bearer authority, removed sender, stale membership/key-set, missing
-  keys, changed keys, altered ciphertext, and wrong signatures fail closed.
+- Unregistered and disabled hosts, removed or muted members, rate excess,
+  stale membership/key-set, missing keys, changed keys, altered ciphertext,
+  and wrong signatures fail closed.
 - A simulated member failure is reported after one attempt without retry.
 - No response or delivered wrapper exposes any member hook token.
 - The temporary run retains no ciphertext after exit.

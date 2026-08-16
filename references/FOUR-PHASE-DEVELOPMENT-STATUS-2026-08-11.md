@@ -80,7 +80,7 @@ it. Direct unicast and Distribution Lists remain peer-to-peer.
 Phase 4 is split into two gates:
 
 1. **PUB-001 — VALIDATED; review pending.** The bounded protocol fixes the
-   sender authentication, request/wrapper schemas, key binding and pinning,
+   signature-only sender authentication, request/wrapper schemas, key binding and pinning,
    membership/key-set freshness, recipient decrypt contract, limits, result
    semantics, metadata logging, and token-storage controls. Prove one-ciphertext
    multi-recipient fan-out with fixtures only—no real tokens or live delivery.
@@ -94,7 +94,7 @@ live credential, group UI, retry queue, content store, receipt system, shared
 group key, plaintext fallback, or LLM relay logic.
 
 PUB-001's prerequisites and explicit authorization were satisfied. Its
-fixture-only proof passed 19/19 checks; see
+fixture-only proof passed 21/21 checks; see
 `references/PUB-001-FEASIBILITY-REPORT-2026-08-16.md`. Roadmap position and a
 successful spike are still not production implementation authority.
 

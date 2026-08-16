@@ -19,21 +19,23 @@ python3 proof.py
 
 Dependencies: Python standard library, OpenSSL, `age`, and `age-keygen`.
 
-The proof generates every identity, token, member record, trust pin, message,
-and ciphertext under a temporary directory. The directory is deleted on exit.
+The proof generates every identity, member record, trust pin, message, and
+ciphertext under a temporary directory. The directory is deleted on exit.
 It opens no socket, calls no live endpoint, reads no Antenna runtime secret,
 and writes no database.
 
 ## Verdict
 
-**VALIDATED.** The final proof passes 19/19 checks, including actual
-multi-recipient age encryption, byte-identical fan-out, recipient decryption
-and sender verification, non-member/ClawReef decryption failure, authorization,
-freshness, replay, membership/key conflicts, partial delivery, token isolation,
-and temporary-artifact cleanup.
+**VALIDATED — 21/21 checks passed.** The corrected proof uses the registered
+Ed25519 host key as the submission credential, with no separate Public Group
+API key. It includes actual multi-recipient age encryption, byte-identical
+fan-out, recipient decryption and sender verification, non-member/ClawReef
+decryption failure, unregistered and disabled-host rejection, membership/role
+and rate authorization, freshness, replay, key conflicts, partial delivery,
+downstream hook-token isolation, and temporary-artifact cleanup.
 
 The 256-recipient ceiling was exercised with one 25,671-byte ciphertext; age
-encryption took approximately 0.10 seconds on the validation host, and both the first and
+encryption took approximately 0.09 seconds on the validation host, and both the first and
 last recipients decrypted the exact inner object. This is feasibility evidence,
 not a production capacity guarantee.
 

@@ -21,7 +21,6 @@ from typing import Any
 INNER_PROTOCOL = "antenna-public-group-ed25519-v1"
 SUBMIT_PROTOCOL = "antenna-public-group-submit-v1"
 BINDING_PROTOCOL = "antenna-age-key-binding-v1"
-SEND_SCOPE = "public-groups:send"
 MAX_RECIPIENTS = 256
 MAX_BODY = 64 * 1024
 MAX_CIPHERTEXT = 2 * 1024 * 1024
@@ -158,7 +157,6 @@ class AgeIdentity:
 @dataclass
 class Host:
     host_id: str
-    owner: str
     signing: SigningIdentity
     age: AgeIdentity
     hook_token: str
@@ -201,18 +199,17 @@ def keyset_digest(records: list[dict[str, Any]]) -> str:
 
 
 class FixtureRegistry:
-    def __init__(self, work: Path, group_id: str, revision: int, hosts: list[Host], members: dict[str, bool]) -> None:
+    def __init__(self, work: Path, group_id: str, revision: int, hosts: list[Host], members: dict[str, bool], sender_limit: int = 10) -> None:
         self.work = work
         self.group_id = group_id
         self.revision = revision
         self.hosts = {host.host_id: host for host in hosts}
         self.members = members
-        self.tokens: dict[str, dict[str, Any]] = {}
+        self.muted: set[str] = set()
+        self.sender_limit = sender_limit
+        self.sender_submissions: dict[str, int] = {}
         self.attempts: dict[str, int] = {}
         self.seen_submissions: set[tuple[str, str]] = set()
-
-    def add_token(self, token: str, owner: str, scopes: list[str], active: bool = True) -> None:
-        self.tokens[sha(token.encode())] = {"owner": owner, "scopes": scopes, "active": active}
 
     def recipients(self, sender_id: str) -> list[Host]:
         result = [self.hosts[host_id] for host_id, active in self.members.items() if active and host_id != sender_id and self.hosts[host_id].active]
@@ -236,22 +233,14 @@ class FixtureRegistry:
             ]), record["age_binding_signature"], self.work)
         return {"group_id": self.group_id, "group_revision": self.revision, "members": records, "keyset_digest": keyset_digest(records)}
 
-    def authenticate(self, token: str, sender_id: str) -> None:
-        auth = self.tokens.get(sha(token.encode()))
-        sender = self.hosts.get(sender_id)
-        if not auth or not auth["active"] or SEND_SCOPE not in auth["scopes"]:
-            raise Rejected("unauthorized API token")
-        if not sender or sender.owner != auth["owner"]:
-            raise Rejected("token does not own sender host")
-
-    def submit(self, token: str, request: dict[str, Any], fail: set[str] | None = None) -> tuple[dict[str, Any], dict[str, bytes]]:
+    def submit(self, request: dict[str, Any], fail: set[str] | None = None) -> tuple[dict[str, Any], dict[str, bytes]]:
         expected = {"protocol", "group_id", "group_revision", "keyset_digest", "sender_host_id", "message_id", "created_at", "ciphertext_format", "ciphertext_size", "ciphertext_sha256", "ciphertext_base64", "submission_signature"}
         if set(request) != expected or request["protocol"] != SUBMIT_PROTOCOL or request["ciphertext_format"] != "age-v1":
             raise Rejected("invalid submission schema")
         sender_id = request["sender_host_id"]
-        self.authenticate(token, sender_id)
-        if request["group_id"] != self.group_id or not self.members.get(sender_id):
-            raise Rejected("sender is not authorized for group")
+        sender = self.hosts.get(sender_id)
+        if not sender or not sender.active:
+            raise Rejected("unrecognized or invalid sender signature")
         if not isinstance(request["group_revision"], int) or request["group_revision"] < 0:
             raise Rejected("invalid group revision")
         if not UUID4_RE.fullmatch(request["message_id"]):
@@ -266,13 +255,19 @@ class FixtureRegistry:
         ciphertext = decode_b64(request["ciphertext_base64"])
         if len(ciphertext) != request["ciphertext_size"] or len(ciphertext) > MAX_CIPHERTEXT or sha(ciphertext) != request["ciphertext_sha256"]:
             raise Rejected("ciphertext size or hash mismatch")
+        verify(sender.signing.public, submission_canonical(request), request["submission_signature"], self.work)
+        if request["group_id"] != self.group_id or not self.members.get(sender_id) or sender_id in self.muted:
+            raise Rejected("sender is not authorized for group")
         current = self.snapshot(sender_id)
         if request["group_revision"] != current["group_revision"] or request["keyset_digest"] != current["keyset_digest"]:
             raise Rejected("stale group revision or key set")
-        verify(self.hosts[sender_id].signing.public, submission_canonical(request), request["submission_signature"], self.work)
         replay_key = (sender_id, request["message_id"])
         if replay_key in self.seen_submissions:
             raise Rejected("duplicate submission")
+        count = self.sender_submissions.get(sender_id, 0)
+        if count >= self.sender_limit:
+            raise Rejected("sender rate limit exceeded")
+        self.sender_submissions[sender_id] = count + 1
         self.seen_submissions.add(replay_key)
         deliveries: dict[str, bytes] = {}
         results: list[dict[str, str]] = []
@@ -409,17 +404,13 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="pub001-") as temp:
         work = Path(temp)
         group_id = str(uuid.uuid4())
-        sender = Host(str(uuid.uuid4()), "account-a", SigningIdentity.create(work, "sender-sign"), AgeIdentity.create(work, "sender-age"), "fixture-hook-sender")
-        alice = Host(str(uuid.uuid4()), "account-b", SigningIdentity.create(work, "alice-sign"), AgeIdentity.create(work, "alice-age"), "fixture-hook-alice")
-        bob = Host(str(uuid.uuid4()), "account-c", SigningIdentity.create(work, "bob-sign"), AgeIdentity.create(work, "bob-age"), "fixture-hook-bob")
-        outsider = Host(str(uuid.uuid4()), "account-z", SigningIdentity.create(work, "outsider-sign"), AgeIdentity.create(work, "outsider-age"), "fixture-hook-outsider")
+        sender = Host(str(uuid.uuid4()), SigningIdentity.create(work, "sender-sign"), AgeIdentity.create(work, "sender-age"), "fixture-hook-sender")
+        alice = Host(str(uuid.uuid4()), SigningIdentity.create(work, "alice-sign"), AgeIdentity.create(work, "alice-age"), "fixture-hook-alice")
+        bob = Host(str(uuid.uuid4()), SigningIdentity.create(work, "bob-sign"), AgeIdentity.create(work, "bob-age"), "fixture-hook-bob")
+        outsider = Host(str(uuid.uuid4()), SigningIdentity.create(work, "outsider-sign"), AgeIdentity.create(work, "outsider-age"), "fixture-hook-outsider")
+        stranger = Host(str(uuid.uuid4()), SigningIdentity.create(work, "stranger-sign"), AgeIdentity.create(work, "stranger-age"), "fixture-hook-stranger")
         clawreef = AgeIdentity.create(work, "clawreef-nonrecipient")
         registry = FixtureRegistry(work, group_id, 7, [sender, alice, bob, outsider], {sender.host_id: True, alice.host_id: True, bob.host_id: True, outsider.host_id: False})
-        token = "fixture-account-token-a"
-        registry.add_token(token, "account-a", [SEND_SCOPE])
-        registry.add_token("fixture-outsider-token", "account-z", [SEND_SCOPE])
-        registry.add_token("fixture-wrong-scope", "account-a", ["groups:read"])
-
         pins: dict[str, tuple[str, str]] = {}
         snapshot = registry.snapshot(sender.host_id)
         recipients = verify_snapshot(snapshot, pins, work)
@@ -453,7 +444,7 @@ def main() -> None:
             "ciphertext_base64": canonical_b64(ciphertext),
         }
         request["submission_signature"] = sender.signing.sign(submission_canonical(request), work)
-        response, deliveries = registry.submit(token, request)
+        response, deliveries = registry.submit(request)
         assert response["accepted"] == 2 and response["failed"] == 0
         assert deliveries[alice.host_id] == ciphertext == deliveries[bob.host_id]
         passed.append("one byte-identical ciphertext fanned to all recipients")
@@ -471,23 +462,32 @@ def main() -> None:
 
         expect_rejected("non-member cannot decrypt", lambda: decrypt_age(ciphertext, outsider.age, work), passed)
         expect_rejected("ClawReef cannot decrypt", lambda: decrypt_age(ciphertext, clawreef, work), passed)
-        expect_rejected("duplicate submission is rejected", lambda: registry.submit(token, request), passed)
-        expect_rejected("wrong account token cannot submit as sender", lambda: registry.submit("fixture-outsider-token", request), passed)
-        expect_rejected("token without send scope is rejected", lambda: registry.submit("fixture-wrong-scope", request), passed)
+        expect_rejected("duplicate submission is rejected", lambda: registry.submit(request), passed)
+        unregistered = dict(request)
+        unregistered["sender_host_id"] = stranger.host_id
+        unregistered["message_id"] = str(uuid.uuid4())
+        unregistered["submission_signature"] = stranger.signing.sign(submission_canonical(unregistered), work)
+        expect_rejected("unregistered host cannot submit", lambda: registry.submit(unregistered), passed)
+        sender.active = False
+        expect_rejected("disabled host cannot submit", lambda: registry.submit(request), passed)
+        sender.active = True
         registry.members[sender.host_id] = False
-        expect_rejected("removed sender cannot submit", lambda: registry.submit(token, request), passed)
+        expect_rejected("removed sender cannot submit", lambda: registry.submit(request), passed)
         registry.members[sender.host_id] = True
+        registry.muted.add(sender.host_id)
+        expect_rejected("muted sender cannot submit", lambda: registry.submit(request), passed)
+        registry.muted.remove(sender.host_id)
 
         altered = dict(request)
         altered["ciphertext_base64"] = canonical_b64(ciphertext + b"X")
-        expect_rejected("altered ciphertext fails closed", lambda: registry.submit(token, altered), passed)
+        expect_rejected("altered ciphertext fails closed", lambda: registry.submit(altered), passed)
 
         old_bob_age = bob.age
         bob.age = AgeIdentity.create(work, "bob-rotated-age")
         registry.revision += 1
         changed_snapshot = registry.snapshot(sender.host_id)
         expect_rejected("unexpected member key change fails sender pins", lambda: verify_snapshot(changed_snapshot, pins, work), passed)
-        expect_rejected("stale group revision and key set fail relay", lambda: registry.submit(token, request), passed)
+        expect_rejected("stale group revision and key set fail relay", lambda: registry.submit(request), passed)
         bob.age = old_bob_age
         registry.revision = 7
 
@@ -498,20 +498,30 @@ def main() -> None:
 
         tampered = dict(request)
         tampered["ciphertext_sha256"] = "0" * 64
-        expect_rejected("ciphertext hash tamper fails closed", lambda: registry.submit(token, tampered), passed)
+        expect_rejected("ciphertext hash tamper fails closed", lambda: registry.submit(tampered), passed)
         bad_signature = dict(request)
         bad_signature["submission_signature"] = outsider.signing.sign(submission_canonical(bad_signature), work)
-        expect_rejected("wrong outer signing key fails closed", lambda: registry.submit(token, bad_signature), passed)
+        expect_rejected("wrong outer signing key fails closed", lambda: registry.submit(bad_signature), passed)
 
         stale = dict(request)
         stale["message_id"] = str(uuid.uuid4())
         stale["created_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 301))
         stale["submission_signature"] = sender.signing.sign(submission_canonical(stale), work)
-        expect_rejected("stale signed submission fails closed", lambda: registry.submit(token, stale), passed)
+        expect_rejected("stale signed submission fails closed", lambda: registry.submit(stale), passed)
+
+        limited_registry = FixtureRegistry(work, group_id, 7, [sender, alice, bob, outsider], {sender.host_id: True, alice.host_id: True, bob.host_id: True, outsider.host_id: False}, sender_limit=2)
+        rate_requests: list[dict[str, Any]] = []
+        for _ in range(3):
+            rate_request = dict(request)
+            rate_request["message_id"] = str(uuid.uuid4())
+            rate_request["submission_signature"] = sender.signing.sign(submission_canonical(rate_request), work)
+            rate_requests.append(rate_request)
+        limited_registry.submit(rate_requests[0])
+        limited_registry.submit(rate_requests[1])
+        expect_rejected("verified sender rate limit is enforced", lambda: limited_registry.submit(rate_requests[2]), passed)
 
         partial_registry = FixtureRegistry(work, group_id, 7, [sender, alice, bob, outsider], {sender.host_id: True, alice.host_id: True, bob.host_id: True, outsider.host_id: False})
-        partial_registry.add_token(token, "account-a", [SEND_SCOPE])
-        partial_response, partial_deliveries = partial_registry.submit(token, request, fail={bob.host_id})
+        partial_response, partial_deliveries = partial_registry.submit(request, fail={bob.host_id})
         assert partial_response["accepted"] == 1 and partial_response["failed"] == 1
         assert partial_registry.attempts == {alice.host_id: 1, bob.host_id: 1}
         assert set(partial_deliveries) == {alice.host_id}

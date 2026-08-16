@@ -41,17 +41,17 @@ existing unicast sender, with strict validation-before-send and no delivery
 state or protocol change. DL-002 adds only canonical signed-body visible
 recipient context; reply-all and list export/import were removed after a
 complexity/value review.
-Public Group/ClawReef work has not begun. DL-002 owner review is complete and no
-task is Active while Phases 1–3 await live and release-candidate validation. See
-`references/DL-002-IMPLEMENTATION-REPORT.md`.
+Phases 1–3 passed three-host validation and release-candidate review, and
+candidate `d214a7a` remains active on the validation hosts. PUB-001 was
+authorized on 2026-08-16. Its bounded API/wire specification and generated
+local feasibility proof are complete with a VALIDATED 19/19 result; no
+production route, database, live credential, or live host was touched.
 
-Public Group work additionally requires the bounded PUB-001 API/wire
-specification and feasibility spike before an implementation branch is opened,
-but feature work is frozen pending live and release-candidate validation of
-Phases 1–3.
+PUB-001 now awaits owner and independent security review. PUB-002 production
+implementation remains blocked.
 The canonical phase map is
 `references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md`: Phases 1–3 are
-complete and reviewed locally; Phase 4 is paused before PUB-001.
+validated; Phase 4 has completed its fixture gate and is paused before PUB-002.
 
 The completed HMAC-minimal branch is retained as
 `archive/hmac-minimal-study`; it is evidence and a source of selectively

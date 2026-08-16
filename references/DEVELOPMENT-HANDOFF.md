@@ -2,8 +2,8 @@
 
 **Prepared:** 2026-08-08  
 **For:** Annie, Antenna Development  
-**Status:** Phases 1–3 complete locally; feature work frozen for live and
-release-candidate validation; Phase 4 paused before PUB-001
+**Status:** Phases 1–3 validated on three hosts; PUB-001 fixture validated;
+Phase 4 paused for owner and independent security review before PUB-002
 
 ## The one-sentence picture
 
@@ -153,9 +153,10 @@ Specific concerns to resolve during the first read-only report:
 2. Complete the release-candidate code, security, packaging, and operator-doc
    review for Phases 1–3; decide what is actually ready to publish.
 3. Measure whether live use demonstrates a concrete need for Public Groups.
-4. Reopen PUB-001 only with explicit authorization. If reopened, keep it a
-   specification and fixture-only feasibility spike before any production
-   ClawReef work.
+4. **Complete:** PUB-001 was explicitly authorized and kept to a specification
+   plus generated local fixture. Review its protocol and 19/19 evidence.
+5. Do not open PUB-002 until owner and independent security review clear the
+   recorded boundary.
 
 ## Retrieval anchors
 

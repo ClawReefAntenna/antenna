@@ -1,0 +1,115 @@
+# PUB-001 Public Group Feasibility Report
+
+**Date:** 2026-08-16
+**Verdict:** VALIDATED
+**Status:** ready for owner and independent security review; PUB-002 remains
+blocked
+
+## Question
+
+Can one authenticated Antenna sender create one recipient-neutral,
+multi-recipient age ciphertext that ClawReef fans out without decryption, while
+current recipients authenticate the original sender and all authority/key
+conflicts fail closed?
+
+## Artifacts
+
+- Scope: `PUB-001-SCOPE-CONTRACT.md`
+- Protocol: `PUBLIC-GROUP-PROTOCOL-V1.md`
+- Proof: `../spikes/001-public-group-relay/proof.py`
+- Proof instructions/verdict: `../spikes/001-public-group-relay/README.md`
+
+All fixtures use generated identities and credentials under a temporary
+directory. The proof opens no network socket, contacts no host, reads no live
+credential, changes no database, and retains no ciphertext.
+
+## Chosen protocol shape
+
+1. A scoped account bearer token authorizes use of the Public Group API and
+   binds the call to an account-owned sender host.
+2. An outer Ed25519 signature binds the sender host, group/revision, exact
+   key-set digest, message ID, timestamp, and ciphertext size/hash. ClawReef
+   verifies this without decrypting.
+3. An independently signed inner Public Group message is encrypted once with
+   age to every current recipient.
+4. Each recipient decrypts, checks wrapper-to-inner identity/group/message
+   equality, verifies the original sender, then applies freshness, replay, and
+   local delivery policy.
+5. ClawReef reserves metadata-only submission replay state and attempts each
+   current member exactly once. It keeps no plaintext/ciphertext message store
+   and performs no retry or atomic rollback.
+
+This makes the bearer token an API authorization credential, not the sole
+proof of authorship. Downstream OpenClaw hook tokens remain separate and never
+enter group member data, delivered wrappers, or API responses.
+
+## Evidence
+
+Command:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 spikes/001-public-group-relay/proof.py
+```
+
+Final result: **19/19 passed**. The final proof was rerun successfully after
+each security refinement. It demonstrated:
+
+- one ciphertext copied byte-identically to two normal recipients;
+- both recipients decrypted the exact inner object and verified the sender;
+- a non-member and a ClawReef non-recipient identity could not decrypt;
+- duplicate submission, wrong-account token, missing scope, removed sender,
+  stale timestamp, stale revision/key set, missing recipient key, changed
+  pinned key, altered ciphertext, hash tamper, and wrong Ed25519 signer all
+  failed closed;
+- one simulated member failure produced one success and one failure after one
+  attempt each, with no retry or transaction state;
+- delivered wrappers and responses exposed no hook token;
+- no ciphertext artifact survived the fixture run; and
+- actual age encryption to the proposed 256-recipient ceiling produced a
+  25,671-byte ciphertext in approximately 0.10 seconds on BETTYXIX; the first and last
+  recipients both decrypted the original object.
+
+The existing Antenna release-readiness test also passed 9/9, and the ClawHub
+dry run confirmed all PUB-001 protocol/evidence and `spikes/` paths are
+excluded from its 62-file package. Python
+compilation, `git diff --check`, and targeted private-key/credential/path scans
+were clean.
+
+Validation tools:
+
+- age 1.2.1;
+- OpenSSL 3.5.5;
+- Python 3.14.4; and
+- jq 1.8.1 for the existing release-readiness check.
+
+## Important trust boundary
+
+Member age keys are self-bound to their Ed25519 identity, and senders pin both
+fingerprints locally. That prevents silent age-key replacement after a host's
+identity has been observed. It does not solve malicious-directory substitution
+on first contact; v1 uses explicit TOFU and must say so. Key transparency is a
+future hardening option, not a hidden PUB-002 dependency.
+
+## Remaining PUB-002 review points
+
+- Implement and review the specified `public-groups:send` account-token scope,
+  expiry, revocation, rate, and replay middleware; CR-PROD-002 should expose no
+  broader bearer authority by default.
+- Design encrypted-at-rest hook-token custody and narrowly auditable egress.
+- Define the operator approval UX for first-use pins and legitimate key
+  changes; never auto-accept a changed key.
+- Rewrite the fixture parser/relay as normal production TypeScript and Antenna
+  code; do not transplant spike code.
+- Validate production rate limits, timeout/concurrency values, memory use, and
+  256-member behavior on the real deployment stack.
+- Independently review strict schema parsing, signature canonicalization,
+  replay reservation, wrapper/inner comparison, and metadata-only logging.
+
+## Verdict
+
+The core design is feasible without plaintext access, pairwise hook-token
+disclosure, shared group secrets, retries, a content store, or an LLM in the
+relay path. No PUB-001 kill criterion was triggered.
+
+PUB-002 should remain blocked until Corey accepts this protocol boundary and an
+independent security review clears it.

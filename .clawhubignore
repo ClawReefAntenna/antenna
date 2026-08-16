@@ -43,4 +43,7 @@ openclaw-workspace-state.json
 # Controlled live-validation evidence is retained in Git/project records, not
 # shipped to operators through ClawHub.
 references/VAL-*.md
+references/PUB-*.md
+references/PUBLIC-GROUP-PROTOCOL-V1.md
+spikes/
 tests/rel-001-release-readiness.sh

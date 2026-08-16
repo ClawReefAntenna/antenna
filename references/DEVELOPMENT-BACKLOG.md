@@ -49,7 +49,23 @@ Current phase map:
 `references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md` (Phases 1–3 complete
 locally; Phase 4 is paused before PUB-001).
 
-## Ready
+## Active
+
+### PUB-001 — Public Group relay protocol and feasibility spike
+
+Corey authorized this bounded specification-and-fixture phase on 2026-08-16.
+It may define the API/wire contract and run generated local fixtures only. It
+must not expose a production route, migrate a database, use a real credential,
+contact a live Antenna host, add UI, retain ciphertext, or claim availability.
+
+**Status:** implementation complete; VALIDATED with 19/19 fixture checks and
+ready for owner plus independent security review. PUB-002 remains blocked.
+
+**Evidence:** `references/PUB-001-SCOPE-CONTRACT.md`,
+`references/PUBLIC-GROUP-PROTOCOL-V1.md`, and
+`references/PUB-001-FEASIBILITY-REPORT-2026-08-16.md`.
+
+## Completed
 
 ### REL-001 — Phases 1–3 release-candidate review
 
@@ -63,18 +79,11 @@ candidate; remaining risks and rollback instructions are explicit; and a
 separate decision is recorded for push, tag, GitHub Release, ClawHub, rollout,
 and announcement.
 
-**Status:** Ready — VAL-001 passed. Begin with the five release-review findings
-and isolated-session artifact recorded in the validation report.
+**Status:** Complete — passed 2026-08-15. Candidate `7d8c5d4` passed the
+release review; DL-003 subsequently produced validated candidate `d214a7a`.
+Public publication is deliberately deferred until Public Groups are enabled.
 
 ## Blocked / Betty decision required
-
-### PUB-001 — Public Group relay protocol and feasibility spike
-
-Blocked until Phases 1–3 pass controlled BettyXIX↔BettyXX validation, complete
-release-candidate review, and receive an explicit decision that demonstrated
-Public Group demand justifies reopening Phase 4. If authorized later, PUB-001
-remains specification- and fixture-only: no production route, database
-migration, real token, live delivery, UI, retry/persistence, or public claim.
 
 ### PUB-002 — Encrypted ClawReef Public Group relay
 

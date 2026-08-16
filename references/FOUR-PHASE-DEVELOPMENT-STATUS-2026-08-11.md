@@ -6,8 +6,9 @@
 
 **Development branch:** `dev/signature-minimal`
 
-**Release status:** none of the four-phase work below has been merged, pushed,
-tagged, published, or installed on live hosts.
+**Release status:** Phases 1–3 are installed only on the three controlled
+validation hosts. None of the four-phase work has been merged, pushed, tagged,
+published, or claimed as a public release.
 
 ## Status at a glance
 
@@ -16,11 +17,11 @@ tagged, published, or installed on live hosts.
 | 1 — Signed identity | Ed25519 sender identity, canonical signed envelopes, freshness and replay rejection | SIG-001 | Complete and independently reviewed |
 | 2 — Migration | Explicit `ed25519-v1` or warned `plaintext-legacy`; migration by fresh encrypted re-pair | SIG-002 | Complete and owner-reviewed |
 | 3 — Distribution Lists | Local `@alias` fan-out with optional signed visible-recipient context | DL-001, DL-002 | Complete and owner-reviewed |
-| 4 — Public Groups | Encrypted ClawReef-mediated current-membership delivery without pairwise hook-token disclosure | PUB-001, PUB-002 | Architecture recorded; phase paused before PUB-001 |
+| 4 — Public Groups | Encrypted ClawReef-mediated current-membership delivery without pairwise hook-token disclosure | PUB-001, PUB-002 | PUB-001 fixture VALIDATED; paused before PUB-002 review/authorization |
 
-The project is at a validation boundary, not an automatic Phase 3 → Phase 4
-handoff. Phases 1–3 must prove themselves live and pass release-candidate review
-before PUB-001 may be reconsidered.
+Phases 1–3 passed controlled three-host and release-candidate review. Corey
+authorized PUB-001 on 2026-08-16; its protocol and fixture are ready for owner
+and independent security review. This is not automatic PUB-002 authority.
 
 ## Phase 1 — Signed identity
 
@@ -76,15 +77,15 @@ once to all current member public keys, and uploads one opaque ciphertext.
 ClawReef forwards the same ciphertext without a model call and cannot decrypt
 it. Direct unicast and Distribution Lists remain peer-to-peer.
 
-Phase 4 is split into two gates, both currently blocked:
+Phase 4 is split into two gates:
 
-1. **PUB-001 — bounded protocol and fixture-only feasibility proof.** Fix the
+1. **PUB-001 — VALIDATED; review pending.** The bounded protocol fixes the
    sender authentication, request/wrapper schemas, key binding and pinning,
    membership/key-set freshness, recipient decrypt contract, limits, result
    semantics, metadata logging, and token-storage controls. Prove one-ciphertext
    multi-recipient fan-out with fixtures only—no real tokens or live delivery.
-2. **PUB-002 — production implementation.** Only after PUB-001 review, build
-   the ClawReef endpoint and credential custody together with Antenna
+2. **PUB-002 — blocked.** Only after PUB-001 owner and independent security
+   review, build the ClawReef endpoint and credential custody together with Antenna
    multi-recipient encryption/decryption, then run a controlled multi-host
    matrix.
 
@@ -92,9 +93,10 @@ PUB-001 is not authority to add a production endpoint, database migration,
 live credential, group UI, retry queue, content store, receipt system, shared
 group key, plaintext fallback, or LLM relay logic.
 
-PUB-001 may begin only after controlled live validation of Phases 1–3,
-release-candidate review, evidence of concrete Public Group need, and explicit
-authorization. Roadmap position alone is not sufficient.
+PUB-001's prerequisites and explicit authorization were satisfied. Its
+fixture-only proof passed 19/19 checks; see
+`references/PUB-001-FEASIBILITY-REPORT-2026-08-16.md`. Roadmap position and a
+successful spike are still not production implementation authority.
 
 Controlling architecture:
 

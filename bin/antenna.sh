@@ -111,7 +111,7 @@ Usage:
   antenna msg <peer> [message]               Quick send (plain host mode by default)
 
   antenna peers list                         List known peers
-  antenna peers add <id> --url <url> --token-file <path> [--peer-secret-file <path>] [--exchange-public-key <age-pub>] [--display-name <name>]
+  antenna peers add <id> --url <url> --token-file <path> [--auth-mode <mode>] [--signing-public-key-file <path>] [--peer-secret-file <path>] [--exchange-public-key <age-pub>] [--display-name <name>]
   antenna peers remove <id>
   antenna peers test <id>                    Test connectivity to a peer
   antenna peers generate-secret <id>         Generate a per-peer auth secret
@@ -136,6 +136,9 @@ Usage:
   antenna inbox deny all|<refs>              Deny/reject messages
   antenna inbox drain [--execute]            Deliver approved, remove denied
   antenna inbox clear                        Remove all processed messages
+
+  antenna groups list                        List local Public Group routes
+  antenna groups send <alias> <message>      Send through the group's ClawReef relay peer
 
   antenna sessions list                      Show allowed inbound session targets
   antenna sessions add <name> [<name>...]    Add session target(s) to the allowlist
@@ -317,20 +320,22 @@ cmd_peers() {
       ;;
 
     add)
-      local id="" url="" token_file="" display_name="" peer_secret_file="" exchange_public_key=""
+      local id="" url="" token_file="" display_name="" peer_secret_file="" exchange_public_key="" auth_mode="" signing_public_key_file=""
       local force="false" allow_insecure="false"
       # REF-300: track which fields were explicitly supplied on this invocation so
       # merge semantics only overwrite keys the user actually passed. Unspecified
       # fields preserve prior values; unknown top-level fields (e.g. .self set by
       # peer-exchange) are preserved automatically by the jq merge below.
-      local set_url="false" set_tf="false" set_dn="false" set_psf="false" set_xpk="false"
-      id="${1:?Usage: antenna peers add <id> --url <url> --token-file <path> [--peer-secret-file <path>] [--exchange-public-key <age-pub>] [--display-name <name>] [--force] [--allow-insecure]}"
+      local set_url="false" set_tf="false" set_dn="false" set_psf="false" set_xpk="false" set_am="false" set_spkf="false"
+      id="${1:?Usage: antenna peers add <id> --url <url> --token-file <path> [--auth-mode <mode>] [--signing-public-key-file <path>] [--peer-secret-file <path>] [--exchange-public-key <age-pub>] [--display-name <name>] [--force] [--allow-insecure]}"
       shift
       while [[ $# -gt 0 ]]; do
         case "$1" in
           --url)              url="$2"; set_url="true"; shift 2 ;;
           --token-file)       token_file="$2"; set_tf="true"; shift 2 ;;
           --peer-secret-file) peer_secret_file="$2"; set_psf="true"; shift 2 ;;
+          --auth-mode)        auth_mode="$2"; set_am="true"; shift 2 ;;
+          --signing-public-key-file) signing_public_key_file="$2"; set_spkf="true"; shift 2 ;;
           --exchange-public-key) exchange_public_key="$2"; set_xpk="true"; shift 2 ;;
           --display-name)     display_name="$2"; set_dn="true"; shift 2 ;;
           --force)            force="true"; shift ;;
@@ -339,6 +344,17 @@ cmd_peers() {
         esac
       done
 
+      if [[ "$set_am" == "true" ]]; then
+        case "$auth_mode" in ed25519-v1|plaintext-legacy) ;; *) echo "Error: unsupported --auth-mode" >&2; exit 1 ;; esac
+      fi
+      if [[ "$auth_mode" == "ed25519-v1" && "$set_psf" == "true" && -n "$peer_secret_file" ]]; then
+        echo "Error: ed25519-v1 cannot be combined with --peer-secret-file" >&2; exit 1
+      fi
+      if [[ "$set_spkf" == "true" && -n "$signing_public_key_file" ]]; then
+        local resolved_signing_key="$signing_public_key_file"
+        [[ "$resolved_signing_key" != /* ]] && resolved_signing_key="$SKILL_DIR/$resolved_signing_key"
+        signature_public_key_ok "$resolved_signing_key" || { echo "Error: invalid Ed25519 signing public key file" >&2; exit 1; }
+      fi
       # REF-300: detect existing entry and require explicit --force to update.
       local peer_exists
       peer_exists=$(jq -r --arg id "$id" 'has($id)' "$PEERS_FILE" 2>/dev/null || echo "false")
@@ -351,6 +367,9 @@ cmd_peers() {
       if [[ "$peer_exists" != "true" ]]; then
         if [[ -z "$url" || -z "$token_file" ]]; then
           echo "Error: --url and --token-file are required when adding a new peer" >&2; exit 1
+        fi
+        if [[ "$auth_mode" == "ed25519-v1" && -z "$signing_public_key_file" ]]; then
+          echo "Error: ed25519-v1 requires --signing-public-key-file" >&2; exit 1
         fi
       fi
 
@@ -379,11 +398,15 @@ cmd_peers() {
         --arg dn "$display_name" \
         --arg psf "$peer_secret_file" \
         --arg xpk "$exchange_public_key" \
+        --arg am "$auth_mode" \
+        --arg spkf "$signing_public_key_file" \
         --arg set_url "$set_url" \
         --arg set_tf "$set_tf" \
         --arg set_dn "$set_dn" \
         --arg set_psf "$set_psf" \
         --arg set_xpk "$set_xpk" \
+        --arg set_am "$set_am" \
+        --arg set_spkf "$set_spkf" \
         '
           .[$id] = (
             (.[$id] // {agentId: "antenna"})
@@ -392,6 +415,8 @@ cmd_peers() {
             | (if $set_dn  == "true" then .display_name = (if $dn == "" then null else $dn end) else . end)
             | (if $set_psf == "true" then .peer_secret_file = (if $psf == "" then null else $psf end) else . end)
             | (if $set_xpk == "true" then .exchange_public_key = (if $xpk == "" then null else $xpk end) else . end)
+            | (if $set_am == "true" then .auth_mode = $am else . end)
+            | (if $set_spkf == "true" then .signing_public_key_file = (if $spkf == "" then null else $spkf end) else . end)
             | .agentId = (.agentId // "antenna")
           )
         ' \
@@ -1111,6 +1136,7 @@ case "$COMMAND" in
   peers)    cmd_peers "$@" ;;
   bundle)   cmd_bundle "$@" ;;
   inbox)    cmd_inbox "$@" ;;
+  groups)   exec "$SKILL_DIR/scripts/antenna-public-group.sh" "$@" ;;
   sessions) cmd_sessions "$@" ;;
   config)   cmd_config "$@" ;;
   model)    cmd_model "$@" ;;

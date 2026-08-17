@@ -39,7 +39,7 @@ send_group() {
   done
   alias="${alias#@}"
   validate_routes
-  local route group_id relay body
+  local route group_id relay body send_output send_rc failed
   route=$(jq -cer --arg alias "$alias" '.[$alias]' "$ROUTES_FILE") || die "Unknown Public Group: @$alias"
   group_id=$(jq -r '.group_id' <<<"$route")
   relay=$(jq -r '.relay_peer' <<<"$route")
@@ -53,10 +53,23 @@ send_group() {
     printf '%s' "$message"
   } >"$body"
   if [[ -n "$subject" ]]; then
-    "$SEND_SCRIPT" "$relay" --subject "$subject" --stdin <"$body"
+    if send_output=$("$SEND_SCRIPT" "$relay" --include-response --subject "$subject" --stdin <"$body"); then
+      send_rc=0
+    else
+      send_rc=$?
+    fi
   else
-    "$SEND_SCRIPT" "$relay" --stdin <"$body"
+    if send_output=$("$SEND_SCRIPT" "$relay" --include-response --stdin <"$body"); then
+      send_rc=0
+    else
+      send_rc=$?
+    fi
   fi
+  printf '%s\n' "$send_output"
+  (( send_rc == 0 )) || exit "$send_rc"
+  failed=$(jq -er '.response.failed | select(type == "number" and . >= 0 and floor == .)' <<<"$send_output") \
+    || die "ClawReef did not return Public Group delivery results" 5
+  (( failed == 0 )) || die "Public Group fan-out reported $failed failed delivery attempt(s)" 5
 }
 
 case "${1:-}" in

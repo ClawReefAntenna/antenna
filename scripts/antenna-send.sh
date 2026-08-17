@@ -10,6 +10,7 @@
 #   --session <key>     Target session on recipient (full key, e.g. agent:betty:main)
 #   --subject <text>    Optional subject line
 #   --reply-to <url>    Override reply URL
+#   --include-response  Include a JSON relay response in successful output
 #   --dry-run           Print envelope and POST payload without sending
 #   --json              Output result as JSON (default)
 #
@@ -78,6 +79,7 @@ SUBJECT=""
 REPLY_TO_OVERRIDE=""
 DRY_RUN=false
 READ_STDIN=false
+INCLUDE_RESPONSE=false
 
 # First positional arg is the peer
 if [[ $# -lt 1 ]]; then
@@ -95,6 +97,7 @@ while [[ $# -gt 0 ]]; do
     --session)    SESSION="$2"; shift 2 ;;
     --subject)    SUBJECT="$2"; shift 2 ;;
     --reply-to)   REPLY_TO_OVERRIDE="$2"; shift 2 ;;
+    --include-response) INCLUDE_RESPONSE=true; shift ;;
     --user)       USER_NAME="$2"; shift 2 ;;
     --dry-run)    DRY_RUN=true; shift ;;
     --json)       shift ;;  # JSON is default, accept silently
@@ -318,12 +321,22 @@ case "$HTTP_CODE" in
   200)
     RUN_ID=$(echo "$BODY" | jq -r '.runId // empty' 2>/dev/null || echo "")
     log_entry "OUTBOUND | to:$PEER | session:${TARGET_SESSION:-recipient-default} | status:delivered | chars:$MSG_LEN"
-    jq -n \
-      --arg peer "$PEER" \
-      --arg session "${TARGET_SESSION:-recipient-default}" \
-      --arg runId "$RUN_ID" \
-      --argjson chars "$MSG_LEN" \
-      '{status:"delivered", peer:$peer, session:$session, runId:$runId, chars:$chars}'
+    if [[ "$INCLUDE_RESPONSE" == "true" ]] && RELAY_RESPONSE=$(echo "$BODY" | jq -ce 'select(type == "object")' 2>/dev/null); then
+      jq -n \
+        --arg peer "$PEER" \
+        --arg session "${TARGET_SESSION:-recipient-default}" \
+        --arg runId "$RUN_ID" \
+        --argjson chars "$MSG_LEN" \
+        --argjson response "$RELAY_RESPONSE" \
+        '{status:"delivered", peer:$peer, session:$session, runId:$runId, chars:$chars, response:$response}'
+    else
+      jq -n \
+        --arg peer "$PEER" \
+        --arg session "${TARGET_SESSION:-recipient-default}" \
+        --arg runId "$RUN_ID" \
+        --argjson chars "$MSG_LEN" \
+        '{status:"delivered", peer:$peer, session:$session, runId:$runId, chars:$chars}'
+    fi
     exit 0
     ;;
   401|403)

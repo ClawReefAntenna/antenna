@@ -60,7 +60,8 @@ The LLM never performs relay parsing, delivery formatting, or session-routing lo
 Antenna trust is layered:
 - **Peer URL** — where to reach that installation
 - **Hook bearer token** — protects webhook ingress
-- **Per-peer runtime identity secret** — authenticates claimed sender identity when configured. Verified via constant-time comparison; no plaintext secrets land in relay logs.
+- **Pinned Ed25519 identity** — modern `ed25519-v1` peers sign canonical envelopes and receivers verify them against a locally pinned public key.
+- **Explicit legacy identity secret** — reusable secrets are accepted only for peers deliberately configured as `plaintext-legacy`; there is no silent fallback from Ed25519.
 - **Peer allowlists** — explicit inbound and outbound peer lists
 - **Inbound session allowlist** — limits where inbound relay may deliver (full session keys only)
 - **Envelope marker guard** — messages whose bodies or header values contain the envelope markers `[ANTENNA_RELAY]` / `[/ANTENNA_RELAY]` are rejected as malformed (prevents envelope smuggling)
@@ -210,6 +211,15 @@ Install accepts exactly one strict route record. Refresh matches the immutable
 configured relay peer must use `ed25519-v1` and have a valid locally pinned
 public key. Registry membership remains authoritative: retaining a stale local
 alias does not let a removed host submit to the group.
+
+ClawReef verifies the sender's Ed25519 signature and active membership, then
+re-signs and fans the message out to the other active members. Public Group
+payloads are not end-to-end encrypted: ClawReef can read content during
+delivery, then discards it and retains only content-free replay and aggregate
+delivery metadata. Partial fan-out exits non-zero. There is no automatic retry,
+store-and-forward, per-recipient receipt, or atomic all-member transaction.
+The supported first slice is Listed/open; Pseudonymous groups are not supported
+for public use yet.
 
 ### Send a message
 

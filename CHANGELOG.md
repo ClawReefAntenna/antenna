@@ -18,6 +18,20 @@ For the complete version history prior to `1.3.0`, see:
   overwriting unrelated local routes. State is atomically written with mode
   `0600`; malformed records, duplicate group IDs, alias collisions, and
   unpinned/non-Ed25519 relay peers fail closed.
+- **ClawReef-attested Listed Public Groups.** A member submits one ordinary
+  Ed25519-signed Antenna envelope to ClawReef. ClawReef verifies freshness,
+  replay/rate boundaries, sender identity, and active membership, then signs
+  and fans an ordinary Antenna message out to the other active members.
+  Route downloads are roster-free; delivery results are aggregate and partial
+  fan-out exits non-zero.
+- **Content-free relay audit.** ClawReef can read Public Group plaintext while
+  fanning it out but does not retain the subject, body, group content, or raw
+  envelope. Only sender/message/timestamp and aggregate delivery metadata are
+  kept for replay protection and audit.
+- **Controlled acceptance.** The exact Antenna/ClawReef pair passed the complete
+  three-host supported workflow, including simultaneous fan-out persistence,
+  membership removal/re-add, route refresh/removal, zero content retention,
+  cleanup, and ordinary-unicast regression.
 
 ## [1.6.0] — 2026-08-15
 
@@ -75,10 +89,9 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Product boundary
 
-- Public Group delivery is not implemented. Its approved architecture and the
-  fixture-only PUB-001 gate are documented under `references/`; production
-  ClawReef endpoints, real credentials, live delivery, retries, persistence,
-  receipts, plaintext fallback, and LLM relay logic remain out of scope.
+- Listed/open Public Groups are the supported first slice. Pseudonymous groups,
+  payload end-to-end encryption, retries, store-and-forward, per-recipient
+  receipts, and atomic all-member delivery remain out of scope.
 
 ## [1.5.2] — 2026-05-18
 

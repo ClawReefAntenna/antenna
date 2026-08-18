@@ -138,6 +138,10 @@ Usage:
   antenna inbox clear                        Remove all processed messages
 
   antenna groups list                        List local Public Group routes
+  antenna groups install <file>              Install one downloaded ClawReef route
+    --alias <name>                           Choose a stable local alias
+  antenna groups refresh <file>              Refresh installed routes by group ID
+  antenna groups remove <alias>              Remove one local Public Group route
   antenna groups send <alias> <message>      Send through the group's ClawReef relay peer
 
   antenna sessions list                      Show allowed inbound session targets

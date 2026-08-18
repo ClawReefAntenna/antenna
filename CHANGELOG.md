@@ -10,6 +10,15 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+### Added
+
+- **Safe Public Group route lifecycle.** Operators can install one authenticated
+  ClawReef route download under a stable local alias, refresh metadata by
+  immutable group ID, list installed aliases, and remove one alias without
+  overwriting unrelated local routes. State is atomically written with mode
+  `0600`; malformed records, duplicate group IDs, alias collisions, and
+  unpinned/non-Ed25519 relay peers fail closed.
+
 ## [1.6.0] — 2026-08-15
 
 ### Added

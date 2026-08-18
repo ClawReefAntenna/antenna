@@ -79,11 +79,13 @@ Live runtime files are local installation state:
 - `antenna-config.json`
 - `antenna-peers.json`
 - `antenna-lists.json` (optional local Distribution Lists)
+- `antenna-public-groups.json` (optional installed ClawReef route aliases)
 
 Tracked reference files live beside them:
 - `antenna-config.example.json`
 - `antenna-peers.example.json`
 - `antenna-lists.example.json`
+- `antenna-public-groups.example.json`
 
 Use `antenna setup` for normal installation; use the `*.example.json` files for schema reference or manual recovery.
 
@@ -189,6 +191,25 @@ the peer ID and may pin a full remote session key:
   for Distribution List sends.
 
 ## Usage
+
+### Manage Public Group routes
+
+Download a route JSON file from the authenticated ClawReef group page, then
+manage it locally without storing a ClawReef browser credential:
+
+```bash
+antenna groups install ~/Downloads/antenna-public-group-reef-lounge.json --alias reef
+antenna groups list
+antenna groups refresh ~/Downloads/antenna-public-group-reef-lounge.json
+antenna groups send @reef "Hello from the reef"
+antenna groups remove @reef
+```
+
+Install accepts exactly one strict route record. Refresh matches the immutable
+`group_id`, so a local alias remains stable if the Registry slug changes. The
+configured relay peer must use `ed25519-v1` and have a valid locally pinned
+public key. Registry membership remains authoritative: retaining a stale local
+alias does not let a removed host submit to the group.
 
 ### Send a message
 

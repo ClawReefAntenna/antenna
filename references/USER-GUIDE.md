@@ -351,6 +351,20 @@ Or set up a cron job for automated handling of trusted peers.
 | `antenna send <peer> --stdin` | Send from stdin (for long messages or pipes) |
 | `antenna send <peer> --dry-run "text"` | Preview the envelope without sending |
 
+### Public Group Routes
+
+| Command | What It Does |
+|---------|-------------|
+| `antenna groups install <file> [--alias <name>]` | Install one authenticated ClawReef route download under a local alias |
+| `antenna groups list` | List installed aliases, group IDs, and relay peers |
+| `antenna groups refresh <file>` | Refresh installed metadata by immutable group ID while keeping the local alias |
+| `antenna groups send @alias "text"` | Submit a signed message through the group's ClawReef relay |
+| `antenna groups remove @alias` | Remove one local route without changing other aliases |
+
+Route files contain no roster or credentials. The local route store is written
+atomically with mode `0600`. Install and refresh fail unless the relay peer is
+configured in `ed25519-v1` mode with a valid pinned public key.
+
 ### Pairing & Peers
 
 | Command | What It Does |

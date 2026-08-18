@@ -269,6 +269,21 @@ the recipient's configured default. Lists reject string-only entries,
 duplicates, self, unknown fields, and command-level `--session` before any
 network call. See `antenna-lists.example.json` for the canonical schema.
 
+### Public Group Routes
+
+```bash
+antenna groups install <downloaded-route.json> [--alias <name>]
+antenna groups list
+antenna groups refresh <downloaded-route.json>
+antenna groups send @alias "message"
+antenna groups remove @alias
+```
+
+ClawReef route downloads contain only a group ID, display name, and relay-peer
+reference. Antenna writes them atomically to a mode-`0600` local file, preserves
+unrelated aliases, refreshes by immutable group ID, and requires the relay peer
+to be Ed25519-pinned before install, refresh, or send.
+
 ### Pairing & Peers
 
 ```bash

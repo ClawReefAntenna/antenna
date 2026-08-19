@@ -23,12 +23,13 @@ echo "── T1: relay log_entry lines for pre-body REJECTED paths carry nonce �
 # The two envelope-marker MALFORMED paths genuinely cannot carry nonce
 # (body hasn't been parsed yet). Everything else MUST.
 declare -a EXPECTED_WITH_NONCE=(
-  "status:REJECTED \(missing from\)"
   "status:REJECTED \(not in allowed_inbound_peers\)"
   "status:REJECTED \(unknown peer\)"
-  "status:REJECTED \(peer secret file missing\)"
-  "status:REJECTED \(missing auth header\)"
-  "status:REJECTED \(invalid peer secret\)"
+  "status:REJECTED \(unsupported auth mode\)"
+  "status:REJECTED \(invalid Ed25519 public key\)"
+  "status:REJECTED \(invalid Ed25519 signature\)"
+  "status:REJECTED \(replay detected\)"
+  "status:REJECTED \(replay protection unavailable\)"
   "status:REJECTED \(rate limited: peer"
   "status:REJECTED \(rate limited: global"
   "status:REJECTED \(session not allowed\)"
@@ -59,18 +60,12 @@ for pat in "${EXPECTED_WITH_NONCE[@]}"; do
 done
 
 echo ""
-echo "── T2: envelope-marker MALFORMED paths are exempt (pre-body) ──"
+echo "── T2: strict-parser MALFORMED path is exempt (pre-body) ──"
 
-if grep -q 'log_entry "INBOUND  | status:MALFORMED (no envelope markers)"' "$RELAY"; then
-  ok "no-envelope MALFORMED stays nonce-less (pre-body)"
+if grep -q 'log_entry "INBOUND | status:MALFORMED (strict parser)"' "$RELAY"; then
+  ok "strict-parser MALFORMED stays nonce-less (pre-body)"
 else
-  bad "expected no-envelope MALFORMED log_entry not found"
-fi
-
-if grep -q 'log_entry "INBOUND  | status:MALFORMED (no closing marker)"' "$RELAY"; then
-  ok "no-closing-marker MALFORMED stays nonce-less (pre-body)"
-else
-  bad "expected no-closing MALFORMED log_entry not found"
+  bad "expected strict-parser MALFORMED log_entry not found"
 fi
 
 echo ""
@@ -96,42 +91,31 @@ NONCE="REF1501_$(date +%s%N | sha256sum | cut -c1-10)"
 # timestamp-too-old path.
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 ENV="[ANTENNA_RELAY]
+protocol: antenna-ed25519-v1
 from: totally-not-a-real-peer-$RANDOM
-target_session: agent:betty:main
 timestamp: ${NOW}
+message_id: 123e4567-e89b-42d3-a456-426614174000
+target_session: agent:betty:main
+signature: ed25519-v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
 
 nonce: ${NONCE}
 hello from test
 [/ANTENNA_RELAY]"
 
-# Point the relay at a scratch config/peers so we don't touch real state.
-SCRATCH_LOG="$TMP/relay.log"
-SCRATCH_CFG="$TMP/config.json"
-SCRATCH_PEERS="$TMP/peers.json"
-cat > "$SCRATCH_CFG" <<JSON
+mkdir -p "$TMP/skill/scripts" "$TMP/skill/lib"
+cp "$RELAY" "$TMP/skill/scripts/"
+cp "$SKILL_DIR/lib/peers.sh" "$SKILL_DIR/lib/config.sh" \
+  "$SKILL_DIR/lib/antenna-signature.sh" "$SKILL_DIR/lib/antenna-replay.sh" \
+  "$SKILL_DIR/lib/antenna-envelope-parse.py" "$TMP/skill/lib/"
+SCRATCH_LOG="$TMP/skill/relay.log"
+cat > "$TMP/skill/antenna-config.json" <<JSON
 {"log_path":"$SCRATCH_LOG","log_enabled":"true","allowed_inbound_peers":["bettyxix"],"allowed_inbound_sessions":["agent:betty:main"]}
 JSON
-cat > "$SCRATCH_PEERS" <<'JSON'
+cat > "$TMP/skill/antenna-peers.json" <<'JSON'
 {"bettyxix":{"self":true,"url":"http://localhost"}}
 JSON
-
-# Shim SKILL_DIR-relative paths by setting CONFIG_FILE/PEERS_FILE via env
-# override (relay.sh computes these from SCRIPT_DIR). Instead we copy the
-# scratch files into the real file paths the relay derives.
-#
-# Simpler: use bash -c with a minimal harness that overrides CONFIG_FILE
-# after sourcing — but relay.sh exec's as a script. So run the relay as a
-# subprocess with PWD unchanged and rely on default config; we only care
-# that the REJECTED line carries nonce, and we can compare against the
-# real config's allowlist. If our from: isn't allowed, we get REJECTED.
-
-# Run against the real config; pick a guaranteed-unknown peer name.
-OUT=$(bash "$RELAY" "$ENV" 2>&1 || true)
-
-LOG_FILE=$(bash -c 'cd "$1" && source lib/config.sh; CONFIG_FILE="$1/antenna-config.json"; echo "$(config_log_path)"' _ "$SKILL_DIR")
-if [[ "$LOG_FILE" != /* ]]; then
-  LOG_FILE="$SKILL_DIR/$LOG_FILE"
-fi
+OUT=$(printf '%s' "$ENV" | bash "$TMP/skill/scripts/antenna-relay.sh" --stdin 2>&1 || true)
+LOG_FILE="$SCRATCH_LOG"
 
 # Grep the last few log lines for our nonce+REJECTED
 RECENT=$(tail -20 "$LOG_FILE" 2>/dev/null || true)

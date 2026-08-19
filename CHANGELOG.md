@@ -5,10 +5,95 @@ All notable changes to the Antenna skill are documented here.
 This file is the forward-looking, `[Unreleased]` + recent-releases changelog shipped with the skill.
 For the complete version history prior to `1.3.0`, see:
 
-- GitHub releases: https://github.com/cshirley001/openclaw-skill-antenna/releases
+- GitHub releases: https://github.com/ClawReefAntenna/antenna/releases
 - Full historical changelog (in-repo): [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md)
 
 ## [Unreleased]
+
+### Added
+
+- **Safe Public Group route lifecycle.** Operators can install one authenticated
+  ClawReef route download under a stable local alias, refresh metadata by
+  immutable group ID, list installed aliases, and remove one alias without
+  overwriting unrelated local routes. State is atomically written with mode
+  `0600`; malformed records, duplicate group IDs, alias collisions, and
+  unpinned/non-Ed25519 relay peers fail closed.
+- **ClawReef-attested Listed Public Groups.** A member submits one ordinary
+  Ed25519-signed Antenna envelope to ClawReef. ClawReef verifies freshness,
+  replay/rate boundaries, sender identity, and active membership, then signs
+  and fans an ordinary Antenna message out to the other active members.
+  Route downloads are roster-free; delivery results are aggregate and partial
+  fan-out exits non-zero.
+- **Content-free relay audit.** ClawReef can read Public Group plaintext while
+  fanning it out but does not retain the subject, body, group content, or raw
+  envelope. Only sender/message/timestamp and aggregate delivery metadata are
+  kept for replay protection and audit.
+- **Controlled acceptance.** The exact Antenna/ClawReef pair passed the complete
+  three-host supported workflow, including simultaneous fan-out persistence,
+  membership removal/re-add, route refresh/removal, zero content retention,
+  cleanup, and ordinary-unicast regression.
+
+## [1.6.0] — 2026-08-15
+
+### Added
+
+- **Ed25519 sender identity (`antenna-ed25519-v1`).** Modern peers sign a
+  byte-preserving canonical envelope with a dedicated Ed25519 identity key;
+  receivers verify the sender against a locally pinned public key before
+  delivery. Freshness, exact message-ID replay rejection, strict parsing, and
+  fail-closed key/allowlist behavior are included.
+- **Explicit legacy migration.** Each peer selects exactly one authentication
+  mode: modern `ed25519-v1` or prominently warned `plaintext-legacy`. Existing
+  peers migrate by a fresh encrypted re-pair; there is no silent fallback,
+  negotiation, automatic downgrade, rotation protocol, or recovery journal.
+- **Local Distribution Lists.** `antenna send @alias ...` expands a strictly
+  validated local list into independent existing unicasts with deterministic
+  per-recipient results and no retry or delivery transaction. Each canonical
+  object entry requires `peer` and may include a full `session`; omitted
+  sessions delegate routing to the recipient. Because this feature was
+  unreleased, the earlier string-only draft schema was removed rather than
+  retained as permanent compatibility surface.
+- **Visible Distribution List recipients.** `--show-recipients` optionally adds
+  a canonical signed-body block containing the local alias and sorted,
+  deduplicated recipient peer IDs. Antenna adds no reply-all or list-management
+  protocol; recipients may use the visible context in ordinary sends.
+
+### Security
+
+- Reusable plaintext authentication remains available only as the explicit
+  `plaintext-legacy` compatibility mode. It is never accepted as fallback for
+  an Ed25519 peer.
+- Distribution-list metadata grants no endpoint, token, key, reachability, or
+  trust. No group credential is embedded in messages.
+
+### Fixed
+
+- `antenna status` now audits the pinned public key selected by an
+  `ed25519-v1` peer instead of incorrectly warning that its intentionally
+  absent legacy secret leaves the sender unverified.
+- Non-interactive setup now defaults to the host's configured primary model
+  and rejects an explicitly selected relay model when OpenClaw reports that it
+  is unavailable on that host.
+- CLI installation skips unwritable PATH directories and reliably falls back
+  to `~/.local/bin/antenna`.
+- The bundle-verifier regression now creates its own isolated runtime fixture
+  instead of depending on untracked developer configuration.
+
+### Validation
+
+- Passed a controlled three-host matrix covering clean install, legacy
+  migration, all six signed-unicast directions, replay/tamper/freshness/
+  allowlist negative controls, and three-origin Distribution List fan-out.
+- Documented that hook HTTP success is asynchronous acceptance rather than a
+  final delivery receipt.
+
+### Product boundary
+
+- Listed/open Public Groups are the supported first slice. Pseudonymous groups,
+  payload end-to-end encryption, retries, store-and-forward, per-recipient
+  receipts, and atomic all-member delivery remain out of scope.
+
+## [1.5.2] — 2026-05-18
 
 ### Added
 - **Transport-first pairing wizard.** Pairing now opens with a transport-selection menu
@@ -248,4 +333,4 @@ Highlights:
 
 ---
 
-For all releases prior to `1.2.21`, see [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md) or the [GitHub releases page](https://github.com/cshirley001/openclaw-skill-antenna/releases).
+For all releases prior to `1.2.21`, see [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md) or the [GitHub releases page](https://github.com/ClawReefAntenna/antenna/releases).

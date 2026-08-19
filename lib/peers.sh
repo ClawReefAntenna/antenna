@@ -46,6 +46,15 @@ peers_self_id() {
   peers_list_self_ids | head -n 1
 }
 
+# peers_single_self_id
+#   Emits the sole self peer ID. Fails if identity is missing or ambiguous.
+peers_single_self_id() {
+  [[ -f "${PEERS_FILE:-}" ]] || return 1
+  jq -er "[to_entries[] | select($_ANTENNA_PEER_OBJ_PRED and .value.self == true) | .key] |
+    if length == 1 then .[0] else error(\"expected exactly one self peer\") end" \
+    "$PEERS_FILE" 2>/dev/null
+}
+
 # peers_self_url
 #   First self peer's url, or empty.
 peers_self_url() {

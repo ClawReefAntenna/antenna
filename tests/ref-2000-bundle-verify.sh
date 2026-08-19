@@ -80,11 +80,19 @@ BAD_URL="$TEST_ROOT/bad-url.json"
 EXPIRED="$TEST_ROOT/expired.json"
 
 write_bundle "$GOOD"        "2099-12-31T23:59:59Z" "https://test.example.com"
-write_bundle "$BAD_SCHEMA"  "2099-12-31T23:59:59Z" "https://test.example.com" 2
+write_bundle "$BAD_SCHEMA"  "2099-12-31T23:59:59Z" "https://test.example.com" 3
 write_bundle "$BAD_URL"     "2099-12-31T23:59:59Z" "main"
 write_bundle "$EXPIRED"     "2000-01-01T00:00:00Z" "https://test.example.com"
 
-ANTENNA="$SKILL_REPO/bin/antenna.sh"
+# Run from an isolated configured skill tree. The CLI intentionally refuses
+# most commands before setup; relying on a developer's untracked runtime files
+# made this regression pass or fail based on checkout state.
+FIXTURE_SKILL="$TEST_ROOT/skill"
+mkdir -p "$FIXTURE_SKILL"
+cp -R "$SKILL_REPO/bin" "$SKILL_REPO/lib" "$SKILL_REPO/scripts" "$FIXTURE_SKILL/"
+printf '%s\n' '{"install_path":"fixture","allowed_inbound_peers":[],"allowed_outbound_peers":[]}' > "$FIXTURE_SKILL/antenna-config.json"
+printf '%s\n' '{}' > "$FIXTURE_SKILL/antenna-peers.json"
+ANTENNA="$FIXTURE_SKILL/bin/antenna.sh"
 
 # Helper to run verify and capture stdout+stderr together, plus exit code.
 run_verify() {
@@ -134,10 +142,10 @@ if [[ $rc -eq 1 ]]; then
 else
   fail "T2: bad schema_version should exit 1, got $rc" "$out"
 fi
-if grep -q 'schema_version must be 1' <<<"$out"; then
+if grep -q 'schema_version must be 1 or 2' <<<"$out"; then
   pass "T2: specific schema_version reason emitted"
 else
-  fail "T2: expected 'schema_version must be 1' reason" "$out"
+  fail "T2: expected 'schema_version must be 1 or 2' reason" "$out"
 fi
 
 # ── T3: malformed URL (devon1545 "main" regression) ─────────────────────

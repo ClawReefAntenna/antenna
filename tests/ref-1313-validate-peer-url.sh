@@ -48,7 +48,7 @@ source "$SKILL_REPO/lib/peers.sh"
 
 # Expect-accept matrix
 accepts=(
-  "https://bettyxix.tailde275c.ts.net"
+  "https://peer.tailnet-example.ts.net"
   "https://example.com"
   "https://example.com/"
   "https://example.com:8443"

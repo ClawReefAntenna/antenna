@@ -12,13 +12,13 @@ description: >
   "cross-host message", "inter-host relay", "ping PEER", "peer list",
   "check antenna inbox", "approve message".
 metadata:
-  version: 1.5.1
-  repository: "https://github.com/cshirley001/openclaw-skill-antenna"
-  homepage: "https://github.com/cshirley001/openclaw-skill-antenna"
+  version: 1.6.0
+  repository: "https://github.com/ClawReefAntenna/antenna"
+  homepage: "https://github.com/ClawReefAntenna/antenna"
 postInstall: "bash skills/antenna/bin/antenna.sh setup"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.5.1)
+# Antenna — Inter-Host OpenClaw Messaging (v1.6.0)
 
 Send messages between OpenClaw instances over reachable HTTPS via the built-in `/hooks/agent` webhook.
 
@@ -60,7 +60,8 @@ The LLM never performs relay parsing, delivery formatting, or session-routing lo
 Antenna trust is layered:
 - **Peer URL** — where to reach that installation
 - **Hook bearer token** — protects webhook ingress
-- **Per-peer runtime identity secret** — authenticates claimed sender identity when configured. Verified via constant-time comparison; no plaintext secrets land in relay logs.
+- **Pinned Ed25519 identity** — modern `ed25519-v1` peers sign canonical envelopes and receivers verify them against a locally pinned public key.
+- **Explicit legacy identity secret** — reusable secrets are accepted only for peers deliberately configured as `plaintext-legacy`; there is no silent fallback from Ed25519.
 - **Peer allowlists** — explicit inbound and outbound peer lists
 - **Inbound session allowlist** — limits where inbound relay may deliver (full session keys only)
 - **Envelope marker guard** — messages whose bodies or header values contain the envelope markers `[ANTENNA_RELAY]` / `[/ANTENNA_RELAY]` are rejected as malformed (prevents envelope smuggling)
@@ -78,10 +79,14 @@ For peer onboarding, Antenna now prefers **Layer A encrypted bootstrap exchange*
 Live runtime files are local installation state:
 - `antenna-config.json`
 - `antenna-peers.json`
+- `antenna-lists.json` (optional local Distribution Lists)
+- `antenna-public-groups.json` (optional installed ClawReef route aliases)
 
 Tracked reference files live beside them:
 - `antenna-config.example.json`
 - `antenna-peers.example.json`
+- `antenna-lists.example.json`
+- `antenna-public-groups.example.json`
 
 Use `antenna setup` for normal installation; use the `*.example.json` files for schema reference or manual recovery.
 
@@ -158,7 +163,63 @@ Key fields:
 - `exchange_public_key` — peer's `age` public key for Layer A exchange
 - `self` — marks the local host entry
 
+### `antenna-lists.json`
+
+Distribution Lists use one canonical object-entry schema. Each entry requires
+the peer ID and may pin a full remote session key:
+
+```json
+{
+  "lab-monitors": [
+    {
+      "peer": "lab1",
+      "session": "agent:chem:monitor1"
+    },
+    {
+      "peer": "lab2"
+    }
+  ]
+}
+```
+
+- `peer` is required and must name a configured, outbound-allowed remote peer.
+- `session` is optional. When present, only that recipient receives an
+  explicit `target_session`. When absent, Antenna omits the field and the
+  recipient resolves its own default session.
+- The local self peer, duplicate peers, string-only entries, unknown fields,
+  malformed sessions, and mixed schemas are rejected before any send occurs.
+- Session routing belongs to the list. Command-level `--session` is rejected
+  for Distribution List sends.
+
 ## Usage
+
+### Manage Public Group routes
+
+Download a route JSON file from the authenticated ClawReef group page, then
+manage it locally without storing a ClawReef browser credential:
+
+```bash
+antenna groups install ~/Downloads/antenna-public-group-reef-lounge.json --alias reef
+antenna groups list
+antenna groups refresh ~/Downloads/antenna-public-group-reef-lounge.json
+antenna groups send @reef "Hello from the reef"
+antenna groups remove @reef
+```
+
+Install accepts exactly one strict route record. Refresh matches the immutable
+`group_id`, so a local alias remains stable if the Registry slug changes. The
+configured relay peer must use `ed25519-v1` and have a valid locally pinned
+public key. Registry membership remains authoritative: retaining a stale local
+alias does not let a removed host submit to the group.
+
+ClawReef verifies the sender's Ed25519 signature and active membership, then
+re-signs and fans the message out to the other active members. Public Group
+payloads are not end-to-end encrypted: ClawReef can read content during
+delivery, then discards it and retains only content-free replay and aggregate
+delivery metadata. Partial fan-out exits non-zero. There is no automatic retry,
+store-and-forward, per-recipient receipt, or atomic all-member transaction.
+The supported first slice is Listed/open; Pseudonymous groups are not supported
+for public use yet.
 
 ### Send a message
 
@@ -169,11 +230,20 @@ antenna msg <peer> --subject "Config sync" "Here's the block you need..."
 antenna msg <peer> --session "agent:<agent-id>:mychannel" "Your message"  # explicit session override
 echo "Long message body..." | antenna send <peer> --stdin
 antenna send <peer> --dry-run "Test message"
+antenna send @lab-monitors "Check in"                    # per-entry sessions
+antenna send @lab-monitors --show-recipients "Check in" # signed list context
 ```
 
 > **Session resolution:** When `--session` is omitted, `target_session` is left out of the
 > envelope entirely. The recipient resolves from their own `default_target_session` config.
 > You don't need to know another host's internal session layout.
+
+An HTTP success from the receiving hook means the gateway accepted the request;
+hook execution and local session delivery happen asynchronously. It is not a
+delivery receipt. For controlled validation, confirm receiver-side
+`peer_auth:verified` logging and persistence in the intended target session.
+Use a normal local-agent session as the target, not a session owned by the
+dedicated `antenna` ingress agent.
 
 ### Peer pairing (interactive wizard)
 
@@ -341,7 +411,11 @@ summarize the queue and ask me.
 - **Send invites** — ClawReef delivers them via Antenna to the recipient's default session
 - **Accept & pair** — accepting an invite starts the normal `antenna pair` flow locally
 
-ClawReef stores webhook credentials (`hooksToken`, `identitySecret`) for push delivery alongside public keys and endpoints — standard webhook-provider behavior. It does not store messages, private age keys, or message content. All trust decisions remain local to Antenna.
+ClawReef stores webhook credentials (`hooksToken`, `identitySecret`) for push
+delivery alongside public keys and endpoints. Its webhook receiver also stores
+inbound relay envelopes submitted to ClawReef for its own sessions. Ordinary
+peer-to-peer Antenna unicast does not traverse ClawReef. ClawReef does not hold
+private age keys, and Antenna allowlist/trust decisions remain local.
 
 The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to manual encrypted exchange. Setup also displays ClawReef info after completion.
 
@@ -350,7 +424,9 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - Relay agent is script-first and non-interpreting
 - Inbound sessions are allowlisted (full session keys only)
 - Sender peer must be allowlisted on both inbound and outbound sides
-- Per-peer identity secret can authenticate sender claims; comparison is constant-time
+- Modern peers authenticate sender claims with locally pinned Ed25519 public
+  keys. `plaintext-legacy` peers use the older reusable identity secret with a
+  constant-time comparison.
 - Envelope marker guard rejects messages whose bodies or headers contain `[ANTENNA_RELAY]` / `[/ANTENNA_RELAY]`
 - Message freshness window rejects stale or future-dated envelopes (defaults: 300s age, 60s future skew)
 - Sender refuses to run without configured `self_id` (no `$(hostname)` fallback)
@@ -454,5 +530,5 @@ On each host:
 ## Support
 
 - 📧 **Email:** [help@clawreef.io](mailto:help@clawreef.io)
-- 🐛 **Issues:** [github.com/cshirley001/openclaw-skill-antenna/issues](https://github.com/cshirley001/openclaw-skill-antenna/issues)
+- 🐛 **Issues:** [github.com/ClawReefAntenna/antenna/issues](https://github.com/ClawReefAntenna/antenna/issues)
 - 🔒 **Security:** See [SECURITY.md](SECURITY.md)

@@ -79,7 +79,7 @@ That's both steps. The CLI auto-fixes file permissions on first run (ClawHub doe
 
 Or clone directly:
 ```bash
-git clone https://github.com/cshirley001/openclaw-skill-antenna.git ~/clawd/skills/antenna
+git clone https://github.com/ClawReefAntenna/antenna.git ~/clawd/skills/antenna
 bash skills/antenna/bin/antenna.sh setup
 ```
 
@@ -450,7 +450,7 @@ For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`ref
 ## Getting Help
 
 - 📧 **Email:** [help@clawreef.io](mailto:help@clawreef.io)
-- 🐛 **Bug reports & feature requests:** [GitHub Issues](https://github.com/cshirley001/openclaw-skill-antenna/issues)
+- 🐛 **Bug reports & feature requests:** [GitHub Issues](https://github.com/ClawReefAntenna/antenna/issues)
 - 🪨 **ClawReef:** [clawreef.io](https://clawreef.io)
 - 🔒 **Security vulnerabilities:** See [SECURITY.md](SECURITY.md)
 

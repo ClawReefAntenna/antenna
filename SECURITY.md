@@ -22,13 +22,13 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 
 | Version | Supported |
 |---------|-----------|
-| 1.6.0 | ✅ Current |
-| 1.5.2 | ⚠️ Upgrade recommended |
+| 1.6.0-rc.1 | 🧪 Release candidate |
+| 1.5.2 | ✅ Current stable |
 | 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
 | 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |
 | < 1.3.0 | ❌ Unsupported |
 
-The current v1.6.0 release includes Ed25519 sender signatures, exact message-ID
+The v1.6.0 release candidate includes Ed25519 sender signatures, exact message-ID
 replay rejection, the envelope-marker guard (REF-400),
 message freshness window (REF-402), relay temp-file hygiene (REF-403), self-ID
 fallback removal (REF-404), constant-time plaintext identity-secret comparison
@@ -38,9 +38,13 @@ export non-TTY refusal (REF-605), gateway `hooks.token` preservation on setup
 rerun (REF-901), and operator `tools.exec` preservation on setup rerun
 (REF-903).
 
-Version 1.6.0 also includes explicit warned `plaintext-legacy` migration and
-local Distribution Lists. Public Groups remain architecture only; no Public
-Group security claim is made.
+The candidate also includes explicit warned `plaintext-legacy` migration,
+local Distribution Lists, and ClawReef-attested Listed Public Groups. For a
+Public Group send, ClawReef verifies the signed sender envelope and active
+membership, then signs and fans an ordinary Antenna message to the other active
+members. ClawReef can read plaintext during fan-out, but discards the subject,
+body, and raw envelope afterward. It retains only content-free replay and
+delivery-audit metadata.
 
 ## Security-Relevant Design
 
@@ -71,10 +75,18 @@ These are openly acknowledged trade-offs and limitations of the current design. 
   `antenna status` audits the active credential type and permissions. If your
   host filesystem is untrusted, Antenna is not the right transport.
 - **Email is convenience transport only.** The optional `--send-email` path for bootstrap bundles and public keys uses Himalaya to deliver already-encrypted (`age`) artifacts. Email is not part of the trust model; a compromised email account cannot impersonate a peer or read bundle contents without the recipient's `age` private key.
-- **ClawReef is a discovery surface, not a trust broker.** ClawReef stores endpoints, exchange public keys, and — if you pair with the reef — your hooks token and identity secret so it can deliver invites. Its own webhook receiver stores inbound relay envelopes addressed to ClawReef sessions. Ordinary peer-to-peer Antenna unicast does not traverse ClawReef, private age keys are not stored there, and peer-trust decisions happen locally in Antenna.
+- **ClawReef has two bounded roles.** For ordinary pairing it is a discovery
+  and invitation surface; ordinary peer-to-peer Antenna unicast does not
+  traverse ClawReef. For Listed Public Groups it is the membership-verifying
+  relay and can read plaintext while fanning it out. It does not retain the
+  message content, store private age or Ed25519 signing keys, or make local
+  peer/session trust decisions for ordinary unicast.
 - **Untrusted input framing is advisory.** Relayed content is framed with a security notice so receiving agents treat it as external input, but enforcement ultimately depends on the receiving agent's own behavior. This is why the relay-agent itself is kept deliberately thin and non-interpreting.
 
-For deeper architectural detail, see [`references/ANTENNA-RELAY-FSD.md`](references/ANTENNA-RELAY-FSD.md) and the historical security assessments in `docs/` (repo-only, not shipped with the skill).
+For deeper architectural detail, see
+[`references/ANTENNA-RELAY-FSD.md`](references/ANTENNA-RELAY-FSD.md),
+[`references/ED25519-PROTOCOL-V1.md`](references/ED25519-PROTOCOL-V1.md), and
+the [User Guide](references/USER-GUIDE.md).
 
 ## Out of Scope
 

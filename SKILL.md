@@ -13,8 +13,8 @@ description: >
   "check antenna inbox", "approve message".
 metadata:
   version: 1.6.0
-  repository: "https://github.com/cshirley001/openclaw-skill-antenna"
-  homepage: "https://github.com/cshirley001/openclaw-skill-antenna"
+  repository: "https://github.com/ClawReefAntenna/antenna"
+  homepage: "https://github.com/ClawReefAntenna/antenna"
 postInstall: "bash skills/antenna/bin/antenna.sh setup"
 ---
 
@@ -530,5 +530,5 @@ On each host:
 ## Support
 
 - 📧 **Email:** [help@clawreef.io](mailto:help@clawreef.io)
-- 🐛 **Issues:** [github.com/cshirley001/openclaw-skill-antenna/issues](https://github.com/cshirley001/openclaw-skill-antenna/issues)
+- 🐛 **Issues:** [github.com/ClawReefAntenna/antenna/issues](https://github.com/ClawReefAntenna/antenna/issues)
 - 🔒 **Security:** See [SECURITY.md](SECURITY.md)

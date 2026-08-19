@@ -5,7 +5,7 @@ All notable changes to the Antenna skill are documented here.
 This file is the forward-looking, `[Unreleased]` + recent-releases changelog shipped with the skill.
 For the complete version history prior to `1.3.0`, see:
 
-- GitHub releases: https://github.com/cshirley001/openclaw-skill-antenna/releases
+- GitHub releases: https://github.com/ClawReefAntenna/antenna/releases
 - Full historical changelog (in-repo): [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md)
 
 ## [Unreleased]
@@ -333,4 +333,4 @@ Highlights:
 
 ---
 
-For all releases prior to `1.2.21`, see [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md) or the [GitHub releases page](https://github.com/cshirley001/openclaw-skill-antenna/releases).
+For all releases prior to `1.2.21`, see [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md) or the [GitHub releases page](https://github.com/ClawReefAntenna/antenna/releases).

@@ -12,6 +12,13 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Added
 
+- **State-preserving v1.5.2 upgrade command.** A new side-by-side
+  `antenna upgrade --from <old-skill-dir>` path refuses destination overwrite,
+  preserves runtime state without modifying the old installation, backs up and
+  repoints the existing OpenClaw Antenna agent, and updates an existing CLI
+  symlink. Legacy peers remain fail-closed until a fresh encrypted Ed25519
+  re-pair; `setup --force` is explicitly not an upgrade mechanism.
+
 - **Safe Public Group route lifecycle.** Operators can install one authenticated
   ClawReef route download under a stable local alias, refresh metadata by
   immutable group ID, list installed aliases, and remove one alias without

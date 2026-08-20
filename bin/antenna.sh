@@ -74,7 +74,7 @@ invalid_peer_keys() {
 _peek_command="${1:-}"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   case "$_peek_command" in
-    setup|help|-h|--help) ;; # allow through
+    setup|upgrade|help|-h|--help) ;; # allow through
     *)
       echo ""
       echo "  Antenna is not configured yet."
@@ -96,6 +96,7 @@ Antenna — Inter-Host OpenClaw Messaging
 Usage:
   antenna setup                              First-run setup wizard
   antenna setup --host-id <id> ...           Non-interactive setup (see --help)
+  antenna upgrade --from <old-skill-dir>     Preserve state into this side-by-side release
   antenna pair [--peer-id <id>]              Interactive peer pairing wizard
   antenna uninstall [options]                Remove Antenna runtime state / optional gateway config
 
@@ -193,6 +194,10 @@ EOF
 
 cmd_setup() {
   bash "$SCRIPTS_DIR/antenna-setup.sh" "$@"
+}
+
+cmd_upgrade() {
+  bash "$SCRIPTS_DIR/antenna-upgrade.sh" "$@"
 }
 
 cmd_pair() {
@@ -1132,6 +1137,7 @@ shift || true
 
 case "$COMMAND" in
   setup)    cmd_setup "$@" ;;
+  upgrade)  cmd_upgrade "$@" ;;
   pair)     cmd_pair "$@" ;;
   uninstall) cmd_uninstall "$@" ;;
   doctor)   cmd_doctor "$@" ;;

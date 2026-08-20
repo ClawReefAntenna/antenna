@@ -61,6 +61,30 @@ When it's done, you'll see:
 ✓ Setup complete! Welcome to the reef, myhost. 🦞
 ```
 
+### Upgrade an Existing v1.5.2 Installation
+
+Keep the working v1.5.2 directory as the rollback point and extract v1.6.0 to
+a different directory. Run the command from the **new** tree:
+
+```bash
+bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh upgrade \
+  --from ~/clawd/skills/antenna-v1.5.2
+openclaw gateway restart
+bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh doctor
+```
+
+The upgrade refuses a destination that already contains runtime state. It
+copies the old local state without modifying the source, rewrites only the
+copied `install_path`, backs up `openclaw.json`, repoints the Antenna agent's
+`agentDir` and `workspace`, preserves ignored agent-local auth/runtime files,
+and repoints an existing CLI symlink when possible.
+
+Do not run `setup --force`; that is a fresh-setup operation. Existing legacy
+peer records remain deliberately unclassified and therefore fail closed. Use
+the encrypted exchange workflow to re-pair every old peer as `ed25519-v1`
+before sending. Rollback remains local: restore the printed gateway backup,
+repoint the CLI to the untouched v1.5.2 tree, and restart OpenClaw.
+
 ### 2. Pair with a Peer
 
 ```bash

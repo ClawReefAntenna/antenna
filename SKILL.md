@@ -38,6 +38,15 @@ Normal path:
 - Run `antenna setup` to generate the live runtime files.
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
+Existing v1.5.2 installation:
+- Extract v1.6.0 side by side; do not run `setup --force` in the new tree.
+- Run the new tree's `bin/antenna.sh upgrade --from <old-skill-dir>`.
+- Restart OpenClaw, run the new tree's `doctor`, then complete a fresh
+  encrypted Ed25519 re-pair for each legacy peer.
+- The upgrade command preserves runtime state, leaves the old tree untouched,
+  backs up the gateway config, and repoints the Antenna agent paths. It does
+  not invent `auth_mode` or silently convert reusable legacy credentials.
+
 Notes:
 - Peers do **not** need to share one tailnet or one central hub.
 - Tailscale Funnel is a convenient default, but reverse proxies, VPS/domain-hosted HTTPS, Cloudflare Tunnel, and similar paths also work.
@@ -89,6 +98,10 @@ Tracked reference files live beside them:
 - `antenna-public-groups.example.json`
 
 Use `antenna setup` for normal installation; use the `*.example.json` files for schema reference or manual recovery.
+
+Use `antenna upgrade --from <old-skill-dir>` for a side-by-side v1.5.2
+migration. The destination must have no runtime state. Never use
+`setup --force` as an upgrade mechanism.
 
 ### `antenna-config.json`
 

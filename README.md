@@ -85,6 +85,33 @@ bash skills/antenna/bin/antenna.sh setup
 
 After setup, `antenna` is on your PATH — all future commands are just `antenna <command>`. Your agent can also invoke these directly.
 
+### Upgrading from v1.5.2
+
+Extract v1.6.0 beside the known-good v1.5.2 directory. Do **not** run
+`setup --force` in the new directory: setup creates fresh state and is not an
+upgrade command. Instead, invoke the new release directly:
+
+```bash
+bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh upgrade \
+  --from ~/clawd/skills/antenna-v1.5.2
+openclaw gateway restart
+bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh doctor
+```
+
+`antenna upgrade` refuses to overwrite destination state, leaves the v1.5.2
+tree untouched, preserves local configuration, peers, lists, Public Group
+routes, keys, secrets, queues, replay/rate state, and logs, and backs up
+agent-local runtime/auth files, and backs up `openclaw.json` before repointing
+the Antenna agent to the new release. An
+existing CLI symlink is repointed when it targets the old installation.
+
+Legacy peer records are preserved exactly, but they are not silently promoted
+to Ed25519. They fail closed until each operator completes a fresh encrypted
+Ed25519 re-pair. There is no automatic downgrade or mixed-mode window.
+
+To roll back, restore the printed `openclaw.json.antenna-upgrade-backup-*`,
+repoint the CLI symlink to the untouched v1.5.2 tree, and restart OpenClaw.
+
 ### 2. Pair with a Peer
 
 ```bash
@@ -443,7 +470,7 @@ content scanning, or Helping Claw on a release schedule.
 **v1.6.0** — adds Ed25519 sender identity, explicit warned legacy migration,
 local Distribution Lists, and Listed Public Groups while retaining the
 transport-first pairing wizard and write→exec relay contract. See the migration
-notes before upgrading an existing peer pair.
+notes above before upgrading an existing peer pair.
 
 For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md).
 

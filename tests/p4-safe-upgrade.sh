@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Phase 4 regression: a side-by-side upgrade preserves runtime state and only
+# rewrites the destination install path plus the Antenna agent's local paths.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TMP="$(mktemp -d)"
+trap 'rm -rf -- "$TMP"' EXIT
+
+pass=0
+fail=0
+ok() { echo "PASS $*"; pass=$((pass + 1)); }
+no() { echo "FAIL $*"; fail=$((fail + 1)); }
+check() { local label="$1"; shift; if "$@"; then ok "$label"; else no "$label"; fi; }
+
+OLD="$TMP/antenna-v1.5.2"
+NEW="$TMP/antenna-v1.6.0"
+HOME_DIR="$TMP/home"
+GATEWAY="$HOME_DIR/.openclaw/openclaw.json"
+mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/bin" "$OLD/agent/memory" \
+  "$NEW/scripts" "$NEW/bin" "$NEW/agent" \
+  "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin"
+cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
+cp "$ROOT/bin/antenna.sh" "$NEW/bin/"
+printf '#!/usr/bin/env bash\n' > "$OLD/bin/antenna.sh"
+chmod +x "$OLD/bin/antenna.sh" "$NEW/bin/antenna.sh" "$NEW/scripts/antenna-upgrade.sh"
+
+jq -n --arg old "$OLD" '{
+  install_path:$old,
+  default_target_session:"agent:betty:main",
+  allowed_inbound_peers:["legacy-peer"],
+  allowed_outbound_peers:["legacy-peer"]
+}' > "$OLD/antenna-config.json"
+cat > "$OLD/antenna-peers.json" <<'JSON'
+{
+  "self-host": {"self":true,"url":"https://self.example","token_file":"secrets/self.token"},
+  "legacy-peer": {"url":"https://peer.example","token_file":"secrets/peer.token","peer_secret_file":"secrets/peer.secret"}
+}
+JSON
+printf '{"ops":[{"peer":"legacy-peer"}]}\n' > "$OLD/antenna-lists.json"
+printf '{"reef":{"group_id":"11111111-1111-4111-8111-111111111111","name":"Reef","relay_peer":"clawreef"}}\n' > "$OLD/antenna-public-groups.json"
+printf '[]\n' > "$OLD/antenna-inbox.json"
+printf '{"entries":[]}\n' > "$OLD/antenna-ratelimit.json"
+printf '{"entries":[]}\n' > "$OLD/state/antenna-replay.json"
+printf 'secret\n' > "$OLD/secrets/peer.secret"
+printf 'token\n' > "$OLD/secrets/peer.token"
+printf 'self-token\n' > "$OLD/secrets/self.token"
+printf 'PUBLIC KEY\n' > "$OLD/keys/legacy.pem"
+printf 'old log\n' > "$OLD/antenna.log"
+printf 'older log\n' > "$OLD/antenna.log.1"
+printf '{"profiles":{"relay":{"provider":"fixture"}}}\n' > "$OLD/agent/auth-profiles.json"
+printf 'agent note\n' > "$OLD/agent/memory/local.txt"
+chmod 600 "$OLD"/*.json "$OLD"/secrets/* "$OLD"/keys/* "$OLD"/state/* "$OLD"/antenna.log*
+chmod 600 "$OLD/agent/auth-profiles.json" "$OLD/agent/memory/local.txt"
+
+cat > "$GATEWAY" <<JSON
+{
+  "agents": {"list": [
+    {"id":"betty","workspace":"/keep/betty"},
+    {"id":"antenna","agentDir":"$OLD/agent","workspace":"$OLD/agent","tools":{"exec":{"security":"allowlist"}}}
+  ]},
+  "hooks":{"enabled":true,"token":"keep-me"}
+}
+JSON
+chmod 600 "$GATEWAY"
+ln -s "$OLD/bin/antenna.sh" "$HOME_DIR/.local/bin/antenna"
+
+before="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
+output="$(HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY")"
+after="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
+
+check "source tree remains byte-identical" test "$before" = "$after"
+check "destination install_path is rewritten" test "$(jq -r .install_path "$NEW/antenna-config.json")" = "$NEW"
+check "legacy peer record is preserved exactly" cmp -s "$OLD/antenna-peers.json" "$NEW/antenna-peers.json"
+check "legacy auth is not silently invented" jq -e '.["legacy-peer"] | has("auth_mode") | not' "$NEW/antenna-peers.json"
+check "lists, routes, replay state, secrets, keys, and logs migrate" test \
+  "$(cat "$NEW/antenna-lists.json" "$NEW/antenna-public-groups.json" "$NEW/state/antenna-replay.json" "$NEW/secrets/peer.secret" "$NEW/keys/legacy.pem" "$NEW/antenna.log.1" | wc -c)" -gt 20
+check "agent-local auth and memory state migrate" test \
+  "$(cat "$NEW/agent/auth-profiles.json" "$NEW/agent/memory/local.txt" | wc -c)" -gt 20
+check "private runtime permissions remain private" test "$(stat -c %a "$NEW/secrets/peer.secret")" = 600
+check "copied private runtime directories are hardened" test "$(stat -c %a "$NEW/secrets")" = 700
+check "gateway agent paths point to new release" jq -e --arg path "$NEW/agent" \
+  '.agents.list[] | select(.id=="antenna") | .agentDir==$path and .workspace==$path' "$GATEWAY"
+check "gateway custom agent tools and unrelated config survive" jq -e \
+  '.hooks.token=="keep-me" and (.agents.list[] | select(.id=="antenna") | .tools.exec.security)=="allowlist" and (.agents.list[] | select(.id=="betty") | .workspace)=="/keep/betty"' "$GATEWAY"
+check "gateway backup is private and present" bash -c 'f=("$1".antenna-upgrade-backup-*); [[ -f "${f[0]}" && "$(stat -c %a "${f[0]}")" == 600 ]]' _ "$GATEWAY"
+check "existing CLI symlink is repointed" test "$(readlink -f "$HOME_DIR/.local/bin/antenna")" = "$NEW/bin/antenna.sh"
+check "operator receives explicit re-pair warning" grep -q "fresh encrypted Ed25519 re-pair" <<<"$output"
+
+if HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" >/dev/null 2>&1; then
+  no "rerun refuses to overwrite destination runtime state"
+else
+  ok "rerun refuses to overwrite destination runtime state"
+fi
+
+echo "SUMMARY $pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]

@@ -22,13 +22,13 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 
 | Version | Supported |
 |---------|-----------|
-| 1.6.0-rc.1 | 🧪 Release candidate |
-| 1.5.2 | ✅ Current stable |
+| 1.6.0 | ✅ Current stable |
+| 1.5.2 | ⚠️ Upgrade recommended |
 | 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
 | 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |
 | < 1.3.0 | ❌ Unsupported |
 
-The v1.6.0 release candidate includes Ed25519 sender signatures, exact message-ID
+The v1.6.0 release includes Ed25519 sender signatures, exact message-ID
 replay rejection, the envelope-marker guard (REF-400),
 message freshness window (REF-402), relay temp-file hygiene (REF-403), self-ID
 fallback removal (REF-404), constant-time plaintext identity-secret comparison
@@ -38,7 +38,7 @@ export non-TTY refusal (REF-605), gateway `hooks.token` preservation on setup
 rerun (REF-901), and operator `tools.exec` preservation on setup rerun
 (REF-903).
 
-The candidate also includes explicit warned `plaintext-legacy` migration,
+The release also includes explicit warned `plaintext-legacy` migration,
 local Distribution Lists, and ClawReef-attested Listed Public Groups. For a
 Public Group send, ClawReef verifies the signed sender envelope and active
 membership, then signs and fans an ordinary Antenna message to the other active

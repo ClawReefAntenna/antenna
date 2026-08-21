@@ -10,6 +10,10 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [1.6.0] — 2026-08-20
+
 ### Added
 
 - **State-preserving v1.5.2 upgrade command.** A new side-by-side
@@ -18,7 +22,6 @@ For the complete version history prior to `1.3.0`, see:
   repoints the existing OpenClaw Antenna agent, and updates an existing CLI
   symlink. Legacy peers remain fail-closed until a fresh encrypted Ed25519
   re-pair; `setup --force` is explicitly not an upgrade mechanism.
-
 - **Safe Public Group route lifecycle.** Operators can install one authenticated
   ClawReef route download under a stable local alias, refresh metadata by
   immutable group ID, list installed aliases, and remove one alias without
@@ -39,10 +42,6 @@ For the complete version history prior to `1.3.0`, see:
   three-host supported workflow, including simultaneous fan-out persistence,
   membership removal/re-add, route refresh/removal, zero content retention,
   cleanup, and ordinary-unicast regression.
-
-## [1.6.0] — 2026-08-15
-
-### Added
 
 - **Ed25519 sender identity (`antenna-ed25519-v1`).** Modern peers sign a
   byte-preserving canonical envelope with a dedicated Ed25519 identity key;

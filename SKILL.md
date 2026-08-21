@@ -12,13 +12,13 @@ description: >
   "cross-host message", "inter-host relay", "ping PEER", "peer list",
   "check antenna inbox", "approve message".
 metadata:
-  version: 1.6.0
+  version: 1.6.1
   repository: "https://github.com/ClawReefAntenna/antenna"
   homepage: "https://github.com/ClawReefAntenna/antenna"
 postInstall: "bash skills/antenna/bin/antenna.sh setup"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.6.0)
+# Antenna — Inter-Host OpenClaw Messaging (v1.6.1)
 
 Send messages between OpenClaw instances over reachable HTTPS via the built-in `/hooks/agent` webhook.
 
@@ -39,7 +39,7 @@ Normal path:
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
 Existing v1.5.2 installation:
-- Extract v1.6.0 side by side; do not run `setup --force` in the new tree.
+- Extract v1.6.1 side by side; do not run `setup --force` in the new tree.
 - Run the new tree's `bin/antenna.sh upgrade --from <old-skill-dir>`.
 - Restart OpenClaw, run the new tree's `doctor`, then complete a fresh
   encrypted Ed25519 re-pair for each legacy peer.

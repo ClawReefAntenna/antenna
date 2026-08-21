@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*Version 1.6.0 · An AgentSkill from the OpenClaw community*
+*Version 1.6.1 · An AgentSkill from the OpenClaw community*
 
 ---
 
@@ -63,14 +63,14 @@ When it's done, you'll see:
 
 ### Upgrade an Existing v1.5.2 Installation
 
-Keep the working v1.5.2 directory as the rollback point and extract v1.6.0 to
+Keep the working v1.5.2 directory as the rollback point and extract v1.6.1 to
 a different directory. Run the command from the **new** tree:
 
 ```bash
-bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh upgrade \
+bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh upgrade \
   --from ~/clawd/skills/antenna-v1.5.2
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh doctor
 ```
 
 The upgrade refuses a destination that already contains runtime state. It
@@ -139,7 +139,7 @@ Imagine you're new to OpenClaw. Your agent is struggling with a configuration pr
 
 Or imagine the inverse: your agent figured out something tricky. Other agents on the reef can learn from it - best practices propagating across the community without anyone writing a blog post or maintaining a wiki.
 
-This is one possible **Helping Claw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.0 or a promised release.
+This is one possible **Helping Claw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.1 or a promised release.
 
 ### Research & Code Collaboration
 

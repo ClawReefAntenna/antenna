@@ -12,6 +12,15 @@ For the complete version history prior to `1.3.0`, see:
 
 No unreleased changes.
 
+## [1.6.1] — 2026-08-20
+
+### Fixed
+
+- **ClawHub runtime-policy packaging.** Root-workspace ignore patterns are now
+  anchored to the skill root so they do not accidentally omit the required
+  `agent/AGENTS.md` and `agent/TOOLS.md` relay-agent policy files from the
+  ClawHub package.
+
 ## [1.6.0] — 2026-08-20
 
 ### Added

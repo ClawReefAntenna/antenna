@@ -22,7 +22,8 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 
 | Version | Supported |
 |---------|-----------|
-| 1.6.0 | ✅ Current stable |
+| 1.6.1 | ✅ Current stable |
+| 1.6.0 | ✅ Supported |
 | 1.5.2 | ⚠️ Upgrade recommended |
 | 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
 | 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |

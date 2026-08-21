@@ -87,15 +87,15 @@ After setup, `antenna` is on your PATH — all future commands are just `antenna
 
 ### Upgrading from v1.5.2
 
-Extract v1.6.0 beside the known-good v1.5.2 directory. Do **not** run
+Extract v1.6.1 beside the known-good v1.5.2 directory. Do **not** run
 `setup --force` in the new directory: setup creates fresh state and is not an
 upgrade command. Instead, invoke the new release directly:
 
 ```bash
-bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh upgrade \
+bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh upgrade \
   --from ~/clawd/skills/antenna-v1.5.2
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.0/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh doctor
 ```
 
 `antenna upgrade` refuses to overwrite destination state, leaves the v1.5.2

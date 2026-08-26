@@ -23,13 +23,13 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 | Version | Supported |
 |---------|-----------|
 | 1.6.1 | ✅ Current stable |
-| 1.6.0 | ✅ Supported |
+| 1.6.0 | ⚠️ Superseded; install 1.6.1 |
 | 1.5.2 | ⚠️ Upgrade recommended |
 | 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
 | 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |
 | < 1.3.0 | ❌ Unsupported |
 
-The v1.6.0 release includes Ed25519 sender signatures, exact message-ID
+The v1.6.1 launch release includes Ed25519 sender signatures, exact message-ID
 replay rejection, the envelope-marker guard (REF-400),
 message freshness window (REF-402), relay temp-file hygiene (REF-403), self-ID
 fallback removal (REF-404), constant-time plaintext identity-secret comparison
@@ -52,7 +52,7 @@ delivery-audit metadata.
 Antenna's full security model is documented in the [Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md), the [User Guide](references/USER-GUIDE.md), and the [SKILL.md Trust Model](SKILL.md#trust-model). The following commitments are load-bearing and in scope for vulnerability reports:
 
 - **Script-first relay —** the relay agent is a courier that runs deterministic bash scripts. All envelope parsing, validation, formatting, and logging is done by `scripts/antenna-relay.sh` and friends. The LLM never parses, encodes, transforms, or modifies relayed content.
-- **Layered trust in v1.6.0 —** HTTPS transport, hook bearer token, locally
+- **Layered trust in v1.6.1 —** HTTPS transport, hook bearer token, locally
   pinned Ed25519 sender public keys, exact message-ID replay rejection, peer
   allowlists (inbound and outbound), session allowlist (full keys only),
   envelope-marker guard, message-freshness window, rate limiting, and log

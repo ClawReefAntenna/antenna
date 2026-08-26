@@ -228,8 +228,8 @@ alias does not let a removed host submit to the group.
 ClawReef verifies the sender's Ed25519 signature and active membership, then
 re-signs and fans the message out to the other active members. Public Group
 payloads are not end-to-end encrypted: ClawReef can read content during
-delivery, then discards it and retains only content-free replay and aggregate
-delivery metadata. Partial fan-out exits non-zero. There is no automatic retry,
+delivery, then discards it and retains only content-free replay identifiers,
+timestamps, and per-member delivery outcomes. Partial fan-out exits non-zero. There is no automatic retry,
 store-and-forward, per-recipient receipt, or atomic all-member transaction.
 The supported first slice is Listed/open; Pseudonymous groups are not supported
 for public use yet.

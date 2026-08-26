@@ -45,8 +45,8 @@ No unreleased changes.
   fan-out exits non-zero.
 - **Content-free relay audit.** ClawReef can read Public Group plaintext while
   fanning it out but does not retain the subject, body, group content, or raw
-  envelope. Only sender/message/timestamp and aggregate delivery metadata are
-  kept for replay protection and audit.
+  envelope. Only sender/message/timestamp and content-free per-member delivery
+  outcomes are kept for replay protection and audit.
 - **Controlled acceptance.** The exact Antenna/ClawReef pair passed the complete
   three-host supported workflow, including simultaneous fan-out persistence,
   membership removal/re-add, route refresh/removal, zero content retention,

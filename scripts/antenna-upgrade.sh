@@ -109,6 +109,52 @@ fi
 [[ -n "$GATEWAY_CONFIG" && -f "$GATEWAY_CONFIG" && ! -L "$GATEWAY_CONFIG" ]] \
   || die "OpenClaw gateway config not found; pass --gateway explicitly"
 jq empty "$GATEWAY_CONFIG" >/dev/null 2>&1 || die "Gateway config is invalid JSON: $GATEWAY_CONFIG"
+
+# OpenClaw 8.1 owns the one-time migration of retired workspace/config/state
+# surfaces. Refuse before copying any state or changing the gateway so the
+# operator can run Doctor while the old Antenna workspace is still active.
+agent_runtime_copy_names=("${agent_runtime_names[@]}")
+gateway_openclaw_generation \
+  || die "Could not identify the installed OpenClaw generation"
+if [[ "$GATEWAY_OPENCLAW_GENERATION" == "entries" ]]; then
+  legacy_config_paths="$(jq -r '
+    [
+      (if ((.meta? | type) == "object" and (.meta | has("lastTouchedAt")))
+       then "meta.lastTouchedAt" else empty end),
+      (if ((.gateway.controlUi? | type) == "object" and (.gateway.controlUi | has("allowInsecureAuth")))
+       then "gateway.controlUi.allowInsecureAuth" else empty end),
+      (if ((.gateway.tailscale? | type) == "object" and (.gateway.tailscale | has("resetOnExit")))
+       then "gateway.tailscale.resetOnExit" else empty end)
+    ] | join(", ")
+  ' "$GATEWAY_CONFIG")"
+  [[ -z "$legacy_config_paths" ]] || die \
+    "OpenClaw 8.1 config migration is incomplete ($legacy_config_paths); with the gateway stopped, run 'OPENCLAW_CONFIG_PATH=$GATEWAY_CONFIG openclaw doctor --fix', validate, then rerun Antenna upgrade"
+
+  if jq -e '.plugins.entries["lossless-claw"].config | has("autoRotateSessionFiles")' \
+      "$GATEWAY_CONFIG" >/dev/null 2>&1; then
+    die "Configured lossless-claw still uses retired autoRotateSessionFiles; install a compatible plugin version, reconcile that plugin-owned setting, validate with OpenClaw, then rerun Antenna upgrade"
+  fi
+
+  openclaw_state_dir="${OPENCLAW_STATE_DIR:-$HOME/.openclaw}"
+  if [[ -f "$openclaw_state_dir/exec-approvals.json" ]]; then
+    die "Legacy exec approvals remain at $openclaw_state_dir/exec-approvals.json; migrate and verify them in OpenClaw's canonical approvals store with the gateway stopped, then rerun Antenna upgrade"
+  fi
+
+  if [[ -e "$SOURCE_DIR/agent/HEARTBEAT.md" || -L "$SOURCE_DIR/agent/HEARTBEAT.md" ]]; then
+    die "OpenClaw 8.1 no longer reads agent/HEARTBEAT.md; while the gateway still points to $SOURCE_DIR/agent, run 'OPENCLAW_CONFIG_PATH=$GATEWAY_CONFIG openclaw doctor --fix', verify HEARTBEAT.md was migrated into cron scratch and removed, then rerun Antenna upgrade"
+  fi
+  if [[ -e "$SKILL_DIR/agent/HEARTBEAT.md" || -L "$SKILL_DIR/agent/HEARTBEAT.md" \
+      || -e "$SKILL_DIR/agent/TOOLS.md" || -L "$SKILL_DIR/agent/TOOLS.md" ]]; then
+    die "Destination relay workspace contains retired OpenClaw 8.1 bootstrap files (HEARTBEAT.md or TOOLS.md)"
+  fi
+
+  # HEARTBEAT.md is deliberately retained for supported 7.x upgrades only.
+  agent_runtime_copy_names=()
+  for name in "${agent_runtime_names[@]}"; do
+    [[ "$name" == "HEARTBEAT.md" ]] || agent_runtime_copy_names+=("$name")
+  done
+fi
+
 gateway_roster_prepare_mutation "$GATEWAY_CONFIG" \
   || die "Gateway roster is not safe for automatic Antenna upgrade"
 gateway_roster_has_agent "$GATEWAY_CONFIG" antenna "$GATEWAY_ROSTER_KIND" \
@@ -134,7 +180,7 @@ while IFS= read -r log_file; do
 done < <(find "$SOURCE_DIR" -maxdepth 1 -type f -name 'antenna.log.*' -print | sort)
 
 mkdir -p "$stage/agent-runtime"
-for name in "${agent_runtime_names[@]}"; do
+for name in "${agent_runtime_copy_names[@]}"; do
   source="$SOURCE_DIR/agent/$name"
   [[ -e "$source" || -L "$source" ]] || continue
   [[ ! -L "$source" ]] || die "Refusing symlinked agent runtime state: $source"
@@ -236,4 +282,8 @@ ok "Gateway backup: $gateway_backup"
 echo ""
 warn "Legacy peers were preserved exactly and are not silently upgraded."
 warn "Complete a fresh encrypted Ed25519 re-pair for each legacy peer before sending."
+if [[ "$GATEWAY_OPENCLAW_GENERATION" == "entries" ]]; then
+  info "OpenClaw 8.1 workspace/config preflight passed; Tailscale ingress and plugin lifecycle remain OpenClaw-owned."
+  info "Upgrade checklist: $SKILL_DIR/references/OPENCLAW-2026.8.1-UPGRADE.md"
+fi
 info "Restart OpenClaw, then run: $SKILL_DIR/bin/antenna.sh doctor"

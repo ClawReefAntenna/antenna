@@ -51,8 +51,9 @@ printf 'old log\n' > "$OLD/antenna.log"
 printf 'older log\n' > "$OLD/antenna.log.1"
 printf '{"profiles":{"relay":{"provider":"fixture"}}}\n' > "$OLD/agent/auth-profiles.json"
 printf 'agent note\n' > "$OLD/agent/memory/local.txt"
+printf 'Check legacy Antenna inbox.\n' > "$OLD/agent/HEARTBEAT.md"
 chmod 600 "$OLD"/*.json "$OLD"/secrets/* "$OLD"/keys/* "$OLD"/state/* "$OLD"/antenna.log*
-chmod 600 "$OLD/agent/auth-profiles.json" "$OLD/agent/memory/local.txt"
+chmod 600 "$OLD/agent/auth-profiles.json" "$OLD/agent/memory/local.txt" "$OLD/agent/HEARTBEAT.md"
 
 cat > "$GATEWAY" <<JSON
 {
@@ -90,6 +91,8 @@ check "lists, routes, replay state, secrets, keys, and logs migrate" test \
   "$(cat "$NEW/antenna-lists.json" "$NEW/antenna-public-groups.json" "$NEW/state/antenna-replay.json" "$NEW/secrets/peer.secret" "$NEW/keys/legacy.pem" "$NEW/antenna.log.1" | wc -c)" -gt 20
 check "agent-local auth and memory state migrate" test \
   "$(cat "$NEW/agent/auth-profiles.json" "$NEW/agent/memory/local.txt" | wc -c)" -gt 20
+check "7.x upgrade retains legacy HEARTBEAT.md" cmp -s \
+  "$OLD/agent/HEARTBEAT.md" "$NEW/agent/HEARTBEAT.md"
 check "private runtime permissions remain private" test "$(stat -c %a "$NEW/secrets/peer.secret")" = 600
 check "copied private runtime directories are hardened" test "$(stat -c %a "$NEW/secrets")" = 700
 check "gateway agent paths point to new release" jq -e --arg path "$NEW/agent" \

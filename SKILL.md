@@ -398,16 +398,21 @@ Notes:
 - Ref numbers auto-increment and support range selection
 - The relay agent now uses only `write` + `exec`; it never calls `sessions_send` directly. Drain also stays in script-only territory — it shells out to `openclaw gateway call sessions.send`, so cron jobs can drain the queue without an agent in the loop.
 
-**Heartbeat / cron integration:**
+**Scheduled inbox integration:**
 
-Add to your `HEARTBEAT.md`:
+On OpenClaw 2026.8.1+, put the following instructions in a cron job's scratch
+instead of creating `HEARTBEAT.md`:
 ```markdown
 ## Antenna inbox check
 - Run: `antenna inbox count`
 - If > 0: run `antenna inbox list` and mention it
 ```
 
-Or set up a cron job for automated handling:
+On supported OpenClaw 2026.7.x hosts, the same block may remain in the legacy
+`HEARTBEAT.md`. A 7.x-to-8.1 upgrade must let `openclaw doctor --fix` migrate
+that file before `antenna upgrade` repoints the relay workspace.
+
+For automated handling, use a cron prompt such as:
 ```
 Check antenna inbox. If there are pending messages from peers
 in [trusted-peer-id], approve and drain them. For anything else,
@@ -517,13 +522,14 @@ skills/antenna/
 │   ├── LAYER-A-SECRET-EXCHANGE-PLAN.md
 │   └── SECRET-EXCHANGE-OPTIONS.md
 └── agent/
-    ├── AGENTS.md
-    └── TOOLS.md
+    └── AGENTS.md
 ```
 
 Notes:
 - `antenna-config.json`, `antenna-peers.json`, and `antenna-inbox.json` are local runtime files (gitignored)
 - `antenna-config.example.json` and `antenna-peers.example.json` are tracked reference templates
+- OpenClaw 8.1 host upgrades have an additional stopped-writer checklist in
+  [`references/OPENCLAW-2026.8.1-UPGRADE.md`](references/OPENCLAW-2026.8.1-UPGRADE.md)
 
 ## Gateway / Agent Registration
 

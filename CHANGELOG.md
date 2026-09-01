@@ -33,6 +33,15 @@ For the complete version history prior to `1.3.0`, see:
   are refused before gateway mutation. An unmigrated `agents.list` on 8.1 is
   directed to `openclaw doctor --fix`; Antenna does not run broad config
   migration automatically.
+- **OpenClaw 8.1 relay-workspace compatibility.** The relay tool contract is
+  consolidated into `agent/AGENTS.md`; the package no longer ships retired
+  `agent/TOOLS.md`. On 8.1+, side-by-side upgrade refuses before mutation when
+  a legacy relay `HEARTBEAT.md` still needs OpenClaw's cron-scratch migration.
+- **OpenClaw-owned upgrade seams.** The 8.1 upgrade path now diagnoses retired
+  config keys, the retired lossless-claw `autoRotateSessionFiles` setting, and
+  an unmigrated legacy exec-approvals file. It leaves plugin lifecycle,
+  approvals import, config repair, and Tailscale route ownership to OpenClaw
+  and links an explicit stopped-writer checklist.
 
 ### Validation
 
@@ -41,6 +50,9 @@ For the complete version history prior to `1.3.0`, see:
   include-aware read-only diagnosis, atomic failure, backups, permissions,
   and refusal cases. The complete shipped shell regression directory passes
   with the new compatibility layer.
+- Added bounded workspace/runbook fixtures covering 7.x heartbeat retention,
+  8.1 heartbeat refusal, retired config/plugin settings, legacy approvals,
+  consolidated agent policy, and Tailscale/plugin ownership guidance.
 
 ## [1.6.1] — 2026-08-20
 

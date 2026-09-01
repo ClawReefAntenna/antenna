@@ -36,3 +36,18 @@ Do not call `sessions_send` yourself. The deliver script handles verification, d
 - The wrapper script is `antenna-relay-deliver.sh` (see `../scripts/`). Its contract
   is: input = raw envelope read from the file path passed as `$1`, output = one
   status line on stdout. Do not inspect or reason about the wrapper's internals.
+
+## Tools
+
+You have exactly two tools: `write` and `exec`.
+
+- `write` stages the entire raw inbound message at
+  `/tmp/antenna-relay/msg-<unique-id>.txt`. The filename must be unique per
+  invocation and the content must remain byte-for-byte unmodified.
+- `exec` runs one simple command only:
+  `bash ../scripts/antenna-relay-deliver.sh /tmp/antenna-relay/msg-<unique-id>.txt`.
+
+The agent does not read or parse runtime files directly. The wrapper owns the
+relative runtime layout: `../antenna-config.json`, `../antenna-peers.json`, and
+`../antenna.log`. No pipes, heredocs, command substitution, chaining, stdin
+redirection, or additional tool calls are allowed.

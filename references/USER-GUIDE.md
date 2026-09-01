@@ -349,9 +349,10 @@ Done. The approved messages get delivered to their target sessions; denied ones 
 }
 ```
 
-### Integration with Heartbeats
+### Scheduled Inbox Integration
 
-Add to your `HEARTBEAT.md`:
+On OpenClaw 2026.8.1+, place this checklist in a cron job's scratch rather
+than creating `HEARTBEAT.md`:
 
 ```markdown
 ## Antenna inbox check
@@ -359,7 +360,9 @@ Add to your `HEARTBEAT.md`:
 - If > 0: run `antenna inbox list` and mention pending messages
 ```
 
-Or set up a cron job for automated handling of trusted peers.
+On supported 2026.7.x hosts, the same block may remain in the legacy
+`HEARTBEAT.md`. Before upgrading that host to 8.1, run OpenClaw Doctor with
+the gateway stopped so it can migrate the file safely.
 
 ---
 
@@ -707,7 +710,7 @@ skills/antenna/
 │   └── setup-completion-v1.1.8.md   # Setup output reference
 ├── agent/
 │   ├── AGENTS.md                    # Relay agent instructions
-│   └── TOOLS.md                     # Relay agent tool references
+│   └── AGENTS.md                    # Relay policy and tool contract
 ├── secrets/                          # Token & secret files (chmod 600)
 ├── antenna-config.json               # Local runtime config (gitignored)
 ├── antenna-peers.json                # Local runtime peer registry (gitignored)

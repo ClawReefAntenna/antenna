@@ -100,6 +100,8 @@ check "8.1 upgrade leaves private rollback backup" bash -c \
   _ "$GATEWAY"
 check "8.1 upgrade repoints existing CLI link" test \
   "$(readlink -f "$HOME_DIR/.local/bin/antenna")" = "$NEW/bin/antenna.sh"
+check "8.1 destination has no retired relay workspace files" bash -c \
+  '[[ ! -e "$1/agent/HEARTBEAT.md" && ! -e "$1/agent/TOOLS.md" ]]' _ "$NEW"
 
 printf 'SUMMARY %d passed, %d failed\n' "$PASS" "$FAIL"
 [[ "$FAIL" -eq 0 ]]

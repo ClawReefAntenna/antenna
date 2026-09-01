@@ -1035,10 +1035,19 @@ if [[ "$INBOX_ENABLED" == "true" ]]; then
   echo "  Deny messages:      antenna inbox deny 1,3"
   echo "  Deliver approved:   antenna inbox drain"
   echo ""
-  echo "  Tip: Add this to your HEARTBEAT.md for automatic checking:"
-  echo "    ## Antenna inbox check"
-  echo "    - Run: antenna inbox count"
-  echo "    - If > 0: run antenna inbox list and mention it"
+  if [[ -z "$GATEWAY_OPENCLAW_GENERATION" ]] && command -v openclaw >/dev/null 2>&1; then
+    gateway_openclaw_generation >/dev/null 2>&1 || true
+  fi
+  if [[ "$GATEWAY_OPENCLAW_GENERATION" == "entries" ]]; then
+    echo "  Tip: On OpenClaw 8.1+, use a cron job with scratch instructions:"
+    echo "    Check the Antenna inbox. If count is greater than zero, list it"
+    echo "    and mention pending messages; do not auto-approve unknown peers."
+  else
+    echo "  Tip: On OpenClaw 7.x, add this to your HEARTBEAT.md:"
+    echo "    ## Antenna inbox check"
+    echo "    - Run: antenna inbox count"
+    echo "    - If > 0: run antenna inbox list and mention it"
+  fi
   echo ""
   if [[ -n "$INBOX_AUTO_APPROVE" ]]; then
     echo "  Auto-approved peers: $INBOX_AUTO_APPROVE"

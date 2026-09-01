@@ -96,6 +96,8 @@ check "relay tool contract is consolidated into AGENTS.md" grep -Fq "## Tools" "
 check "package no longer ships relay TOOLS.md" test ! -e "$ROOT/agent/TOOLS.md"
 check "runbook assigns plugin lifecycle to OpenClaw" grep -Fq \
   "Install OpenClaw and compatible plugins" "$ROOT/references/OPENCLAW-2026.8.1-UPGRADE.md"
+check "runbook requires CLI and gateway version agreement" grep -Fq \
+  "CLI version and the gateway RPC version" "$ROOT/references/OPENCLAW-2026.8.1-UPGRADE.md"
 check "runbook assigns approvals migration to OpenClaw" grep -Fq \
   "Verify exec approvals" "$ROOT/references/OPENCLAW-2026.8.1-UPGRADE.md"
 check "runbook assigns Tailscale ingress to OpenClaw" grep -Fq \

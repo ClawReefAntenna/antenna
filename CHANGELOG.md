@@ -41,7 +41,9 @@ For the complete version history prior to `1.3.0`, see:
   config keys, the retired lossless-claw `autoRotateSessionFiles` setting, and
   an unmigrated legacy exec-approvals file. It leaves plugin lifecycle,
   approvals import, config repair, and Tailscale route ownership to OpenClaw
-  and links an explicit stopped-writer checklist.
+  and links an explicit stopped-writer checklist, including a side-by-side
+  CLI/gateway version-agreement check that prevents an older system CLI from
+  shadowing the intended 8.1 user install.
 
 ### Validation
 

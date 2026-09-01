@@ -20,6 +20,20 @@ binary. Install plugin releases compatible with that OpenClaw version before
 validating the final config. Check `openclaw plugins list --json` and resolve
 plugin errors explicitly.
 
+Before any Doctor or Antenna command, prove the shell resolves the new CLI:
+
+```bash
+command -v openclaw
+openclaw --version
+openclaw gateway status --json
+```
+
+The CLI version and the gateway RPC version must both report the intended 8.1
+release. A side-by-side user install may live in `~/.local/bin` while an older
+system install still wins in non-interactive shells. Fix `PATH` for the whole
+upgrade session (for example, `PATH="$HOME/.local/bin:$PATH"`) rather than
+mixing old CLI commands with the new gateway.
+
 Plugin schemas may retire settings independently. In the controlled upgrade,
 lossless-claw 1.0.0 rejected `autoRotateSessionFiles`; that plugin-owned key
 had to be reconciled before its new version would load. Do not have Antenna

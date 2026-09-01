@@ -8,6 +8,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck source=../lib/gateway-roster.sh
+source "$SKILL_DIR/lib/gateway-roster.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -107,9 +109,10 @@ fi
 [[ -n "$GATEWAY_CONFIG" && -f "$GATEWAY_CONFIG" && ! -L "$GATEWAY_CONFIG" ]] \
   || die "OpenClaw gateway config not found; pass --gateway explicitly"
 jq empty "$GATEWAY_CONFIG" >/dev/null 2>&1 || die "Gateway config is invalid JSON: $GATEWAY_CONFIG"
-jq -e '.agents.list | type == "array" and any(.[]; .id == "antenna")' \
-  "$GATEWAY_CONFIG" >/dev/null 2>&1 \
-  || die "Gateway config has no existing agents.list entry with id=antenna"
+gateway_roster_prepare_mutation "$GATEWAY_CONFIG" \
+  || die "Gateway roster is not safe for automatic Antenna upgrade"
+gateway_roster_has_agent "$GATEWAY_CONFIG" antenna "$GATEWAY_ROSTER_KIND" \
+  || die "Gateway config has no existing Antenna agent"
 
 stage="$(mktemp -d "$SKILL_DIR/.antenna-upgrade.XXXXXX")"
 cleanup() { rm -rf -- "$stage"; }
@@ -163,17 +166,16 @@ gateway_dir="$(dirname "$GATEWAY_CONFIG")"
 gateway_backup="$GATEWAY_CONFIG.antenna-upgrade-backup-$(date +%Y%m%d-%H%M%S)"
 gateway_tmp="$(mktemp "$gateway_dir/.openclaw.antenna-upgrade.XXXXXX")"
 trap 'rm -f -- "$gateway_tmp"; cleanup' EXIT
-jq --arg agentdir "$SKILL_DIR/agent" '
-  .agents.list = [.agents.list[] |
-    if .id == "antenna" then
-      .agentDir = $agentdir | .workspace = $agentdir
-    else . end
-  ]
-' "$GATEWAY_CONFIG" > "$gateway_tmp"
-jq empty "$gateway_tmp" >/dev/null 2>&1 || die "Generated gateway config failed validation"
+gateway_roster_write_agent_paths_candidate \
+  "$GATEWAY_CONFIG" "$gateway_tmp" "$SKILL_DIR/agent" \
+  || die "Could not construct the gateway path update"
+gateway_roster_prepare_mutation "$gateway_tmp" \
+  || die "Generated gateway config failed OpenClaw validation"
 
 cp -- "$GATEWAY_CONFIG" "$gateway_backup"
 chmod 600 "$gateway_backup" 2>/dev/null || true
+chmod --reference="$GATEWAY_CONFIG" "$gateway_tmp" 2>/dev/null || true
+chown --reference="$GATEWAY_CONFIG" "$gateway_tmp" 2>/dev/null || true
 
 moved=()
 rollback_destination() {
@@ -210,7 +212,6 @@ if ! mv -- "$gateway_tmp" "$GATEWAY_CONFIG"; then
   rollback_destination
   die "Could not update gateway config; source and gateway backup remain intact"
 fi
-chmod 600 "$GATEWAY_CONFIG" 2>/dev/null || true
 
 repointed=0
 for cli_link in "$HOME/.local/bin/antenna" /usr/local/bin/antenna; do

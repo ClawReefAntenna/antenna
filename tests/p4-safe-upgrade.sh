@@ -18,10 +18,11 @@ NEW="$TMP/antenna-v1.6.0"
 HOME_DIR="$TMP/home"
 GATEWAY="$HOME_DIR/.openclaw/openclaw.json"
 mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/bin" "$OLD/agent/memory" \
-  "$NEW/scripts" "$NEW/bin" "$NEW/agent" \
-  "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin"
+  "$NEW/scripts" "$NEW/bin" "$NEW/lib" "$NEW/agent" \
+  "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
 cp "$ROOT/bin/antenna.sh" "$NEW/bin/"
+cp "$ROOT/lib/gateway-roster.sh" "$NEW/lib/"
 printf '#!/usr/bin/env bash\n' > "$OLD/bin/antenna.sh"
 chmod +x "$OLD/bin/antenna.sh" "$NEW/bin/antenna.sh" "$NEW/scripts/antenna-upgrade.sh"
 
@@ -64,9 +65,21 @@ cat > "$GATEWAY" <<JSON
 JSON
 chmod 600 "$GATEWAY"
 ln -s "$OLD/bin/antenna.sh" "$HOME_DIR/.local/bin/antenna"
+cat > "$HOME_DIR/bin/openclaw" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "--version" ]]; then
+  echo "OpenClaw 2026.7.1 (fixture)"
+elif [[ "${1:-}" == "config" && "${2:-}" == "validate" ]]; then
+  jq empty "${OPENCLAW_CONFIG_PATH:?}"
+else
+  exit 2
+fi
+EOF
+chmod +x "$HOME_DIR/bin/openclaw"
 
 before="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
-output="$(HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY")"
+output="$(PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY")"
 after="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 
 check "source tree remains byte-identical" test "$before" = "$after"
@@ -87,7 +100,7 @@ check "gateway backup is private and present" bash -c 'f=("$1".antenna-upgrade-b
 check "existing CLI symlink is repointed" test "$(readlink -f "$HOME_DIR/.local/bin/antenna")" = "$NEW/bin/antenna.sh"
 check "operator receives explicit re-pair warning" grep -q "fresh encrypted Ed25519 re-pair" <<<"$output"
 
-if HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" >/dev/null 2>&1; then
+if PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" >/dev/null 2>&1; then
   no "rerun refuses to overwrite destination runtime state"
 else
   ok "rerun refuses to overwrite destination runtime state"

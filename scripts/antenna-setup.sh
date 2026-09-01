@@ -28,6 +28,8 @@ SECRETS_DIR="$SKILL_DIR/secrets"
 # effects) and has a double-source guard.
 # shellcheck source=../lib/peers.sh
 source "$SKILL_DIR/lib/peers.sh"
+# shellcheck source=../lib/gateway-roster.sh
+source "$SKILL_DIR/lib/gateway-roster.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -761,11 +763,6 @@ if [[ -n "$GATEWAY_CFG" ]]; then
   fi
 
   if [[ "$do_auto_register" == "true" ]]; then
-      # Back up again right before editing
-      cp "$GATEWAY_CFG" "${GATEWAY_CFG}.antenna-pre-register-$(date +%Y%m%d-%H%M%S)"
-
-      # 1) Enable/merge hooks config
-      tmp_gw=$(mktemp)
       # Read the hooks token from the token file to register it in gateway config
       file_token=""
       existing_hooks_token=""
@@ -786,17 +783,77 @@ if [[ -n "$GATEWAY_CFG" ]]; then
         fi
       fi
 
-      jq --arg aid "antenna" --arg prefix "hook:" --arg agent_prefix "agent:${AGENT_ID}:" --arg file_token "$file_token" '
-        .hooks.enabled = true |
-        .hooks.allowRequestSessionKey = true |
-        .hooks.allowedAgentIds = ((.hooks.allowedAgentIds // []) | if (index($aid) | not) then . + [$aid] else . end) |
-        .hooks.allowedSessionKeyPrefixes = (
-          (.hooks.allowedSessionKeyPrefixes // [])
-          | if (index($prefix) | not) then . + [$prefix] else . end
-          | if (index($agent_prefix) | not) then . + [$agent_prefix] else . end
-        ) |
-        (if $file_token != "" and ((.hooks.token // "") == "" or (.hooks.token == $file_token)) then .hooks.token = $file_token else . end)
-      ' "$GATEWAY_CFG" > "$tmp_gw" && mv "$tmp_gw" "$GATEWAY_CFG"
+      # Build the complete gateway candidate off to the side. The shared roster
+      # guard rejects mixed, malformed, generation-mismatched, and include-owned
+      # rosters before this function commits any gateway change.
+      if ! gateway_roster_prepare_mutation "$GATEWAY_CFG"; then
+        err "Gateway roster is not safe for automatic Antenna registration."
+        exit 1
+      fi
+      _roster_kind="$GATEWAY_ROSTER_KIND"
+      if [[ "$_roster_kind" == "list" ]]; then
+        _existing_agent_count="$(jq '(.agents.list // []) | length' "$GATEWAY_CFG")"
+      else
+        _existing_agent_count="$(jq '(.agents.entries // {}) | length' "$GATEWAY_CFG")"
+      fi
+      if gateway_roster_has_agent "$GATEWAY_CFG" antenna "$_roster_kind"; then
+        _had_antenna=true
+      else
+        _had_antenna=false
+      fi
+
+      _gateway_dir="$(dirname "$GATEWAY_CFG")"
+      _roster_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-roster.XXXXXX")"
+      _gateway_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-setup.XXXXXX")"
+      if ! gateway_roster_write_setup_candidate \
+          "$GATEWAY_CFG" "$_roster_candidate" "$AGENT_ID" "$RELAY_MODEL" "$SKILL_DIR/agent"; then
+        rm -f -- "$_roster_candidate" "$_gateway_candidate"
+        err "Could not construct a safe Antenna roster update."
+        exit 1
+      fi
+      if ! jq --arg aid "antenna" --arg prefix "hook:" \
+          --arg agent_prefix "agent:${AGENT_ID}:" --arg file_token "$file_token" '
+          .hooks = (if (.hooks | type) == "object" then .hooks else {} end)
+          | .hooks.enabled = true
+          | .hooks.allowRequestSessionKey = true
+          | .hooks.allowedAgentIds = ((.hooks.allowedAgentIds // []) |
+              if (index($aid) | not) then . + [$aid] else . end)
+          | .hooks.allowedSessionKeyPrefixes = (
+              (.hooks.allowedSessionKeyPrefixes // [])
+              | if (index($prefix) | not) then . + [$prefix] else . end
+              | if (index($agent_prefix) | not) then . + [$agent_prefix] else . end
+            )
+          | (if $file_token != "" and
+                ((.hooks.token // "") == "" or (.hooks.token == $file_token))
+             then .hooks.token = $file_token else . end)
+          | .tools = (if (.tools | type) == "object" then .tools else {} end)
+          | .tools.sessions = (if (.tools.sessions | type) == "object" then .tools.sessions else {} end)
+          | .tools.sessions.visibility = "all"
+          | .tools.agentToAgent = (if (.tools.agentToAgent | type) == "object" then .tools.agentToAgent else {} end)
+          | .tools.agentToAgent.enabled = true
+        ' "$_roster_candidate" > "$_gateway_candidate"; then
+        rm -f -- "$_roster_candidate" "$_gateway_candidate"
+        err "Could not construct the complete gateway update."
+        exit 1
+      fi
+      rm -f -- "$_roster_candidate"
+      if ! gateway_config_commit_candidate \
+          "$GATEWAY_CFG" "$_gateway_candidate" "antenna-pre-register"; then
+        rm -f -- "$_gateway_candidate"
+        err "Gateway candidate failed validation; the original config is unchanged."
+        exit 1
+      fi
+
+      ok "Gateway update validated and committed atomically"
+      info "Private rollback backup: $GATEWAY_CONFIG_LAST_BACKUP"
+      if [[ "$_existing_agent_count" -eq 0 ]]; then
+        info "Created default primary agent entry '$AGENT_ID' in agents.$_roster_kind"
+      fi
+      if [[ "$_had_antenna" == "true" ]]; then
+        info "Updated existing Antenna agent without removing operator tool overrides"
+      else
+        ok "Registered Antenna agent in agents.$_roster_kind (sandbox off, least-privilege tools)"
+      fi
       ok "Hooks enabled and allowlists updated"
       case "$hooks_token_action" in
         registered) ok "Hooks token registered in gateway config" ;;
@@ -807,101 +864,8 @@ if [[ -n "$GATEWAY_CFG" ]]; then
           fi
           ;;
       esac
-
-      # 2) Ensure a default agent exists before adding antenna
-      #    If agents.list is empty/absent, the default main agent is implicit.
-      #    Adding antenna alone would make it the only visible agent in the UI.
-      has_any_agent=""
-      has_any_agent=$(jq '[.agents.list // [] | .[]] | length' "$GATEWAY_CFG" 2>/dev/null || echo "0")
-      if [[ "$has_any_agent" -eq 0 ]]; then
-        _def_workspace=$(jq -r '.agents.defaults.workspace // "~/clawd"' "$GATEWAY_CFG" 2>/dev/null || echo "~/clawd")
-        _def_model=$(jq -r '.agents.defaults.model.primary // "openai/gpt-4o-mini"' "$GATEWAY_CFG" 2>/dev/null || echo "openai/gpt-4o-mini")
-        tmp_gw=$(mktemp)
-        jq --arg aid "$AGENT_ID" --arg ws "$_def_workspace" --arg model "$_def_model" '
-          .agents.list = [{
-            id: $aid,
-            name: "Main Agent",
-            model: $model,
-            agentDir: $ws,
-            workspace: $ws
-          }]
-        ' "$GATEWAY_CFG" > "$tmp_gw" && mv "$tmp_gw" "$GATEWAY_CFG"
-        info "Created default main agent entry '$AGENT_ID' (agents.list was empty)"
-      fi
-
-      # 3) Register antenna agent if not already present
-      #    The relay agent gets:
-      #    - sandbox off: prevents per-command-hash approval prompts
-      #    - restrictive tools.deny: least-privilege (only exec needed)
-      #    NOTE: Do NOT set tools.exec (security/ask) on the antenna agent.
-      #    Explicit exec overrides cause silent relay failures where the hook session
-      #    acknowledges but delivery never completes, making messages invisible.
-      has_antenna=""
-      has_antenna=$(jq '[.agents.list // [] | .[] | select(.id == "antenna")] | length' "$GATEWAY_CFG" 2>/dev/null || echo "0")
-      if [[ "$has_antenna" -eq 0 ]]; then
-        tmp_gw=$(mktemp)
-        jq --arg model "$RELAY_MODEL" --arg agentdir "$SKILL_DIR/agent" '
-          .agents.list = ((.agents.list // []) + [{
-            id: "antenna",
-            name: "Antenna Relay",
-            model: $model,
-            agentDir: $agentdir,
-            workspace: $agentdir,
-            sandbox: { mode: "off" },
-            tools: {
-              deny: [
-                "group:web", "browser", "image", "image_generate",
-                "cron", "memory_search", "memory_get",
-                "web_search", "web_fetch"
-              ]
-            }
-          }])
-        ' "$GATEWAY_CFG" > "$tmp_gw" && mv "$tmp_gw" "$GATEWAY_CFG"
-        ok "Registered Antenna agent in gateway config (sandbox off, least-privilege tools)"
-      else
-        info "Antenna agent already registered in gateway config"
-        # Ensure sandbox.mode=off on existing antenna entry without stripping any
-        # operator-managed tools.exec or tools.deny customization.
-        _needs_antenna_repair=$(jq '[.agents.list // [] | .[] | select(.id == "antenna" and ((.sandbox.mode // "") != "off" or (.tools | type) != "object"))] | length' "$GATEWAY_CFG" 2>/dev/null || echo "0")
-        if [[ "$_needs_antenna_repair" -gt 0 ]]; then
-          tmp_gw=$(mktemp)
-          jq '
-            .agents.list = [.agents.list[] |
-              if .id == "antenna" then
-                .sandbox = { mode: "off" } |
-                .tools = (if (.tools | type) == "object" then .tools else {} end) |
-                .tools.deny = (.tools.deny // [
-                  "group:web", "browser", "image", "image_generate",
-                  "cron", "memory_search", "memory_get",
-                  "web_search", "web_fetch"
-                ])
-              else . end
-            ]
-          ' "$GATEWAY_CFG" > "$tmp_gw" && mv "$tmp_gw" "$GATEWAY_CFG"
-          ok "Updated existing Antenna agent: sandbox off without removing operator tool overrides"
-        fi
-      fi
-
-      # 4) Enable cross-agent session visibility
-      #    The deliver script's gateway RPC needs to deliver into other agents' sessions.
-      #    Without this, OpenClaw blocks cross-agent session access.
-      _current_vis=$(jq -r '.tools.sessions.visibility // empty' "$GATEWAY_CFG" 2>/dev/null || true)
-      if [[ "$_current_vis" != "all" ]]; then
-        tmp_gw=$(mktemp)
-        jq '.tools.sessions.visibility = "all"' "$GATEWAY_CFG" > "$tmp_gw" && mv "$tmp_gw" "$GATEWAY_CFG"
-        ok "Set tools.sessions.visibility = \"all\" (required for cross-agent relay)"
-      else
-        info "tools.sessions.visibility already set to \"all\""
-      fi
-
-      _current_a2a=$(jq -r '.tools.agentToAgent.enabled // empty' "$GATEWAY_CFG" 2>/dev/null || true)
-      if [[ "$_current_a2a" != "true" ]]; then
-        tmp_gw=$(mktemp)
-        jq '.tools.agentToAgent.enabled = true' "$GATEWAY_CFG" > "$tmp_gw" && mv "$tmp_gw" "$GATEWAY_CFG"
-        ok "Set tools.agentToAgent.enabled = true"
-      else
-        info "tools.agentToAgent.enabled already true"
-      fi
+      ok "Set tools.sessions.visibility = \"all\" and tools.agentToAgent.enabled = true"
+      AUTO_REGISTERED=true
 
       # 6) Register exec allowlist for the antenna agent
       #    The relay agent needs to run shell commands (bash, echo, jq, cat)
@@ -926,15 +890,6 @@ if [[ -n "$GATEWAY_CFG" ]]; then
         info "  openclaw approvals allowlist add --agent antenna /usr/bin/cat"
       fi
 
-      # 7) Validate
-      if jq empty "$GATEWAY_CFG" 2>/dev/null; then
-        ok "Gateway config is valid JSON — nothing broken, nothing weird."
-        AUTO_REGISTERED=true
-      else
-        err "Gateway config is not valid JSON after changes!"
-        warn "Restoring from backup..."
-        cp "${GATEWAY_CFG}.antenna-backup" "$GATEWAY_CFG" 2>/dev/null || true
-      fi
   fi
 fi
 

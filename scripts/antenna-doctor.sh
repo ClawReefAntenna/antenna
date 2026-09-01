@@ -21,6 +21,8 @@ PEERS_FILE="$SKILL_DIR/antenna-peers.json"
 source "$SKILL_DIR/lib/peers.sh"
 # shellcheck source=../lib/config.sh
 source "$SKILL_DIR/lib/config.sh"
+# shellcheck source=../lib/gateway-roster.sh
+source "$SKILL_DIR/lib/gateway-roster.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -371,19 +373,31 @@ else
 
   echo -e "${BOLD}4. Agent Registration${NC}"
 
-  # Check for antenna agent in agents.list (array) or agents (map)
+  # Inspect either authored roster generation directly. Consult OpenClaw's
+  # resolved roster only when direct inspection finds no Antenna entry; that
+  # keeps ordinary Doctor runs fast while still supporting include layouts.
   has_agent=false
-
-  # Try agents.list array format
-  agent_in_list=$(jq -r '.agents.list // [] | map(select(.id == "antenna" or .name == "antenna" or (.name // "" | ascii_downcase) == "antenna relay")) | length' "$GATEWAY_CONFIG" 2>/dev/null)
-  if [[ "$agent_in_list" -gt 0 ]]; then
+  direct_agent_count="$(jq '
+    [
+      (.agents.list[]? | select(((.id // "") | ascii_downcase) == "antenna")),
+      (.agents.entries // {} | to_entries[]? | select((.key | ascii_downcase) == "antenna")),
+      (if (.agents.antenna? | type) == "object" then .agents.antenna else empty end)
+    ] | length
+  ' "$GATEWAY_CONFIG" 2>/dev/null || echo 0)"
+  if [[ "$direct_agent_count" =~ ^[0-9]+$ && "$direct_agent_count" -gt 0 ]]; then
     has_agent=true
   fi
 
-  # Try agents map format
-  if [[ "$has_agent" == false ]]; then
-    agent_in_map=$(jq -r '.agents.antenna // empty' "$GATEWAY_CONFIG" 2>/dev/null)
-    if [[ -n "$agent_in_map" ]]; then
+  resolved_agent_count=""
+  if [[ "$has_agent" == false ]] \
+     && gateway_roster_has_unsafe_include "$GATEWAY_CONFIG" \
+     && command -v openclaw >/dev/null 2>&1; then
+    resolved_agent_count="$(
+      OPENCLAW_CONFIG_PATH="$GATEWAY_CONFIG" openclaw agents list --json 2>/dev/null \
+        | jq '[.[] | select(((.id // "") | ascii_downcase) == "antenna")] | length' \
+          2>/dev/null || true
+    )"
+    if [[ "$resolved_agent_count" =~ ^[0-9]+$ && "$resolved_agent_count" -gt 0 ]]; then
       has_agent=true
     fi
   fi
@@ -392,7 +406,11 @@ else
     pass "Antenna agent is registered in gateway config"
   else
     fail "Antenna agent not found in gateway config"
-    hint "Register the antenna agent — see: antenna setup (prints the config block)"
+    if gateway_roster_has_unsafe_include "$GATEWAY_CONFIG"; then
+      hint "The roster may be include-owned; inspect it with: OPENCLAW_CONFIG_PATH=$GATEWAY_CONFIG openclaw agents list --json"
+    else
+      hint "Register the antenna agent — see: antenna setup (prints the config block)"
+    fi
   fi
 
   echo ""

@@ -11,6 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
 SETUP="$SKILL_REPO/scripts/antenna-setup.sh"
+ROSTER_HELPER="$SKILL_REPO/lib/gateway-roster.sh"
 
 PASS=0
 FAIL=0
@@ -20,7 +21,7 @@ fail() { FAIL=$((FAIL + 1)); printf '  \033[31m✗\033[0m %s\n' "$1"; [[ -n "${2
 
 echo "── REF-903 regression ──"
 
-UPDATE_BLOCK="$(awk '/Antenna agent already registered in gateway config/,/# 4\) Enable cross-agent session visibility/' "$SETUP")"
+UPDATE_BLOCK="$(cat "$ROSTER_HELPER")"
 
 # T1: legacy destructive delete is gone.
 if printf '%s\n' "$UPDATE_BLOCK" | grep -q 'del(.exec)'; then
@@ -30,14 +31,14 @@ else
 fi
 
 # T2: repair path still forces sandbox off.
-if printf '%s\n' "$UPDATE_BLOCK" | grep -q '.sandbox = { mode: "off" }'; then
+if printf '%s\n' "$UPDATE_BLOCK" | grep -q '.sandbox.mode = "off"'; then
   pass "T2: setup update path still forces sandbox.mode=off"
 else
   fail "T2: setup update path still forces sandbox.mode=off" "sandbox repair assignment not found"
 fi
 
 # T3: repair path normalizes non-object .tools without clobbering real objects.
-if printf '%s\n' "$UPDATE_BLOCK" | grep -q '.tools = (if (.tools | type) == "object" then .tools else {} end)'; then
+if printf '%s\n' "$UPDATE_BLOCK" | grep -q 'if (.tools | type) == "object" then .tools else {} end'; then
   pass "T3: setup update path preserves existing tools object"
 else
   fail "T3: setup update path preserves existing tools object" "expected object-preserving .tools normalization not found"

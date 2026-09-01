@@ -622,6 +622,10 @@ cmd_peers() {
 _write_relay_model_to_gateway_config() {
   local new_model="$1"
   local gateway_cfg=""
+  # Load the roster writer only for the one CLI path that mutates the gateway.
+  # Keeping this lazy lets read/send-only packaged subsets remain usable.
+  # shellcheck source=../lib/gateway-roster.sh
+  source "$SKILL_DIR/lib/gateway-roster.sh"
   for candidate in "$HOME/.openclaw/openclaw.json" "/home/$USER/.openclaw/openclaw.json"; do
     if [[ -f "$candidate" ]]; then
       gateway_cfg="$candidate"
@@ -634,19 +638,30 @@ _write_relay_model_to_gateway_config() {
     return 0
   fi
 
-  local has_antenna
-  has_antenna=$(jq '[.agents.list // [] | .[] | select(.id == "antenna")] | length' "$gateway_cfg" 2>/dev/null || echo "0")
-  if [[ "$has_antenna" -eq 0 ]]; then
+  if ! gateway_roster_prepare_mutation "$gateway_cfg"; then
+    echo "✗  Gateway roster is not safe for automatic model synchronization." >&2
+    return 1
+  fi
+  if ! gateway_roster_has_agent "$gateway_cfg" antenna "$GATEWAY_ROSTER_KIND"; then
     echo "⚠  Antenna agent not registered in gateway config ($gateway_cfg) — skipping gateway sync."
     return 0
   fi
 
-  local tmp
-  tmp=$(mktemp)
-  jq --arg model "$new_model" '
-    .agents.list = [.agents.list[] | if .id == "antenna" then .model = $model else . end]
-  ' "$gateway_cfg" > "$tmp" && mv "$tmp" "$gateway_cfg"
+  local gateway_dir tmp
+  gateway_dir="$(dirname "$gateway_cfg")"
+  tmp="$(mktemp "$gateway_dir/.openclaw.antenna-model.XXXXXX")"
+  if ! gateway_roster_write_model_candidate "$gateway_cfg" "$tmp" "$new_model"; then
+    rm -f -- "$tmp"
+    echo "✗  Could not construct the gateway model update." >&2
+    return 1
+  fi
+  if ! gateway_config_commit_candidate "$gateway_cfg" "$tmp" "antenna-model-backup"; then
+    rm -f -- "$tmp"
+    echo "✗  Gateway model candidate failed validation; original config unchanged." >&2
+    return 1
+  fi
   echo "✓  Updated gateway config: antenna agent model → $new_model"
+  echo "ℹ  Gateway rollback backup: $GATEWAY_CONFIG_LAST_BACKUP"
 }
 
 # _restart_gateway

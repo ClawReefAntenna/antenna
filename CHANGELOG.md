@@ -10,7 +10,37 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
-No unreleased changes.
+### Fixed
+
+- **OpenClaw 2026.8.1 agent-roster compatibility.** Setup, side-by-side
+  upgrade, Doctor, and relay-model synchronization now read both the legacy
+  `agents.list` roster used through OpenClaw 2026.7.x and the canonical keyed
+  `agents.entries` roster used by OpenClaw 2026.8.1+. Mutations preserve the
+  host's native generation and never create both shapes.
+- **Canonical ownership preservation.** Adding Antenna to a sole keyed-agent
+  roster materializes explicit system/auth ownership for the prior agent when
+  required, while existing ownership, defaults, bindings, unrelated agents,
+  tool policy, custom fields, and unknown forward-compatible fields survive
+  unchanged.
+- **Atomic gateway updates.** Setup now constructs roster, hook, and
+  cross-agent policy changes as one candidate, validates it through the
+  installed OpenClaw, writes a private rollback backup, and performs one
+  atomic swap. Upgrade and model synchronization use the same validated
+  roster boundary and preserve the gateway file mode.
+- **Fail-closed migration boundary.** Mixed or malformed rosters,
+  generation-mismatched shapes, duplicate/invalid IDs, symlinked gateway
+  configs, include-owned roster membership, and OpenClaw validation failures
+  are refused before gateway mutation. An unmigrated `agents.list` on 8.1 is
+  directed to `openclaw doctor --fix`; Antenna does not run broad config
+  migration automatically.
+
+### Validation
+
+- Added isolated 2026.7/2026.8.1 fixtures for setup, rerun, upgrade, Doctor,
+  model synchronization, ownership transitions, policy preservation,
+  include-aware read-only diagnosis, atomic failure, backups, permissions,
+  and refusal cases. The complete shipped shell regression directory passes
+  with the new compatibility layer.
 
 ## [1.6.1] — 2026-08-20
 

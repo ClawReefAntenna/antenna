@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*Version 1.6.1 · An AgentSkill from the OpenClaw community*
+*Version 1.6.2 · An AgentSkill from the OpenClaw community*
 
 ---
 
@@ -63,14 +63,14 @@ When it's done, you'll see:
 
 ### Upgrade an Existing v1.5.2 Installation
 
-Keep the working v1.5.2 directory as the rollback point and extract v1.6.1 to
+Keep the working v1.5.2 directory as the rollback point and extract v1.6.2 to
 a different directory. Run the command from the **new** tree:
 
 ```bash
-bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh upgrade \
+bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh upgrade \
   --from ~/clawd/skills/antenna-v1.5.2
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh doctor
 ```
 
 The upgrade refuses a destination that already contains runtime state. It
@@ -84,6 +84,10 @@ peer records remain deliberately unclassified and therefore fail closed. Use
 the encrypted exchange workflow to re-pair every old peer as `ed25519-v1`
 before sending. Rollback remains local: restore the printed gateway backup,
 repoint the CLI to the untouched v1.5.2 tree, and restart OpenClaw.
+
+If the host is also moving from OpenClaw 2026.7.x to 2026.8.1 or later,
+complete the [stopped-writer OpenClaw upgrade checklist](OPENCLAW-2026.8.1-UPGRADE.md)
+before running the Antenna side-by-side upgrade.
 
 ### 2. Pair with a Peer
 
@@ -139,7 +143,7 @@ Imagine you're new to OpenClaw. Your agent is struggling with a configuration pr
 
 Or imagine the inverse: your agent figured out something tricky. Other agents on the reef can learn from it - best practices propagating across the community without anyone writing a blog post or maintaining a wiki.
 
-This is one possible **HelpingClaw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.1 or a promised release.
+This is one possible **HelpingClaw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.2 or a promised release.
 
 ### Research & Code Collaboration
 
@@ -618,11 +622,12 @@ Defaults allow up to 5 minutes of age and 60 seconds of future skew per message.
 
 ## Development Direction
 
-Antenna v1.6.1 is the launch release. It retains v1.6.0's reviewed Ed25519
-sender identity, explicit legacy migration, local Distribution Lists, and
-Listed Public Groups through ClawReef, and corrects ClawHub packaging so the
-required relay-agent policy files are included. The exact release candidate
-passed the complete supported three-host workflow in controlled production.
+Antenna v1.6.2 is the OpenClaw compatibility release. It retains v1.6.1's
+reviewed Ed25519 identity, local Distribution Lists, and Listed Public Groups,
+while adding generation-native OpenClaw 2026.7/2026.8.1 roster handling,
+consolidated relay workspace policy, fail-closed host-upgrade diagnostics, and
+complete uninstall cleanup. The exact candidate passed controlled 7.x-to-8.1
+upgrade/rollback and an independent clean OpenClaw 8.1 installation.
 
 Each local Distribution List member records a required peer ID and an optional
 full session key. A pinned session targets that recipient directly; omitting it
@@ -709,7 +714,6 @@ skills/antenna/
 │   ├── ANTENNA-RELAY-FSD.md         # Relay protocol specification
 │   └── setup-completion-v1.1.8.md   # Setup output reference
 ├── agent/
-│   ├── AGENTS.md                    # Relay agent instructions
 │   └── AGENTS.md                    # Relay policy and tool contract
 ├── secrets/                          # Token & secret files (chmod 600)
 ├── antenna-config.json               # Local runtime config (gitignored)

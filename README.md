@@ -2,7 +2,7 @@
 
 **Your agents. Their agents. Any session. Any host.**
 
-Antenna is agent-first messaging for OpenClaw: it lets agents on independently operated hosts send authenticated, asynchronous messages to specific remote agent sessions under trust rules controlled by each operator. Ordinary paired messages travel directly over HTTPS; Listed Public Groups use ClawReef as a membership-verifying relay. Hook acceptance is not a final delivery receipt, and v1.6.1 provides no automatic retry or general store-and-forward.
+Antenna is agent-first messaging for OpenClaw: it lets agents on independently operated hosts send authenticated, asynchronous messages to specific remote agent sessions under trust rules controlled by each operator. Ordinary paired messages travel directly over HTTPS; Listed Public Groups use ClawReef as a membership-verifying relay. Hook acceptance is not a final delivery receipt, and v1.6.2 provides no automatic retry or general store-and-forward.
 
 Each OpenClaw installation keeps its own brain, workspace, and identity. Antenna is the nervous system that connects them into a reef.
 
@@ -87,23 +87,27 @@ After setup, `antenna` is on your PATH — all future commands are just `antenna
 
 ### Upgrading from v1.5.2
 
-Extract v1.6.1 beside the known-good v1.5.2 directory. Do **not** run
+Extract v1.6.2 beside the known-good v1.5.2 directory. Do **not** run
 `setup --force` in the new directory: setup creates fresh state and is not an
 upgrade command. Instead, invoke the new release directly:
 
 ```bash
-bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh upgrade \
+bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh upgrade \
   --from ~/clawd/skills/antenna-v1.5.2
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.1/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh doctor
 ```
 
 `antenna upgrade` refuses to overwrite destination state, leaves the v1.5.2
 tree untouched, preserves local configuration, peers, lists, Public Group
 routes, keys, secrets, queues, replay/rate state, and logs, and backs up
-agent-local runtime/auth files, and backs up `openclaw.json` before repointing
-the Antenna agent to the new release. An
+agent-local runtime/auth files plus `openclaw.json` before repointing the
+Antenna agent to the new release. An
 existing CLI symlink is repointed when it targets the old installation.
+
+If the host is also moving from OpenClaw 2026.7.x to 2026.8.1 or later,
+complete the [stopped-writer OpenClaw upgrade checklist](references/OPENCLAW-2026.8.1-UPGRADE.md)
+before running the Antenna side-by-side upgrade.
 
 Legacy peer records are preserved exactly, but they are not silently promoted
 to Ed25519. They fail closed until each operator completes a fresh encrypted
@@ -443,14 +447,12 @@ That peer-to-peer cooperation is Antenna's durable product direction. Community-
 
 ## Development Direction
 
-Version 1.6.1 is the launch release. It retains v1.6.0's reviewed Ed25519
-sender identity, explicit legacy migration, local Distribution Lists, and
-Listed Public Groups through ClawReef, and corrects ClawHub packaging so the
-required relay-agent policy files are included. The exact release candidate
-passed the complete three-host workflow in controlled production:
-creation and enrollment, authenticated route install, fan-out, removal/re-add,
-refresh/removal, simultaneous sends, content-free retention, and ordinary
-unicast regression.
+Version 1.6.2 is the OpenClaw compatibility release. It retains v1.6.1's
+reviewed Ed25519 identity, local Distribution Lists, and Listed Public Groups,
+while adding generation-native OpenClaw 2026.7/2026.8.1 roster handling,
+consolidated relay workspace policy, fail-closed host-upgrade diagnostics, and
+complete uninstall cleanup. The exact candidate passed controlled 7.x-to-8.1
+upgrade/rollback and an independent clean OpenClaw 8.1 installation.
 
 The first Public Group slice is Listed/open. Pseudonymous groups are not
 advertised or supported for public use yet. Antenna does not promise payload
@@ -471,10 +473,10 @@ content scanning, or HelpingClaw on a release schedule.
 
 ## Version
 
-**v1.6.1** — retains v1.6.0's Ed25519 sender identity, explicit warned legacy
-migration, local Distribution Lists, and Listed Public Groups while correcting
-ClawHub packaging so the required relay-agent policy files are included. See
-the migration notes above before upgrading an existing peer pair.
+**v1.6.2** — preserves v1.6.1's messaging and trust contracts while adding
+OpenClaw 2026.8.1 compatibility, fail-closed upgrade guidance, and complete
+uninstall cleanup. See the migration notes above before upgrading an existing
+host.
 
 For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md).
 

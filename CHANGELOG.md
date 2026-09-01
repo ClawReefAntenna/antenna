@@ -10,6 +10,8 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+## [1.6.2] — 2026-09-01
+
 ### Fixed
 
 - **OpenClaw 2026.8.1 agent-roster compatibility.** Setup, side-by-side

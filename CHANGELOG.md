@@ -44,6 +44,11 @@ For the complete version history prior to `1.3.0`, see:
   and links an explicit stopped-writer checklist, including a side-by-side
   CLI/gateway version-agreement check that prevents an older system CLI from
   shadowing the intended 8.1 user install.
+- **Complete uninstall cleanup.** Default uninstall now removes inbox state,
+  Distribution Lists, Listed Public Group routes, and Antenna-owned public
+  keys in addition to the original config, peer, log, rate-limit, replay,
+  test-result, and secret artifacts. The CLI also permits a follow-up
+  `--purge-skill-dir` run after runtime config has already been removed.
 
 ### Validation
 
@@ -55,6 +60,9 @@ For the complete version history prior to `1.3.0`, see:
 - Added bounded workspace/runbook fixtures covering 7.x heartbeat retention,
   8.1 heartbeat refusal, retired config/plugin settings, legacy approvals,
   consolidated agent policy, and Tailscale/plugin ownership guidance.
+- Extended uninstall fixtures to prove all current runtime artifacts are
+  removed for legacy and canonical roster shapes and that a follow-up purge
+  remains reachable after configuration removal.
 
 ## [1.6.1] — 2026-08-20
 

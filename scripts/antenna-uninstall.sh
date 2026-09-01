@@ -16,7 +16,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="$SKILL_DIR/antenna-config.json"
 PEERS_FILE="$SKILL_DIR/antenna-peers.json"
+INBOX_FILE="$SKILL_DIR/antenna-inbox.json"
+LISTS_FILE="$SKILL_DIR/antenna-lists.json"
+PUBLIC_GROUPS_FILE="$SKILL_DIR/antenna-public-groups.json"
 SECRETS_DIR="$SKILL_DIR/secrets"
+KEYS_DIR="$SKILL_DIR/keys"
 LOG_FILE="$SKILL_DIR/antenna.log"
 RATE_FILE="$SKILL_DIR/antenna-ratelimit.json"
 TEST_RESULTS_DIR="$SKILL_DIR/test-results"
@@ -57,11 +61,15 @@ Usage:
 What it removes by default:
   - antenna-config.json
   - antenna-peers.json
+  - antenna-inbox.json
+  - antenna-lists.json
+  - antenna-public-groups.json
   - antenna.log and rotated antenna.log.*
   - antenna-ratelimit.json
   - state/ (replay cache)
   - test-results/
   - Antenna-owned secrets under skills/antenna/secrets/
+  - Antenna-owned public keys under skills/antenna/keys/
   - Antenna agent/hooks entries from gateway config (unless --keep-gateway-config)
 
 What it does NOT remove by default:
@@ -251,11 +259,15 @@ echo ""
 echo "Runtime artifacts to remove:"
 echo "  - $CONFIG_FILE"
 echo "  - $PEERS_FILE"
+echo "  - $INBOX_FILE"
+echo "  - $LISTS_FILE"
+echo "  - $PUBLIC_GROUPS_FILE"
 echo "  - $LOG_FILE and rotated logs"
 echo "  - $RATE_FILE"
 echo "  - $STATE_DIR"
 echo "  - $TEST_RESULTS_DIR"
 echo "  - $SECRETS_DIR"
+echo "  - $KEYS_DIR"
 if [[ "$PURGE_SKILL_DIR" == true ]]; then
   echo "  - entire skill directory: $SKILL_DIR"
 fi
@@ -279,10 +291,14 @@ fi
 
 remove_if_exists "$CONFIG_FILE"
 remove_if_exists "$PEERS_FILE"
+remove_if_exists "$INBOX_FILE"
+remove_if_exists "$LISTS_FILE"
+remove_if_exists "$PUBLIC_GROUPS_FILE"
 remove_if_exists "$RATE_FILE"
 remove_if_exists "$STATE_DIR"
 remove_if_exists "$TEST_RESULTS_DIR"
 remove_if_exists "$SECRETS_DIR"
+remove_if_exists "$KEYS_DIR"
 
 shopt -s nullglob
 for path in "$LOG_FILE" "$LOG_FILE".*; do

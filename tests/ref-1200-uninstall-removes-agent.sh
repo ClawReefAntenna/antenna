@@ -4,9 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 UNINSTALL_SCRIPT="$SKILL_DIR/scripts/antenna-uninstall.sh"
+ANTENNA_CLI="$SKILL_DIR/bin/antenna.sh"
 
 pass() { printf 'PASS  %s\n' "$*"; }
 fail() { printf 'FAIL  %s\n' "$*" >&2; exit 1; }
+
+cli_output="$(bash "$ANTENNA_CLI" uninstall --yes --dry-run --keep-gateway-config)"
+grep -q 'Antenna Uninstall' <<<"$cli_output" || fail "CLI allows uninstall after config removal"
+pass "CLI allows uninstall after config removal"
 
 assert_no_antenna() {
   local file="$1" label="$2"
@@ -34,11 +39,27 @@ run_case() {
   tmpdir="$(mktemp -d /tmp/ref1200-XXXXXX)"
   skill="$tmpdir/skill"
   gateway="$tmpdir/openclaw.json"
-  mkdir -p "$skill/scripts"
+  mkdir -p "$skill/scripts" "$skill/secrets" "$skill/keys" "$skill/state" "$skill/test-results"
   cp "$UNINSTALL_SCRIPT" "$skill/scripts/antenna-uninstall.sh"
+  printf '{}\n' > "$skill/antenna-config.json"
+  printf '{}\n' > "$skill/antenna-peers.json"
+  printf '[]\n' > "$skill/antenna-inbox.json"
+  printf '{}\n' > "$skill/antenna-lists.json"
+  printf '{}\n' > "$skill/antenna-public-groups.json"
+  printf 'log\n' > "$skill/antenna.log"
+  printf '{}\n' > "$skill/antenna-ratelimit.json"
+  printf 'secret\n' > "$skill/secrets/token"
+  printf 'public-key\n' > "$skill/keys/peer.pem"
+  printf 'state\n' > "$skill/state/replay"
+  printf 'result\n' > "$skill/test-results/result"
   printf '%s\n' "$json" > "$gateway"
   HOME="$tmpdir/home" USER=tester bash "$skill/scripts/antenna-uninstall.sh" --yes --dry-run --gateway "$gateway" >/dev/null
   HOME="$tmpdir/home" USER=tester bash "$skill/scripts/antenna-uninstall.sh" --yes --gateway "$gateway" >/dev/null
+  for removed in \
+    antenna-config.json antenna-peers.json antenna-inbox.json antenna-lists.json \
+    antenna-public-groups.json antenna.log antenna-ratelimit.json secrets keys state test-results; do
+    [[ ! -e "$skill/$removed" ]] || fail "$name: runtime artifact still present: $removed"
+  done
   assert_no_antenna "$gateway" "$name"
   assert_hooks_clean "$gateway" "$name"
   rm -rf "$tmpdir"
@@ -82,5 +103,15 @@ run_case "agents.entries shape" '{
     "allowedSessionKeyPrefixes": ["hook:antenna", "hook:main"]
   }
 }'
+
+purge_tmp="$(mktemp -d /tmp/ref1200-purge-XXXXXX)"
+purge_skill="$purge_tmp/skill"
+cp -a "$SKILL_DIR" "$purge_skill"
+rm -f "$purge_skill/antenna-config.json"
+HOME="$purge_tmp/home" USER=tester bash "$purge_skill/bin/antenna.sh" \
+  uninstall --yes --purge-skill-dir --keep-gateway-config >/dev/null
+[[ ! -e "$purge_skill" ]] || fail "follow-up purge after config removal"
+rm -rf "$purge_tmp"
+pass "follow-up purge after config removal"
 
 echo "All REF-1200 uninstall cleanup tests passed."

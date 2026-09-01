@@ -74,7 +74,7 @@ invalid_peer_keys() {
 _peek_command="${1:-}"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   case "$_peek_command" in
-    setup|upgrade|help|-h|--help) ;; # allow through
+    setup|upgrade|uninstall|help|-h|--help) ;; # allow through
     *)
       echo ""
       echo "  Antenna is not configured yet."

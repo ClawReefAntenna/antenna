@@ -81,7 +81,46 @@ loopback, configure `gateway.tailscale.mode`, and let the restarted gateway
 claim the route. Verify HTTPS after restart. Antenna never changes Tailscale
 state itself.
 
-## 6. Upgrade Antenna and qualify
+## 6. If uninstalling Antenna 1.5.x instead
+
+An operator who has already migrated OpenClaw to 2026.8.1 does not need to
+upgrade Antenna merely to uninstall it. The Antenna v1.5.1 and v1.5.2
+uninstallers already recognize OpenClaw 8.1's canonical `agents.entries`
+roster. After OpenClaw Doctor and config validation have completed, preview
+the removal against the explicit gateway config:
+
+```bash
+antenna uninstall --dry-run --gateway /path/to/openclaw.json
+antenna uninstall --yes --gateway /path/to/openclaw.json
+openclaw config validate
+openclaw gateway restart
+openclaw doctor --json
+```
+
+The v1.5.x uninstaller backs up the gateway config, removes the Antenna agent
+and hook allowlist entries, removes its config, peer registry, logs,
+rate-limit/test state, and Antenna-owned secrets, and removes an Antenna CLI
+symlink that points into that installation. It leaves the skill source
+directory unless `--purge-skill-dir` is requested.
+
+Two exceptions require care:
+
+- The v1.5.x uninstaller predates OpenClaw 8.1's `$include` roster-ownership
+  safeguards. If `$include` owns `agents.entries`, do not let the old
+  uninstaller edit only the top-level config: it may leave the active Antenna
+  entry in the included source. Use `--keep-gateway-config` for runtime cleanup
+  and remove the registration through OpenClaw's schema-aware configuration
+  path, then validate the effective config.
+- If a partial removal has already deleted `antenna-config.json`, the old
+  `antenna` wrapper may refuse to dispatch `uninstall`. Invoke the script
+  directly instead:
+
+  ```bash
+  bash /path/to/antenna-1.5.x/scripts/antenna-uninstall.sh \
+    --yes --gateway /path/to/openclaw.json
+  ```
+
+## 7. Upgrade Antenna and qualify
 
 Run the side-by-side Antenna upgrade only after the preceding checks pass:
 

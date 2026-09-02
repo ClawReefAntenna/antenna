@@ -18,11 +18,17 @@ NEW="$TMP/antenna-v1.6.0"
 HOME_DIR="$TMP/home"
 GATEWAY="$HOME_DIR/.openclaw/openclaw.json"
 mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/bin" "$OLD/agent/memory" \
-  "$NEW/scripts" "$NEW/bin" "$NEW/lib" "$NEW/agent" \
+  "$NEW/scripts" "$NEW/bin" "$NEW/lib/relay-policy/agent" "$NEW/agent" "$NEW/hooks" \
   "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
 cp "$ROOT/bin/antenna.sh" "$NEW/bin/"
 cp "$ROOT/lib/gateway-roster.sh" "$NEW/lib/"
+cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
+cp "$ROOT/lib/hook-staging.sh" "$NEW/lib/"
+cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"
+cp "$ROOT/lib/relay-policy/manifest.sha256" "$NEW/lib/relay-policy/"
+cp "$ROOT/agent/AGENTS.md" "$NEW/agent/"
+cp "$ROOT/hooks/antenna-stage.mjs" "$NEW/hooks/"
 printf '#!/usr/bin/env bash\n' > "$OLD/bin/antenna.sh"
 chmod +x "$OLD/bin/antenna.sh" "$NEW/bin/antenna.sh" "$NEW/scripts/antenna-upgrade.sh"
 

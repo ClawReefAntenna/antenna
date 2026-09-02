@@ -17,10 +17,13 @@ make_case() {
   local name="$1" version="$2" gateway_json="$3"
   local case_dir="$TMP/$name"
   local skill="$case_dir/skill" home="$case_dir/home"
-  mkdir -p "$skill/scripts" "$skill/lib" "$skill/bin" "$skill/agent" \
+  mkdir -p "$skill/scripts" "$skill/lib/relay-policy/agent" "$skill/bin" "$skill/agent" "$skill/hooks" \
     "$home/.openclaw" "$home/.local/bin" "$home/bin"
   cp "$ROOT/scripts/antenna-setup.sh" "$skill/scripts/"
-  cp "$ROOT/lib/peers.sh" "$ROOT/lib/gateway-roster.sh" "$skill/lib/"
+  cp "$ROOT/lib/peers.sh" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/hook-staging.sh" "$skill/lib/"
+  cp "$ROOT/lib/relay-policy/manifest.sha256" "$skill/lib/relay-policy/"
+  cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$skill/lib/relay-policy/agent/"
+  cp "$ROOT/hooks/antenna-stage.mjs" "$skill/hooks/"
   cp "$ROOT/bin/antenna.sh" "$skill/bin/"
   printf '%s\n' "$gateway_json" > "$home/.openclaw/openclaw.json"
   printf 'fixture-token-012345678901234567890123456789\n' > "$home/hooks.token"
@@ -73,10 +76,13 @@ check "real 7.1 setup preserves unrelated config and adds Antenna once" jq -e \
    and (.agents.list[]|select(.id=="betty")|.custom)=="keep"
    and ([.agents.list[]|select(.id=="antenna")]|length)==1' "$list_gateway"
 check "real 7.1 setup commits hooks and session policy together" jq -e \
-  '.hooks.enabled==true and .hooks.allowRequestSessionKey==true
+  '.hooks.enabled==true
    and (.hooks.allowedAgentIds|index("antenna"))!=null
+   and (.hooks.allowedSessionKeyPrefixes|index("hook:antenna:"))!=null
+   and (.hooks.mappings|map(.id)|index("antenna-deterministic-staging"))!=null
    and .tools.sessions.visibility=="all"
    and .tools.agentToAgent.enabled==true' "$list_gateway"
+check "real 7.1 setup installs canonical transform" cmp -s "$ROOT/hooks/antenna-stage.mjs" "$list_home/.openclaw/hooks/transforms/antenna-stage.mjs"
 
 IFS=$'\t' read -r entries_case entries_skill entries_home < <(
   make_case entries 2026.8.1 '{
@@ -98,6 +104,7 @@ check "real 8.1 setup preserves bindings and writes Antenna policy" jq -e \
   '.bindings[0].agentId=="betty"
    and .agents.entries.antenna.sandbox.mode=="off"
    and (.agents.entries.antenna.tools.deny|index("group:web"))!=null' "$entries_gateway"
+check "real 8.1 setup installs canonical transform" cmp -s "$ROOT/hooks/antenna-stage.mjs" "$entries_home/.openclaw/hooks/transforms/antenna-stage.mjs"
 
 IFS=$'\t' read -r reject_case reject_skill reject_home < <(
   make_case reject 2026.8.1 '{
@@ -114,6 +121,8 @@ else
 fi
 check "candidate validation rejection leaves gateway byte-identical" test \
   "$before_hash" = "$(sha256sum "$reject_gateway" | awk '{print $1}')"
+check "candidate validation rejection rolls back newly installed transform" test \
+  ! -e "$reject_home/.openclaw/hooks/transforms/antenna-stage.mjs"
 check "successful setup rollback backup is private" bash -c \
   'files=("$1".antenna-pre-register.*); [[ -f "${files[0]}" && "$(stat -c %a "${files[0]}")" == 600 ]]' \
   _ "$entries_gateway"

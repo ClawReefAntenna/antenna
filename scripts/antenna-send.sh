@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # antenna-send.sh — Send an Antenna relay message to a remote OpenClaw peer.
-# Builds [ANTENNA_RELAY] envelope, POSTs to peer's /hooks/agent endpoint.
+# Builds [ANTENNA_RELAY] envelope, POSTs to peer's dedicated /hooks/antenna mapping.
 #
 # Usage:
 #   antenna-send.sh <peer> [options] <message>
@@ -144,8 +144,6 @@ fi
 # ── Load peer config ────────────────────────────────────────────────────────
 
 PEER_URL=$(peers_get "$PEER" url)
-PEER_AGENT=$(peers_get "$PEER" agentId)
-[[ -n "$PEER_AGENT" ]] || PEER_AGENT="antenna"
 TOKEN_FILE=$(peers_get "$PEER" token_file)
 
 if [[ -z "$PEER_URL" ]]; then
@@ -221,7 +219,7 @@ case "$AUTH_MODE" in
   *) die "Peer '$PEER' has missing or unsupported auth_mode" 1 ;;
 esac
 
-REPLY_TO="${REPLY_TO_OVERRIDE:-${SELF_URL:+${SELF_URL}/hooks/agent}}"
+REPLY_TO="${REPLY_TO_OVERRIDE:-${SELF_URL:+${SELF_URL}/hooks/antenna}}"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # ── Build envelope ──────────────────────────────────────────────────────────
@@ -277,12 +275,7 @@ printf '\n[/ANTENNA_RELAY]'
 
 # ── Build POST payload ──────────────────────────────────────────────────────
 
-PAYLOAD=$(jq -n \
-  --rawfile msg "$ENVELOPE_FILE" \
-  --arg agent "$PEER_AGENT" \
-  --arg sk "hook:antenna" \
-  --arg name "Antenna/${SELF_ID}" \
-  '{message: $msg, agentId: $agent, sessionKey: $sk, name: $name}')
+PAYLOAD=$(jq -n --rawfile msg "$ENVELOPE_FILE" '{message: $msg}')
 
 # ── Dry run ──────────────────────────────────────────────────────────────────
 
@@ -295,15 +288,14 @@ if [[ "$DRY_RUN" == "true" ]]; then
   echo "$PAYLOAD" | jq .
   echo ""
   echo "=== TARGET ==="
-  echo "URL: ${PEER_URL}/hooks/agent"
-  echo "Agent: $PEER_AGENT"
+  echo "URL: ${PEER_URL}/hooks/antenna"
   exit 0
 fi
 
 # ── Send ─────────────────────────────────────────────────────────────────────
 
 HTTP_RESPONSE=$(curl -s --max-time 30 -w '\n__HTTP_CODE__%{http_code}' \
-  -X POST "${PEER_URL}/hooks/agent" \
+  -X POST "${PEER_URL}/hooks/antenna" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "$PAYLOAD" 2>&1) || {
@@ -341,11 +333,11 @@ case "$HTTP_CODE" in
     ;;
   401|403)
     log_entry "OUTBOUND | to:$PEER | status:FAILED (auth rejected: $HTTP_CODE) | chars:$MSG_LEN"
-    die "Auth rejected by $PEER (HTTP $HTTP_CODE)" 4
+    die "Auth rejected by $PEER (HTTP $HTTP_CODE). The receiving host must configure the v1.6.3 /hooks/antenna endpoint." 4
     ;;
   *)
     ERROR_MSG=$(echo "$BODY" | jq -r '.error // empty' 2>/dev/null || echo "$BODY")
     log_entry "OUTBOUND | to:$PEER | status:FAILED (HTTP $HTTP_CODE: $ERROR_MSG) | chars:$MSG_LEN"
-    die "Relay failed: HTTP $HTTP_CODE — $ERROR_MSG" 5
+    die "Relay failed: HTTP $HTTP_CODE — $ERROR_MSG. The receiving host must upgrade/configure Antenna v1.6.3; there is no /hooks/agent fallback." 5
     ;;
 esac

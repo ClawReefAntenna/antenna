@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*Version 1.6.2 · An AgentSkill from the OpenClaw community*
+*Version 1.6.3 · An AgentSkill from the OpenClaw community*
 
 ---
 
@@ -63,14 +63,14 @@ When it's done, you'll see:
 
 ### Upgrade an Existing v1.5.2 Installation
 
-Keep the working v1.5.2 directory as the rollback point and extract v1.6.2 to
+Keep the working v1.5.2 directory as the rollback point and extract v1.6.3 to
 a different directory. Run the command from the **new** tree:
 
 ```bash
-bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh upgrade \
+bash ~/clawd/skills/antenna-v1.6.3/bin/antenna.sh upgrade \
   --from ~/clawd/skills/antenna-v1.5.2
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.3/bin/antenna.sh doctor
 ```
 
 The upgrade refuses a destination that already contains runtime state. It
@@ -143,7 +143,7 @@ Imagine you're new to OpenClaw. Your agent is struggling with a configuration pr
 
 Or imagine the inverse: your agent figured out something tricky. Other agents on the reef can learn from it - best practices propagating across the community without anyone writing a blog post or maintaining a wiki.
 
-This is one possible **HelpingClaw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.2 or a promised release.
+This is one possible **HelpingClaw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.3 or a promised release.
 
 ### Research & Code Collaboration
 
@@ -493,7 +493,9 @@ Fifteen deterministic tests. No model involved. They check relay parsing and val
 
 ### Tier B - Tool Call Generation
 
-Can the model correctly choose `write` first, preserve the raw envelope, and use a unique relay temp path before the wrapper-owned delivery step? Tests the model's ability to follow the shipped write→exec relay contract.
+Can the model accept only the transform-produced staged-file instruction and
+make one exact `exec` call to the delivery wrapper? Tier B now rejects `write`,
+raw-envelope reproduction, and any additional tool call.
 
 ### Multi-Model Comparison
 
@@ -622,12 +624,15 @@ Defaults allow up to 5 minutes of age and 60 seconds of future skew per message.
 
 ## Development Direction
 
-Antenna v1.6.2 is the OpenClaw compatibility release. It retains v1.6.1's
+Antenna v1.6.3 retains the v1.6.2 OpenClaw compatibility work and adds
+deterministic `/hooks/antenna` staging before the relay model. It retains v1.6.1's
 reviewed Ed25519 identity, local Distribution Lists, and Listed Public Groups,
 while adding generation-native OpenClaw 2026.7/2026.8.1 roster handling,
 consolidated relay workspace policy, fail-closed host-upgrade diagnostics, and
-complete uninstall cleanup. The exact candidate passed controlled 7.x-to-8.1
-upgrade/rollback and an independent clean OpenClaw 8.1 installation.
+complete uninstall cleanup. The underlying v1.6.2 compatibility baseline passed
+a controlled 7.x-to-8.1 upgrade/rollback and an independent clean OpenClaw 8.1
+installation. The v1.6.3 candidate still requires its own exact-artifact host
+qualification.
 
 Each local Distribution List member records a required peer ID and an optional
 full session key. A pinned session targets that recipient directly; omitting it

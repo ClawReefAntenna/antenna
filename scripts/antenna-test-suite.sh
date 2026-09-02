@@ -2,7 +2,7 @@
 # antenna-test-suite.sh — Two-tier Antenna model/script tester with comparison
 #
 # Test A: Script validation (no model, no network)
-# Test B: Model → write + exec tool calls
+# Test B: Model → one exact staged-file exec tool call
 #
 # Usage:
 #   antenna-test-suite.sh [--model <model>] [--models <m1,m2,...>] [--tier A|B|all]
@@ -368,7 +368,8 @@ TOOLS_GOOGLE='[
 
 # ── Provider API call helpers ────────────────────────────────────────────────
 # Each returns a normalized JSON object:
-#   { "http_code": N, "first_tool_name": "...", "first_tool_args": "...", "raw": "..." }
+#   { "http_code": N, "tool_call_count": N, "first_tool_name": "...",
+#     "first_tool_args": "...", "raw": "..." }
 # This lets Tier B assertions stay provider-agnostic.
 
 call_anthropic_api() {
@@ -413,9 +414,10 @@ call_anthropic_api() {
   response=$(echo "$response" | sed '/__HTTP_CODE__/d')
 
   # Normalize: find first tool_use block in content array
-  local tool_name tool_args
+  local tool_name tool_args tool_count
   tool_name=$(echo "$response" | jq -r '[.content[]? | select(.type=="tool_use")][0].name // ""' 2>/dev/null)
   tool_args=$(echo "$response" | jq -c '[.content[]? | select(.type=="tool_use")][0].input // {}' 2>/dev/null)
+  tool_count=$(echo "$response" | jq -r '[.content[]? | select(.type=="tool_use")] | length' 2>/dev/null)
   local tool_id
   tool_id=$(echo "$response" | jq -r '[.content[]? | select(.type=="tool_use")][0].id // ""' 2>/dev/null)
 
@@ -424,12 +426,14 @@ call_anthropic_api() {
     --arg elapsed "$elapsed" \
     --arg tool_name "$tool_name" \
     --arg tool_args "$tool_args" \
+    --arg tool_count "${tool_count:-0}" \
     --arg tool_id "$tool_id" \
     --arg raw "$response" \
     --arg request "$body" \
     '{
       http_code: ($http_code | tonumber),
       elapsed_ms: ($elapsed | tonumber),
+      tool_call_count: ($tool_count | tonumber),
       first_tool_name: $tool_name,
       first_tool_args: $tool_args,
       first_tool_id: $tool_id,
@@ -483,21 +487,24 @@ call_google_api() {
   response=$(echo "$response" | sed '/__HTTP_CODE__/d')
 
   # Normalize: Gemini puts function calls in candidates[0].content.parts[].functionCall
-  local tool_name tool_args
+  local tool_name tool_args tool_count
   tool_name=$(echo "$response" | jq -r '[.candidates[0].content.parts[]? | select(.functionCall) | .functionCall.name][0] // ""' 2>/dev/null)
   tool_args=$(echo "$response" | jq -c '[.candidates[0].content.parts[]? | select(.functionCall) | .functionCall.args][0] // {}' 2>/dev/null)
+  tool_count=$(echo "$response" | jq -r '[.candidates[0].content.parts[]? | select(.functionCall)] | length' 2>/dev/null)
 
   jq -n \
     --arg http_code "$http_code" \
     --arg elapsed "$elapsed" \
     --arg tool_name "$tool_name" \
     --arg tool_args "$tool_args" \
+    --arg tool_count "${tool_count:-0}" \
     --arg tool_id "" \
     --arg raw "$response" \
     --arg request "$body" \
     '{
       http_code: ($http_code | tonumber),
       elapsed_ms: ($elapsed | tonumber),
+      tool_call_count: ($tool_count | tonumber),
       first_tool_name: $tool_name,
       first_tool_args: $tool_args,
       first_tool_id: "",
@@ -524,22 +531,25 @@ call_openai_api() {
   http_code=$(echo "$response" | grep "__HTTP_CODE__" | sed 's/__HTTP_CODE__//')
   response=$(echo "$response" | sed '/__HTTP_CODE__/d')
 
-  local tool_name tool_args tool_id
+  local tool_name tool_args tool_id tool_count
   tool_name=$(echo "$response" | jq -r '.choices[0].message.tool_calls[0].function.name // ""' 2>/dev/null)
   tool_args=$(echo "$response" | jq -r '.choices[0].message.tool_calls[0].function.arguments // ""' 2>/dev/null)
   tool_id=$(echo "$response" | jq -r '.choices[0].message.tool_calls[0].id // ""' 2>/dev/null)
+  tool_count=$(echo "$response" | jq -r '(.choices[0].message.tool_calls // []) | length' 2>/dev/null)
 
   jq -n \
     --arg http_code "$http_code" \
     --arg elapsed "$elapsed" \
     --arg tool_name "$tool_name" \
     --arg tool_args "$tool_args" \
+    --arg tool_count "${tool_count:-0}" \
     --arg tool_id "$tool_id" \
     --arg raw "$response" \
     --arg request "$request_body" \
     '{
       http_code: ($http_code | tonumber),
       elapsed_ms: ($elapsed | tonumber),
+      tool_call_count: ($tool_count | tonumber),
       first_tool_name: $tool_name,
       first_tool_args: $tool_args,
       first_tool_id: $tool_id,
@@ -555,7 +565,7 @@ call_model_api() {
     anthropic) call_anthropic_api "$base_url" "$api_key" "$model_name" "$request_json" ;;
     google)    call_google_api "$base_url" "$api_key" "$model_name" "$request_json" ;;
     openai)    call_openai_api "$base_url" "$api_key" "$model_name" "$request_json" ;;
-    *)         echo '{"http_code":0,"elapsed_ms":0,"first_tool_name":"","first_tool_args":"","raw":"unsupported format"}' ;;
+    *)         echo '{"http_code":0,"elapsed_ms":0,"tool_call_count":0,"first_tool_name":"","first_tool_args":"","raw":"unsupported format"}' ;;
   esac
 }
 
@@ -1031,16 +1041,16 @@ run_tier_b() {
 
   if [[ "$check" == "unsupported_provider" ]]; then
     skip "B.1" "API call" "Provider not supported: ${model%%/*}" "$model"
-    skip "B.2" "First tool call is write" "Skipped (no API)" "$model"
-    skip "B.3" "Write path/content shape" "Skipped (no API)" "$model"
-    skip "B.4" "Temp-file relay exec command shape" "Skipped (no API)" "$model"
+    skip "B.2" "First tool call is exec" "Skipped (no API)" "$model"
+    skip "B.3" "Staged-file relay command shape" "Skipped (no API)" "$model"
+    skip "B.4" "Single-tool stop shape" "Skipped (no API)" "$model"
     return
   fi
   if [[ "$check" == "no_key" ]]; then
     skip "B.1" "API call" "No API key for ${model%%/*}" "$model"
-    skip "B.2" "First tool call is write" "Skipped (no key)" "$model"
-    skip "B.3" "Write path/content shape" "Skipped (no key)" "$model"
-    skip "B.4" "Temp-file relay exec command shape" "Skipped (no key)" "$model"
+    skip "B.2" "First tool call is exec" "Skipped (no key)" "$model"
+    skip "B.3" "Staged-file relay command shape" "Skipped (no key)" "$model"
+    skip "B.4" "Single-tool stop shape" "Skipped (no key)" "$model"
     return
   fi
 
@@ -1057,18 +1067,10 @@ run_tier_b() {
   local allowed_test_session
   allowed_test_session=$(jq -r '.allowed_inbound_sessions[0] // .default_target_session // "agent:betty:main"' "$CONFIG_FILE" 2>/dev/null)
 
-  local test_message="[ANTENNA_RELAY]
-from: ${SELF_PEER:-testhost}
-target_session: ${allowed_test_session}
-timestamp: ${test_ts}
-
-[Antenna Test Suite — Tier B]
-model_under_test: ${model}
-host: $(hostname)
-test_time: ${test_ts}
-
-This is an automated relay compatibility test verifying that ${model} correctly writes the raw inbound message to a unique temp file and then invokes the relay-file script with a simple exec command.
-[/ANTENNA_RELAY]"
+  local staged_fixture="/tmp/antenna-relay-$(id -u)/antenna-123e4567-e89b-42d3-a456-426614174000.envelope"
+  local test_message="[ANTENNA_STAGED_FILE_V1]
+path: ${staged_fixture}
+Run the one permitted relay shell call for this staged path."
 
   # Build request based on provider format
   local request_input result
@@ -1100,9 +1102,10 @@ This is an automated relay compatibility test verifying that ${model} correctly 
 
   result=$(call_model_api "$fmt" "$base_url" "$api_key" "$model_name" "$request_input")
 
-  local http_code elapsed tool_name tool_args raw_response raw_request
+  local http_code elapsed tool_call_count tool_name tool_args raw_response raw_request
   http_code=$(echo "$result" | jq -r '.http_code')
   elapsed=$(echo "$result" | jq -r '.elapsed_ms')
+  tool_call_count=$(echo "$result" | jq -r '.tool_call_count // 0')
   tool_name=$(echo "$result" | jq -r '.first_tool_name')
   tool_args=$(echo "$result" | jq -r '.first_tool_args')
   raw_response=$(echo "$result" | jq -r '.raw')
@@ -1119,42 +1122,41 @@ This is an automated relay compatibility test verifying that ${model} correctly 
     local err_msg
     err_msg=$(echo "$raw_response" | jq -r '.error.message // .error.type // "unknown"' 2>/dev/null || echo "HTTP $http_code")
     fail "B.1" "API call" "HTTP $http_code: $err_msg" "$model"
-    skip "B.2" "First tool call is write" "Skipped (API failed)" "$model"
-    skip "B.3" "Write path/content shape" "Skipped (API failed)" "$model"
-    skip "B.4" "Temp-file relay exec command shape" "Skipped (API failed)" "$model"
+    skip "B.2" "First tool call is exec" "Skipped (API failed)" "$model"
+    skip "B.3" "Staged-file relay command shape" "Skipped (API failed)" "$model"
+    skip "B.4" "Single-tool stop shape" "Skipped (API failed)" "$model"
     return
   fi
   pass "B.1" "API call succeeded (${elapsed}ms)" "$model"
 
   if [[ -z "$tool_name" || "$tool_name" == "null" ]]; then
     fail "B.2" "Produced tool call" "Model returned text instead of tool call" "$model"
-    skip "B.3" "Write path/content shape" "No tool call" "$model"
+    skip "B.3" "Staged-file relay command shape" "No tool call" "$model"
     skip "B.4" "Temp-file relay exec command shape" "No tool call" "$model"
     return
   fi
 
-  if [[ "$tool_name" == "write" ]]; then
-    pass "B.2" "First tool call is 'write'" "$model"
+  if [[ "$tool_name" == "exec" && "$tool_call_count" == "1" ]]; then
+    pass "B.2" "First and only tool call is 'exec'" "$model"
   else
-    fail "B.2" "First tool call is 'write'" "Got '$tool_name'" "$model"
-    skip "B.3" "Write path/content shape" "First tool was not write" "$model"
-    skip "B.4" "Temp-file relay exec command shape" "First tool was not write" "$model"
+    fail "B.2" "Exactly one tool call and it is 'exec'" "Got count=$tool_call_count first='$tool_name'" "$model"
+    skip "B.3" "Staged-file relay command shape" "First tool was not exec" "$model"
+    skip "B.4" "Single-tool stop shape" "First tool was not exec" "$model"
     return
   fi
 
-  local write_path write_content
-  write_path=$(echo "$tool_args" | jq -r '.path // ""' 2>/dev/null)
-  write_content=$(echo "$tool_args" | jq -r '.content // ""' 2>/dev/null)
-  if echo "$write_path" | grep -Eq '^/tmp/antenna-relay/msg-[A-Za-z0-9._-]+\.txt$' && echo "$write_content" | grep -q '\[ANTENNA_RELAY\]'; then
-    pass "B.3" "Write uses unique temp path and raw envelope content" "$model"
+  local exec_command
+  exec_command=$(echo "$tool_args" | jq -r '.command // ""' 2>/dev/null)
+  if [[ "$exec_command" == "bash ../scripts/antenna-relay-deliver.sh $staged_fixture" ]]; then
+    pass "B.3" "Exec uses the exact staged path and relay wrapper" "$model"
   else
-    fail "B.3" "Write path/content shape" "Path=$write_path content_has_envelope=$(echo "$write_content" | grep -q '\[ANTENNA_RELAY\]' && echo yes || echo no)" "$model"
+    fail "B.3" "Staged-file relay command shape" "Got '$exec_command'" "$model"
   fi
 
   local finish_reason
   finish_reason=$(echo "$raw_response" | jq -r '.choices[0].finish_reason // .stop_reason // ""' 2>/dev/null)
-  if [[ "$finish_reason" == "tool_calls" || "$finish_reason" == "tool_use" || "$finish_reason" == "" ]]; then
-    pass "B.4" "Tier B stops at first tool call; exec+deliver validated in B.2/B.3" "$model"
+  if [[ "$tool_call_count" == "1" && ( "$finish_reason" == "tool_calls" || "$finish_reason" == "tool_use" || "$finish_reason" == "" ) ]]; then
+    pass "B.4" "Tier B stops after the one permitted tool call" "$model"
   else
     fail "B.4" "Tier B stop shape" "Unexpected finish_reason=$finish_reason" "$model"
   fi

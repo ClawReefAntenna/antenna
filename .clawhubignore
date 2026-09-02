@@ -29,6 +29,10 @@ references/SIG-*-SCOPE-CONTRACT.md
 references/SIG-*-IMPLEMENTATION-REPORT.md
 references/SIG-*-SECURITY-REVIEW-*.md
 
+# v1.6.3 fix-scope decision/blocker evidence. Keep in Git for the primary agent
+# and release review; not shipped as operator documentation.
+references/ANT-163-001-SIGNED-RELAY-STAGING-2026-09-01.md
+
 # OpenClaw workspace/bootstrap files can appear when this checkout is used as
 # an agent workspace. They are installation-local identity/state, never skill
 # payload.

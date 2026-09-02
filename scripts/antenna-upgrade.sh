@@ -10,6 +10,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 # shellcheck source=../lib/gateway-roster.sh
 source "$SKILL_DIR/lib/gateway-roster.sh"
+# shellcheck source=../lib/relay-policy.sh
+source "$SKILL_DIR/lib/relay-policy.sh"
+# shellcheck source=../lib/hook-staging.sh
+source "$SKILL_DIR/lib/hook-staging.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -65,6 +69,21 @@ command -v realpath >/dev/null 2>&1 || die "realpath is required for a safe upgr
 SOURCE_DIR="$(realpath "$SOURCE_DIR")"
 SKILL_DIR="$(realpath "$SKILL_DIR")"
 [[ "$SOURCE_DIR" != "$SKILL_DIR" ]] || die "Source and destination are the same installation"
+
+# ANT-162-006: refuse before ANY mutation if this release package's relay policy
+# is missing, symlinked, the generic OpenClaw workspace template, or otherwise
+# not the canonical Antenna relay contract. Bruce's v1.5.1→v1.6.2 qualification
+# showed that copying runtime state and repointing the gateway onto a package
+# whose agent/AGENTS.md had been deleted and recreated empty left the relay
+# agent interpreting messages instead of executing the mechanical staged-file
+# contract. This gate runs before any source copy, staging directory, gateway
+# backup/temp, gateway edit, or CLI symlink change.
+relay_policy_reason=""
+if ! relay_policy_require_canonical "$SKILL_DIR/agent/AGENTS.md" "agent/AGENTS.md" relay_policy_reason; then
+  die "Destination relay policy $SKILL_DIR/agent/AGENTS.md is not a canonical Antenna relay contract ($relay_policy_reason).
+   Restore this release package's agent/AGENTS.md from the original Antenna download, then rerun the upgrade.
+   No runtime state, gateway config, gateway backup, or CLI symlink was changed."
+fi
 
 SOURCE_CONFIG="$SOURCE_DIR/antenna-config.json"
 SOURCE_PEERS="$SOURCE_DIR/antenna-peers.json"
@@ -159,10 +178,27 @@ gateway_roster_prepare_mutation "$GATEWAY_CONFIG" \
   || die "Gateway roster is not safe for automatic Antenna upgrade"
 gateway_roster_has_agent "$GATEWAY_CONFIG" antenna "$GATEWAY_ROSTER_KIND" \
   || die "Gateway config has no existing Antenna agent"
+transform_dir=""
+relay_policy_default_ok "$HOOK_STAGING_RELNAME" \
+  || die "Destination hook transform is not the canonical packaged v1.6.3 transform; restore hooks/antenna-stage.mjs from the original release package"
+hook_staging_resolve_transforms_dir "$GATEWAY_CONFIG" transform_dir \
+  || die "hooks.transformsDir is outside the safe OpenClaw hooks/transforms root or has symlinked ancestors"
+mapping_audit="$(hook_staging_mapping_audit "$GATEWAY_CONFIG")" \
+  || die "Could not audit hooks.mappings"
+[[ "$mapping_audit" != fail\|* ]] \
+  || die "Conflicting /hooks/antenna mapping: ${mapping_audit#fail|}"
+transform_live="$transform_dir/$HOOK_STAGING_MODULE"
+transform_audit="$(hook_staging_transform_audit "$transform_live")"
+[[ "$transform_audit" != fail\|* ]] \
+  || die "Conflicting Antenna transform path: ${transform_audit#fail|}"
 
 stage="$(mktemp -d "$SKILL_DIR/.antenna-upgrade.XXXXXX")"
 cleanup() { rm -rf -- "$stage"; }
 trap cleanup EXIT
+cp -- "$(hook_staging_packaged_file)" "$stage/.antenna-stage.mjs"
+chmod 600 "$stage/.antenna-stage.mjs"
+[[ "$(relay_policy_sha256 "$stage/.antenna-stage.mjs")" == "$(relay_policy_expected_hash "$HOOK_STAGING_RELNAME")" ]] \
+  || die "Staged Antenna hook transform failed its canonical hash"
 
 copy_state() {
   local name="$1" source="$SOURCE_DIR/$1"
@@ -209,12 +245,16 @@ chmod --reference="$stage/antenna-config.json" "$config_tmp" 2>/dev/null || chmo
 mv -- "$config_tmp" "$stage/antenna-config.json"
 
 gateway_dir="$(dirname "$GATEWAY_CONFIG")"
-gateway_backup="$GATEWAY_CONFIG.antenna-upgrade-backup-$(date +%Y%m%d-%H%M%S)"
+gateway_backup="$(mktemp "$GATEWAY_CONFIG.antenna-upgrade-backup-$(date +%Y%m%d-%H%M%S).XXXXXX")"
+gateway_paths_tmp="$(mktemp "$gateway_dir/.openclaw.antenna-paths.XXXXXX")"
 gateway_tmp="$(mktemp "$gateway_dir/.openclaw.antenna-upgrade.XXXXXX")"
-trap 'rm -f -- "$gateway_tmp"; cleanup' EXIT
+trap 'rm -f -- "$gateway_paths_tmp" "$gateway_tmp"; cleanup' EXIT
 gateway_roster_write_agent_paths_candidate \
-  "$GATEWAY_CONFIG" "$gateway_tmp" "$SKILL_DIR/agent" \
+  "$GATEWAY_CONFIG" "$gateway_paths_tmp" "$SKILL_DIR/agent" \
   || die "Could not construct the gateway path update"
+hook_staging_write_gateway_candidate "$gateway_paths_tmp" "$gateway_tmp" \
+  || die "Could not add the dedicated /hooks/antenna mapping without changing unrelated mappings"
+rm -f -- "$gateway_paths_tmp"
 gateway_roster_prepare_mutation "$gateway_tmp" \
   || die "Generated gateway config failed OpenClaw validation"
 
@@ -253,7 +293,15 @@ for staged_path in "$stage/agent-runtime"/* "$stage/agent-runtime"/.[!.]*; do
   agent_moved+=("$name")
 done
 
+transform_action=""
+if ! hook_staging_install_transform "$GATEWAY_CONFIG" transform_action; then
+  for item in "${agent_moved[@]}"; do rm -rf -- "$SKILL_DIR/agent/$item"; done
+  rollback_destination
+  die "Could not atomically install the canonical Antenna hook transform; gateway remains unchanged"
+fi
+
 if ! mv -- "$gateway_tmp" "$GATEWAY_CONFIG"; then
+  if [[ "$transform_action" == "installed" ]]; then hook_staging_remove_if_canonical "$transform_live" || true; fi
   for item in "${agent_moved[@]}"; do rm -rf -- "$SKILL_DIR/agent/$item"; done
   rollback_destination
   die "Could not update gateway config; source and gateway backup remain intact"
@@ -276,6 +324,7 @@ done
 ok "Copied runtime state without modifying $SOURCE_DIR"
 ok "Updated install_path to $SKILL_DIR"
 ok "Repointed gateway Antenna agentDir/workspace to $SKILL_DIR/agent"
+ok "Installed dedicated /hooks/antenna mapping and deterministic staging transform"
 ok "Gateway backup: $gateway_backup"
 [[ "$repointed" -gt 0 ]] && ok "Repointed $repointed Antenna CLI symlink(s)" \
   || warn "No existing Antenna CLI symlink targeted the source; invoke $SKILL_DIR/bin/antenna.sh directly"

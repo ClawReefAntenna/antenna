@@ -104,6 +104,7 @@ Usage:
   antenna doctor --backup                    Back up gateway config before changes
   antenna doctor --fix-hints                 Show copy-paste fix suggestions
   antenna doctor --gateway <path>            Override gateway config path
+  antenna doctor --restore-policy [--yes]    Restore agent/AGENTS.md from the local package (backup-first)
 
   antenna send <peer> [options] <message>    Send a message to a peer
   antenna send <peer> [options] --stdin      Send message from stdin
@@ -591,10 +592,10 @@ cmd_peers() {
 
       local http_code
       http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
-        -X POST "${peer_url}/hooks/agent" \
+        -X POST "${peer_url}/hooks/antenna" \
         -H "Authorization: Bearer ${token}" \
         -H "Content-Type: application/json" \
-        -d '{"message":"[ANTENNA_PING]","agentId":"antenna","sessionKey":"hook:antenna"}' 2>&1) || {
+        -d '{"message":"[ANTENNA_PING]"}' 2>&1) || {
         echo "FAILED: Connection error (peer unreachable)"
         exit 1
       }
@@ -602,7 +603,7 @@ cmd_peers() {
       case "$http_code" in
         200) echo "OK: Peer responded (HTTP 200)" ;;
         401|403) echo "AUTH FAILED: Token rejected (HTTP $http_code)" ;;
-        *) echo "UNEXPECTED: HTTP $http_code" ;;
+        *) echo "UNEXPECTED: HTTP $http_code — receiving host must upgrade/configure Antenna v1.6.3 (/hooks/antenna; no /hooks/agent fallback)" ;;
       esac
       ;;
 

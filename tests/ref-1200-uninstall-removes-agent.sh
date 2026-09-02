@@ -29,7 +29,9 @@ assert_hooks_clean() {
   local file="$1" label="$2"
   jq -e '
     ((.hooks.allowedAgentIds // []) | index("antenna")) == null and
-    ((.hooks.allowedSessionKeyPrefixes // []) | index("hook:antenna")) == null
+    ((.hooks.allowedSessionKeyPrefixes // []) | index("hook:antenna")) == null and
+    ((.hooks.allowedSessionKeyPrefixes // []) | index("hook:antenna:")) == null and
+    ([.hooks.mappings[]? | select(.id == "antenna-deterministic-staging")] | length) == 0
   ' "$file" >/dev/null || fail "$label: hooks entries still present"
 }
 
@@ -39,8 +41,13 @@ run_case() {
   tmpdir="$(mktemp -d /tmp/ref1200-XXXXXX)"
   skill="$tmpdir/skill"
   gateway="$tmpdir/openclaw.json"
-  mkdir -p "$skill/scripts" "$skill/secrets" "$skill/keys" "$skill/state" "$skill/test-results"
+  mkdir -p "$skill/scripts" "$skill/lib/relay-policy/agent" "$skill/hooks" "$skill/secrets" "$skill/keys" "$skill/state" "$skill/test-results" "$tmpdir/hooks/transforms"
   cp "$UNINSTALL_SCRIPT" "$skill/scripts/antenna-uninstall.sh"
+  cp "$SKILL_DIR/lib/relay-policy.sh" "$SKILL_DIR/lib/hook-staging.sh" "$skill/lib/"
+  cp "$SKILL_DIR/lib/relay-policy/manifest.sha256" "$skill/lib/relay-policy/"
+  cp "$SKILL_DIR/lib/relay-policy/agent/AGENTS.md" "$skill/lib/relay-policy/agent/"
+  cp "$SKILL_DIR/hooks/antenna-stage.mjs" "$skill/hooks/"
+  cp "$SKILL_DIR/hooks/antenna-stage.mjs" "$tmpdir/hooks/transforms/"
   printf '{}\n' > "$skill/antenna-config.json"
   printf '{}\n' > "$skill/antenna-peers.json"
   printf '[]\n' > "$skill/antenna-inbox.json"
@@ -62,6 +69,7 @@ run_case() {
   done
   assert_no_antenna "$gateway" "$name"
   assert_hooks_clean "$gateway" "$name"
+  [[ ! -e "$tmpdir/hooks/transforms/antenna-stage.mjs" ]] || fail "$name: canonical transform still present"
   rm -rf "$tmpdir"
   pass "$name"
 }
@@ -101,6 +109,31 @@ run_case "agents.entries shape" '{
   "hooks": {
     "allowedAgentIds": ["antenna", "main"],
     "allowedSessionKeyPrefixes": ["hook:antenna", "hook:main"]
+  }
+}'
+
+run_case "v1.6.3 canonical hook shape" '{
+  "agents": {
+    "entries": {
+      "main": {"id": "main", "name": "Main Agent"},
+      "antenna": {"id": "antenna", "name": "Antenna Relay"}
+    }
+  },
+  "hooks": {
+    "allowedAgentIds": ["antenna", "main"],
+    "allowedSessionKeyPrefixes": ["hook:antenna:", "hook:other"],
+    "mappings": [{
+      "id": "antenna-deterministic-staging",
+      "match": {"path": "antenna"},
+      "action": "agent",
+      "agentId": "antenna",
+      "wakeMode": "now",
+      "name": "Antenna",
+      "sessionKey": "hook:antenna",
+      "deliver": false,
+      "allowUnsafeExternalContent": false,
+      "transform": {"module": "antenna-stage.mjs", "export": "default"}
+    }]
   }
 }'
 

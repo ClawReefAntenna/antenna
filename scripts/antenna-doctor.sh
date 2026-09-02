@@ -23,6 +23,10 @@ source "$SKILL_DIR/lib/peers.sh"
 source "$SKILL_DIR/lib/config.sh"
 # shellcheck source=../lib/gateway-roster.sh
 source "$SKILL_DIR/lib/gateway-roster.sh"
+# shellcheck source=../lib/relay-policy.sh
+source "$SKILL_DIR/lib/relay-policy.sh"
+# shellcheck source=../lib/hook-staging.sh
+source "$SKILL_DIR/lib/hook-staging.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -38,6 +42,8 @@ FAIL=0
 FIX_HINTS=false
 DO_BACKUP=false
 GATEWAY_PATH=""
+RESTORE_POLICY=false
+ASSUME_YES=false
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,6 +53,135 @@ fail() { echo -e "  ${RED}✗${NC}  $*"; FAIL=$((FAIL + 1)); }
 info() { echo -e "  ${CYAN}ℹ${NC}  $*"; }
 hint() { [[ "$FIX_HINTS" == true ]] && echo -e "     ${CYAN}→ $*${NC}"; }
 
+good() { echo -e "  ${GREEN}✓${NC}  $*"; }
+bad()  { echo -e "  ${RED}✗${NC}  $*" >&2; }
+
+# ── ANT-163-002: explicit, backup-first relay-policy restore ────────────────
+# Only runs when the operator passes `--restore-policy`. Restores agent/AGENTS.md
+# from the pristine packaged default. It previews the change, requires interactive
+# confirmation or --yes, preserves a timestamped private backup of any existing
+# regular file, installs the local package copy atomically, verifies the result
+# by hash, and never fetches over the network or touches any other file.
+do_restore_policy() {
+  local relname="agent/AGENTS.md"
+  local live="$SKILL_DIR/agent/AGENTS.md"
+  local def; def="$(relay_policy_default_file "$relname")"
+
+  echo ""
+  echo -e "${BOLD}📡 Antenna — Restore Relay Policy${NC}"
+  echo ""
+
+  # Never restore from an untrusted package.
+  if ! relay_policy_default_ok "$relname"; then
+    bad "Packaged relay-policy default is missing or fails its own manifest: $def"
+    echo "  Refusing to restore from an untrusted package. Reinstall Antenna from the original download." >&2
+    return 1
+  fi
+  local want; want="$(relay_policy_expected_hash "$relname")"
+
+  # Preview.
+  local cur_state="" cur_hash=""
+  if [[ -L "$live" ]]; then
+    cur_state="symlink → $(readlink "$live" 2>/dev/null || echo '?')"
+  elif [[ ! -e "$live" ]]; then
+    cur_state="missing"
+  elif [[ ! -f "$live" ]]; then
+    cur_state="not a regular file"
+  else
+    cur_hash="$(relay_policy_sha256 "$live" 2>/dev/null || echo unknown)"
+    if [[ "$cur_hash" == "$want" ]]; then
+      cur_state="already matches packaged policy (sha256 $cur_hash)"
+    else
+      cur_state="regular file, sha256 $cur_hash"
+    fi
+  fi
+
+  echo "  Target file : $live"
+  echo "  Current     : $cur_state"
+  echo "  Restore from: $def"
+  echo "  Target hash : $want"
+  echo "  Backup      : any existing regular file is saved as a timestamped private copy first"
+  echo "  Scope       : only agent/AGENTS.md is touched — OpenClaw-created workspace files are never modified"
+  echo ""
+
+  if [[ -f "$live" && ! -L "$live" && "$cur_hash" == "$want" ]]; then
+    good "Nothing to do — agent/AGENTS.md already matches the packaged relay policy."
+    return 0
+  fi
+
+  # Confirm.
+  if [[ "$ASSUME_YES" != true ]]; then
+    if [[ -t 0 ]]; then
+      local ans
+      read -rp "  Proceed with restore? [y/N]: " ans
+      case "${ans,,}" in
+        y|yes) ;;
+        *) echo "  Aborted. No changes made."; return 1 ;;
+      esac
+    else
+      echo "  Refusing to restore without confirmation. Re-run with --yes to proceed non-interactively." >&2
+      return 1
+    fi
+  fi
+
+  local agent_dir; agent_dir="$(dirname "$live")"
+  if [[ -L "$agent_dir" || ( -e "$agent_dir" && ! -d "$agent_dir" ) ]]; then
+    bad "Refusing unsafe agent directory: $agent_dir"
+    return 1
+  fi
+  if [[ -e "$live" && ! -f "$live" && ! -L "$live" ]]; then
+    bad "Refusing to replace a non-regular, non-symlink object: $live"
+    return 1
+  fi
+  mkdir -p "$agent_dir" || { bad "Could not create $agent_dir"; return 1; }
+
+  # Back up an existing regular file; a symlink is removed (its target is left
+  # untouched) so the restore installs a real regular file in its place.
+  local ts backup="" backup_dir=""
+  ts="$(date +%Y%m%d-%H%M%S)"
+  if [[ -L "$live" || -f "$live" ]]; then
+    backup_dir="$(mktemp -d "$agent_dir/.antenna-relay-backup-$ts.XXXXXX")" \
+      || { bad "Could not allocate a collision-safe backup directory"; return 1; }
+    chmod 700 "$backup_dir" 2>/dev/null || true
+    backup="$backup_dir/AGENTS.md"
+    cp -a --no-dereference -- "$live" "$backup" \
+      || { bad "Could not preserve existing file/symlink evidence"; return 1; }
+    [[ -L "$backup" ]] || chmod 600 "$backup" 2>/dev/null || true
+    echo "  Preserved current file/symlink evidence at: $backup"
+  fi
+
+  # Atomic install from the local package with a safe mode.
+  local tmp
+  tmp="$(mktemp "$agent_dir/.AGENTS.md.antenna-restore.XXXXXX")" \
+    || { bad "Could not create a temp file in $agent_dir"; return 1; }
+  if ! cp -- "$def" "$tmp"; then bad "Could not stage the packaged policy"; rm -f -- "$tmp"; return 1; fi
+  chmod --reference="$def" "$tmp" 2>/dev/null || chmod 644 "$tmp"
+  if ! mv -fT -- "$tmp" "$live"; then
+    bad "Could not install the restored policy; original path remains in place"
+    rm -f -- "$tmp"
+    return 1
+  fi
+
+  # Re-verify and report the resulting hash.
+  local rp_out rp_rc
+  rp_out="$(relay_policy_audit "$live" "$relname")"; rp_rc=$?
+  if [[ "$rp_rc" -eq 0 ]]; then
+    good "Restored agent/AGENTS.md from the local package."
+    echo "  Resulting sha256: ${rp_out#pass|}"
+    [[ -n "$backup" ]] && echo "  Previous file/symlink preserved at: $backup"
+    return 0
+  fi
+  bad "Post-restore verification failed: ${rp_out#*|}"
+  if [[ -n "$backup" ]]; then
+    rm -f -- "$live"
+    cp -a --no-dereference -- "$backup" "$live" \
+      && bad "Rolled back to the preserved original after verification failure"
+  else
+    rm -f -- "$live"
+  fi
+  return 1
+}
+
 # ── Parse flags ──────────────────────────────────────────────────────────────
 
 while [[ $# -gt 0 ]]; do
@@ -54,31 +189,48 @@ while [[ $# -gt 0 ]]; do
     --backup)      DO_BACKUP=true; shift ;;
     --fix-hints)   FIX_HINTS=true; shift ;;
     --gateway)     GATEWAY_PATH="$2"; shift 2 ;;
+    --restore-policy) RESTORE_POLICY=true; shift ;;
+    --yes|-y)      ASSUME_YES=true; shift ;;
     -h|--help)
       cat <<'EOF'
 antenna doctor — Health check for Antenna installation
 
 Usage:
-  antenna doctor                     Full diagnostic check
+  antenna doctor                     Full diagnostic check (read-only)
   antenna doctor --backup            Back up gateway config first
   antenna doctor --fix-hints         Show copy-paste fix suggestions
   antenna doctor --gateway <path>    Override gateway config path
+  antenna doctor --restore-policy    Restore agent/AGENTS.md from the local
+                                     package (preview + confirm; backup-first)
+  antenna doctor --restore-policy --yes   Restore without the interactive prompt
 
 Checks:
   1.  Antenna config files exist and are valid JSON
   1b. No orphan peer references in config allowlists
+  1c. Antenna relay policy (agent/AGENTS.md) integrity
   2.  Gateway config exists and is valid JSON
   3.  Hooks are enabled with correct settings
   4.  Antenna agent is registered
   5.  Required allowlist entries are present
   6.  Secret files exist with correct permissions
   7.  Peer connectivity (basic)
+
+Normal `antenna doctor` never writes to agent/AGENTS.md. Restoration only
+happens when you explicitly run `--restore-policy`, and it never touches
+OpenClaw-created workspace files or fetches anything over the network.
 EOF
       exit 0
       ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
+
+# ── Explicit restore mode (keeps normal doctor read-only) ───────────────────
+
+if [[ "$RESTORE_POLICY" == true ]]; then
+  do_restore_policy
+  exit $?
+fi
 
 # ── Locate gateway config ───────────────────────────────────────────────────
 
@@ -273,6 +425,46 @@ fi
 
 echo ""
 
+# ── 1c. Relay policy integrity (ANT-163-002) ────────────────────────────────
+#
+# Checksum-backed audit of the Antenna-owned relay-agent policy file
+# (agent/AGENTS.md). File size is never used. The live file is compared to a
+# pristine packaged default by SHA-256, and its stable identity marker is
+# required so the generic OpenClaw workspace template or foreign content fails
+# even if a hash happens to be absent. This section is strictly read-only;
+# repair only happens via `antenna doctor --restore-policy`.
+#
+# v1.6.3 scope is agent/AGENTS.md only. OpenClaw-created workspace files
+# (BOOTSTRAP.md, IDENTITY.md, SOUL.md, USER.md, HEARTBEAT.md, memory, auth and
+# model state) are never audited or repaired here.
+
+echo -e "${BOLD}1c. Relay Policy File${NC}"
+
+RELAY_POLICY_LIVE="$SKILL_DIR/agent/AGENTS.md"
+if ! relay_policy_default_ok "agent/AGENTS.md"; then
+  warn "Packaged relay-policy default is unavailable or fails its own manifest — cannot audit agent/AGENTS.md"
+  hint "Reinstall this Antenna release from the original download"
+else
+  rp_out="$(relay_policy_audit "$RELAY_POLICY_LIVE" "agent/AGENTS.md")"; rp_rc=$?
+  case "$rp_rc" in
+    0)
+      pass "agent/AGENTS.md matches the packaged relay policy (sha256 ${rp_out#pass|})"
+      ;;
+    10)
+      rp_hash="${rp_out##*|}"
+      warn "agent/AGENTS.md differs from the packaged relay policy (possible intentional customization)"
+      echo -e "       ${YELLOW}live sha256: $rp_hash — left as-is; doctor never overwrites it${NC}"
+      hint "If this change was not intentional, restore it with: antenna doctor --restore-policy"
+      ;;
+    *)
+      fail "agent/AGENTS.md is not a valid Antenna relay policy: ${rp_out#fail|}"
+      hint "Restore the canonical policy with: antenna doctor --restore-policy"
+      ;;
+  esac
+fi
+
+echo ""
+
 # ── 2. Gateway config ───────────────────────────────────────────────────────
 
 echo -e "${BOLD}2. Gateway Configuration${NC}"
@@ -342,12 +534,7 @@ else
   fi
 
   allow_session=$(jq -r '.hooks.allowRequestSessionKey // false' "$GATEWAY_CONFIG" 2>/dev/null)
-  if [[ "$allow_session" == "true" ]]; then
-    pass "hooks.allowRequestSessionKey = true"
-  else
-    fail "hooks.allowRequestSessionKey is not true"
-    hint "Set hooks.allowRequestSessionKey: true in gateway config"
-  fi
+  info "hooks.allowRequestSessionKey = $allow_session (Antenna's static mapping does not require request-selected sessions)"
 
   # Check allowedAgentIds contains "antenna"
   has_antenna_agent=$(jq -r '.hooks.allowedAgentIds // [] | map(select(. == "antenna")) | length' "$GATEWAY_CONFIG" 2>/dev/null)
@@ -358,13 +545,29 @@ else
     hint "Add \"antenna\" to hooks.allowedAgentIds array"
   fi
 
-  # Check allowedSessionKeyPrefixes
-  has_hook_prefix=$(jq -r '.hooks.allowedSessionKeyPrefixes // [] | map(select(. == "hook:" or . == "hook:antenna" or startswith("hook"))) | length' "$GATEWAY_CONFIG" 2>/dev/null)
-  if [[ "$has_hook_prefix" -gt 0 ]]; then
-    pass "hooks.allowedSessionKeyPrefixes includes hook prefix"
+  mapping_audit="$(hook_staging_mapping_audit "$GATEWAY_CONFIG")"
+  case "$mapping_audit" in
+    pass\|*) pass "Dedicated /hooks/antenna mapping is canonical" ;;
+    missing\|*) fail "Dedicated /hooks/antenna mapping is missing" ;;
+    *) fail "Dedicated /hooks/antenna mapping is unsafe: ${mapping_audit#fail|}" ;;
+  esac
+
+  prefix_audit="$(hook_staging_session_prefix_audit "$GATEWAY_CONFIG")"
+  case "$prefix_audit" in
+    pass\|*) pass "Antenna hook-session namespace is permitted (${prefix_audit#pass|})" ;;
+    *) fail "Antenna hook-session namespace is blocked: ${prefix_audit#fail|}" ;;
+  esac
+
+  transform_dir=""
+  if ! hook_staging_resolve_transforms_dir "$GATEWAY_CONFIG" transform_dir; then
+    fail "hooks.transformsDir is outside the safe OpenClaw hooks/transforms root or has symlinked ancestors"
   else
-    warn "hooks.allowedSessionKeyPrefixes may not include \"hook:\" or \"hook:antenna\""
-    hint "Add \"hook:antenna\" to hooks.allowedSessionKeyPrefixes array"
+    transform_audit="$(hook_staging_transform_audit "$transform_dir/$HOOK_STAGING_MODULE")"
+    case "$transform_audit" in
+      pass\|*) pass "Installed Antenna staging transform matches package manifest (${transform_audit#pass|})" ;;
+      missing\|*) fail "Antenna staging transform is missing: $transform_dir/$HOOK_STAGING_MODULE" ;;
+      *) fail "Antenna staging transform integrity failed: ${transform_audit#fail|}" ;;
+    esac
   fi
 
   echo ""

@@ -25,6 +25,10 @@ LOG_FILE="$SKILL_DIR/antenna.log"
 RATE_FILE="$SKILL_DIR/antenna-ratelimit.json"
 TEST_RESULTS_DIR="$SKILL_DIR/test-results"
 STATE_DIR="$SKILL_DIR/state"
+# shellcheck source=../lib/relay-policy.sh
+source "$SKILL_DIR/lib/relay-policy.sh"
+# shellcheck source=../lib/hook-staging.sh
+source "$SKILL_DIR/lib/hook-staging.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -150,7 +154,7 @@ gateway_backup_path() {
 }
 
 cleanup_gateway_config() {
-  local backup_path tmp
+  local backup_path tmp mapping_audit remove_mapping=false transform_dir="" transform_live="" transform_audit=""
 
   if [[ -z "$GATEWAY_CONFIG" ]]; then
     warn "No gateway config found; skipping gateway cleanup."
@@ -173,6 +177,19 @@ cleanup_gateway_config() {
     exit 1
   fi
 
+  mapping_audit="$(hook_staging_mapping_audit "$GATEWAY_CONFIG")" || mapping_audit="fail|could not audit mappings"
+  case "$mapping_audit" in
+    pass\|*) remove_mapping=true ;;
+    missing\|*) : ;;
+    *) warn "Preserving customized/conflicting /hooks/antenna mapping: ${mapping_audit#fail|}" ;;
+  esac
+  if hook_staging_resolve_transforms_dir "$GATEWAY_CONFIG" transform_dir; then
+    transform_live="$transform_dir/$HOOK_STAGING_MODULE"
+    transform_audit="$(hook_staging_transform_audit "$transform_live")"
+  else
+    warn "Cannot safely resolve hooks.transformsDir; no external transform will be removed."
+  fi
+
   backup_path="$(gateway_backup_path)"
   run_cmd cp -- "$GATEWAY_CONFIG" "$backup_path"
   if [[ "$DRY_RUN" != true ]]; then
@@ -189,7 +206,8 @@ cleanup_gateway_config() {
   } | sed '/^$/d' | head -1)"
 
   tmp="$(mktemp)"
-  jq --arg antenna_id "${antenna_agent_id:-antenna}" '
+  jq --arg antenna_id "${antenna_agent_id:-antenna}" --argjson remove_mapping "$remove_mapping" \
+    --arg mapping_id "$HOOK_STAGING_ID" '
     if (.agents | type) == "array" then
       .agents |= map(select(.id != $antenna_id))
     else
@@ -224,10 +242,14 @@ cleanup_gateway_config() {
         .
       end
     | if (.hooks | type) == "object" then
-        .hooks.allowedSessionKeyPrefixes = ((.hooks.allowedSessionKeyPrefixes // []) | map(select(. != "hook:antenna")))
+        .hooks.allowedSessionKeyPrefixes = ((.hooks.allowedSessionKeyPrefixes // [])
+          | map(select(. != "hook:antenna" and . != "hook:antenna:")))
       else
         .
       end
+    | if $remove_mapping and (.hooks.mappings | type) == "array" then
+        .hooks.mappings |= map(select(.id != $mapping_id))
+      else . end
   ' "$GATEWAY_CONFIG" > "$tmp"
 
   if [[ "$DRY_RUN" == true ]]; then
@@ -237,6 +259,20 @@ cleanup_gateway_config() {
     mv -- "$tmp" "$GATEWAY_CONFIG"
     chmod 600 "$GATEWAY_CONFIG" 2>/dev/null || true
     ok "Updated gateway config: removed Antenna agent/hooks entries"
+  fi
+
+  if [[ "$mapping_audit" == fail\|* ]]; then
+    [[ -z "$transform_live" ]] || warn "Preserving transform because a customized/conflicting /hooks/antenna mapping still references the hook surface: $transform_live"
+  elif [[ "$transform_audit" == pass\|* ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+      info "Would remove exact canonical Antenna transform: $transform_live"
+    elif hook_staging_remove_if_canonical "$transform_live"; then
+      ok "Removed exact canonical Antenna transform: $transform_live"
+    else
+      warn "Transform changed during uninstall; preserving it: $transform_live"
+    fi
+  elif [[ "$transform_audit" == fail\|* ]]; then
+    warn "Preserving customized/unsafe transform at $transform_live: ${transform_audit#fail|}"
   fi
 }
 

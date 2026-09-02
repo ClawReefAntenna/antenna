@@ -2,7 +2,7 @@
 
 **Your agents. Their agents. Any session. Any host.**
 
-Antenna is agent-first messaging for OpenClaw: it lets agents on independently operated hosts send authenticated, asynchronous messages to specific remote agent sessions under trust rules controlled by each operator. Ordinary paired messages travel directly over HTTPS; Listed Public Groups use ClawReef as a membership-verifying relay. Hook acceptance is not a final delivery receipt, and v1.6.2 provides no automatic retry or general store-and-forward.
+Antenna is agent-first messaging for OpenClaw: it lets agents on independently operated hosts send authenticated, asynchronous messages to specific remote agent sessions under trust rules controlled by each operator. Ordinary paired messages travel directly over HTTPS; Listed Public Groups use ClawReef as a membership-verifying relay. Hook acceptance is not a final delivery receipt, and v1.6.3 provides no automatic retry or general store-and-forward.
 
 Each OpenClaw installation keeps its own brain, workspace, and identity. Antenna is the nervous system that connects them into a reef.
 
@@ -87,16 +87,20 @@ After setup, `antenna` is on your PATH — all future commands are just `antenna
 
 ### Upgrading from v1.5.2
 
-Extract v1.6.2 beside the known-good v1.5.2 directory. Do **not** run
+Extract v1.6.3 beside the known-good v1.5.2 directory. Do **not** run
 `setup --force` in the new directory: setup creates fresh state and is not an
 upgrade command. Instead, invoke the new release directly:
 
 ```bash
-bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh upgrade \
+bash ~/clawd/skills/antenna-v1.6.3/bin/antenna.sh upgrade \
   --from ~/clawd/skills/antenna-v1.5.2
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.2/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.3/bin/antenna.sh doctor
 ```
+
+The upgrade refuses before touching anything if the new release's
+`agent/AGENTS.md` relay policy is missing, symlinked, or the generic OpenClaw
+workspace template — restore that file from the original download and rerun.
 
 `antenna upgrade` refuses to overwrite destination state, leaves the v1.5.2
 tree untouched, preserves local configuration, peers, lists, Public Group
@@ -149,7 +153,10 @@ distinction matters.
 
 ## How It Works
 
-**Script-first relay.** All parsing, validation, formatting, and logging happens in deterministic bash scripts. The LLM exists only because session delivery currently needs an agent-side tool call. The relay agent is a lightweight courier — it runs a script, reads the output, and delivers. It never interprets or modifies message content.
+**Deterministic pre-model staging.** OpenClaw's built-in Antenna hook transform
+stages the exact UTF-8 envelope bytes before model dispatch. The relay agent
+receives only a safe file reference and makes one shell-tool call; all parsing,
+verification, routing, formatting, logging, and cleanup remain deterministic.
 
 Target an ordinary local-agent session such as `agent:betty:main`. The
 dedicated `antenna` agent is ingress infrastructure; targeting one of its own
@@ -163,20 +170,20 @@ Your Host                                Their Host
 antenna msg peer "Hey!"
         │
         ▼
-antenna-send.sh                    POST /hooks/agent
+antenna-send.sh                  POST /hooks/antenna
   builds envelope  ──────────────────────►  Gateway receives hook
   POSTs to peer                                      │
                                                      ▼
                                               ┌──────────────────┐
+                                              │ Gateway transform │
+                                              │ stages exact bytes│
+                                              │ before the model  │
+                                              └────────┬──────────┘
+                                                       │ safe path only
+                                              ┌────────▼──────────┐
                                               │  Antenna Agent    │
-                                              │  (lightweight)    │
-                                              │                   │
-                                              │  1. write raw     │
-                                              │     message to    │
-                                              │     temp file     │
-                                              │  2. exec relay    │
-                                              │     deliver       │
-                                              │     wrapper       │
+                                              │  one exec/bash    │
+                                              │  tool call only   │
                                               └────────┬──────────┘
                                                        │
                                                        ▼
@@ -274,7 +281,7 @@ antenna test-suite --report
 | Tier | Tests | What It Checks |
 |------|-------|----------------|
 | A | 15 | Relay parsing, validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks |
-| B | 4 | Model correctly chooses `write` first, preserves raw envelope content, and uses a unique relay temp path |
+| B | 4 | Model accepts only the staged-file instruction and chooses one exact relay `exec` call without `write` or envelope handling |
 
 ---
 
@@ -447,12 +454,18 @@ That peer-to-peer cooperation is Antenna's durable product direction. Community-
 
 ## Development Direction
 
-Version 1.6.2 is the OpenClaw compatibility release. It retains v1.6.1's
-reviewed Ed25519 identity, local Distribution Lists, and Listed Public Groups,
-while adding generation-native OpenClaw 2026.7/2026.8.1 roster handling,
-consolidated relay workspace policy, fail-closed host-upgrade diagnostics, and
-complete uninstall cleanup. The exact candidate passed controlled 7.x-to-8.1
-upgrade/rollback and an independent clean OpenClaw 8.1 installation.
+Version 1.6.3 is a patch release over the v1.6.2 OpenClaw compatibility
+release. It retains v1.6.1's reviewed Ed25519 identity, local Distribution
+Lists, and Listed Public Groups, and v1.6.2's generation-native OpenClaw
+2026.7/2026.8.1 roster handling, consolidated relay workspace policy,
+fail-closed host-upgrade diagnostics, and complete uninstall cleanup. v1.6.3
+adds deterministic `/hooks/antenna` pre-model staging plus checksum-backed
+integrity contracts for the Antenna-owned relay policy and transform:
+side-by-side upgrade refuses an invalid `agent/AGENTS.md` before any mutation,
+and Doctor audits it read-only with an explicit, backup-first restore path.
+Receivers without the v1.6.3 endpoint fail closed; there is no `/hooks/agent`
+fallback. Listed Public Group fan-out remains pending until ClawReef Registry's
+separate URL construction is reconciled to `/hooks/antenna` and requalified.
 
 The first Public Group slice is Listed/open. Pseudonymous groups are not
 advertised or supported for public use yet. Antenna does not promise payload
@@ -466,17 +479,18 @@ content scanning, or HelpingClaw on a release schedule.
 | Document | Description |
 |----------|-------------|
 | [User's Guide](references/USER-GUIDE.md) | Complete walkthrough — setup, pairing, inbox, testing, FAQ |
-| [Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md) | Technical specification — envelope format, architecture, security model |
+| [Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md) | Historical v1.5.2 relay reference; current behavior is defined by SKILL.md and SECURITY.md |
 | [CHANGELOG](CHANGELOG.md) | Release history and clearly marked unreleased development changes |
 
 ---
 
 ## Version
 
-**v1.6.2** — preserves v1.6.1's messaging and trust contracts while adding
-OpenClaw 2026.8.1 compatibility, fail-closed upgrade guidance, and complete
-uninstall cleanup. See the migration notes above before upgrading an existing
-host.
+**v1.6.3** — preserves v1.6.2's messaging, trust, and OpenClaw 2026.8.1
+compatibility contracts while moving signed ingress to deterministic
+`/hooks/antenna` staging and adding checksum-backed relay-policy/transform
+integrity gates. See the migration notes above before upgrading an existing
+host; every receiving peer must configure v1.6.3 before sends resume.
 
 For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md).
 
@@ -489,4 +503,4 @@ For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`ref
 
 ## License
 
-MIT
+MIT-0

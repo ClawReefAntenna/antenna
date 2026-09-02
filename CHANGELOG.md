@@ -10,6 +10,61 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+Target release: **1.6.3**.
+
+Planned patch release. Adds deterministic pre-model staging for signed relay envelopes
+and repairs the side-by-side upgrade and Doctor integrity contracts. No new
+protocol, trust grant, pairing method, or Reef feature is introduced.
+
+### Fixed
+
+- **Upgrade refuses an invalid destination relay policy before any mutation
+  (ANT-162-006).** `antenna upgrade` now verifies that the destination
+  package's `agent/AGENTS.md` is a regular, non-symlinked file carrying the
+  canonical Antenna relay contract before it copies any runtime state, writes a
+  gateway backup or temp file, edits the gateway, or repoints a CLI symlink. A
+  missing file, a symlink, OpenClaw's generic `# AGENTS.md - Your Workspace`
+  template, or any other non-relay content produces a clear non-zero refusal
+  that names `agent/AGENTS.md` and the safe recovery action, with no source,
+  destination, gateway, backup, or CLI change. Covers both the 2026.7.x
+  `agents.list` and 2026.8.1 `agents.entries` generations.
+
+### Added
+
+- **Doctor relay-policy audit and explicit restore (ANT-163-002).** `antenna
+  doctor` gains a read-only, checksum-backed audit of the Antenna-owned relay
+  policy: an exact SHA-256 match to the packaged default passes, a regular
+  intentional customization warns (and is never overwritten), and a missing,
+  symlinked, generic-template, or identity-marker-free file fails. File size is
+  never used as a signal. `antenna doctor --restore-policy` adds an explicit
+  recovery path that previews the change, requires interactive confirmation or
+  `--yes`, preserves a timestamped private backup of the current file,
+  atomically installs the pristine packaged default (never fetched over the
+  network), re-verifies by hash, and never touches OpenClaw-created workspace
+  files. Ownership and manifest are shared with the upgrade preflight through
+  `lib/relay-policy.sh` and are structured to cover future Antenna-owned agent
+  files.
+
+### Deterministic staging
+
+- **Signed envelopes no longer pass through model transcription
+  (ANT-163-001).** Senders use only `/hooks/antenna`. OpenClaw's built-in local
+  mapping transform writes `ctx.payload.message` byte-faithfully to a unique
+  private 0600 staged file before model dispatch and returns only the safe file
+  reference. A fresh static `hook:antenna:<UUID>` session isolates concurrent
+  turns. The relay agent makes one shell call to the deterministic wrapper and
+  never reads, writes, copies, or sees envelope content. Setup, upgrade,
+  Doctor, and uninstall manage the canonical mapping and transform while
+  preserving unrelated mappings and refusing conflicts.
+- **No legacy endpoint fallback.** A peer without the v1.6.3 mapping fails
+  closed with an upgrade/configuration diagnostic; falling back to
+  `/hooks/agent` would restore the rejected transcription path.
+- **ClawReef Registry compatibility is prepared for qualification.** The
+  reviewed Registry candidate now constructs `/hooks/antenna` fan-out URLs and
+  sends only `{message}`. Listed Public Groups remain unqualified until the
+  exact Antenna archive and Registry candidate pass the supported-host matrix;
+  prepared source is not a deployment claim.
+
 ## [1.6.2] — 2026-09-01
 
 ### Fixed

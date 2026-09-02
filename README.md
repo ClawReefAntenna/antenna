@@ -467,8 +467,10 @@ The package-owned relay policy remains in the Antenna workspace while
 OpenClaw auth and session state stays in the stable
 `~/.openclaw/agents/antenna/agent` directory.
 Receivers without the v1.6.3 endpoint fail closed; there is no `/hooks/agent`
-fallback. Listed Public Group fan-out remains pending until ClawReef Registry's
-separate URL construction is reconciled to `/hooks/antenna` and requalified.
+fallback. The exact Antenna candidate and the separate ClawReef Registry
+candidate have passed controlled OpenClaw 8.1 qualification through
+`/hooks/antenna`, including Listed Public Group fan-out. That is candidate
+evidence, not a deployment, publication, or availability claim.
 
 The first Public Group slice is Listed/open. Pseudonymous groups are not
 advertised or supported for public use yet. Antenna does not promise payload

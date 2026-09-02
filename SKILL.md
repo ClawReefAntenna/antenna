@@ -468,9 +468,10 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - Message freshness window rejects stale or future-dated envelopes (defaults: 300s age, 60s future skew)
 - Sender refuses to run without configured `self_id` (no `$(hostname)` fallback)
 - Legacy raw-secret export refuses non-TTY output
-- Listed Public Group fan-out remains unqualified until the exact v1.6.3
-  archive and the prepared ClawReef Registry `/hooks/antenna` candidate pass
-  supported-host qualification.
+- The exact v1.6.3 and ClawReef Registry `/hooks/antenna` candidates passed
+  controlled OpenClaw 8.1 qualification, including byte-faithful Listed Public
+  Group fan-out and content-free Registry retention. This is candidate
+  evidence, not a deployment or release claim.
 - Encrypted bundle export never writes plaintext; encrypted bundle import cleans up plaintext on every exit path (return / fail / SIGINT / SIGTERM)
 - Expired encrypted bundles are refused at import (`--force-expired` is the disaster-recovery override)
 - Email send for bootstrap/pubkey resolves sender address from Himalaya TOML config; no `antenna@localhost` fallback, no free-text `From:` override

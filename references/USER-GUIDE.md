@@ -633,8 +633,10 @@ while adding generation-native OpenClaw 2026.7/2026.8.1 roster handling,
 consolidated relay workspace policy, fail-closed host-upgrade diagnostics, and
 complete uninstall cleanup. The underlying v1.6.2 compatibility baseline passed
 a controlled 7.x-to-8.1 upgrade/rollback and an independent clean OpenClaw 8.1
-installation. The v1.6.3 candidate still requires its own exact-artifact host
-qualification.
+installation. The exact v1.6.3 and ClawReef Registry candidates also passed a
+controlled OpenClaw 8.1 matrix covering direct relay, Distribution Lists,
+inbox delivery, restart, uninstall, clean installation, and Listed Public
+Group fan-out. This qualification is not a release or deployment claim.
 
 Each local Distribution List member records a required peer ID and an optional
 full session key. A pinned session targets that recipient directly; omitting it

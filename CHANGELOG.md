@@ -79,11 +79,12 @@ protocol, trust grant, pairing method, or Reef feature is introduced.
   `antenna-signing-public.pem`, recognizes their 0600 private-key partners,
   and no longer reports a successful encrypted Ed25519 pairing as loose or
   unrecognized secret material.
-- **ClawReef Registry compatibility is prepared for qualification.** The
-  reviewed Registry candidate now constructs `/hooks/antenna` fan-out URLs and
-  sends only `{message}`. Listed Public Groups remain unqualified until the
-  exact Antenna archive and Registry candidate pass the supported-host matrix;
-  prepared source is not a deployment claim.
+- **ClawReef Registry compatibility passed controlled qualification.** The
+  reviewed Registry candidate constructs `/hooks/antenna` fan-out URLs and
+  sends only `{message}`. The exact Antenna and Registry candidates passed the
+  controlled OpenClaw 8.1 matrix, including byte-faithful Listed Public Group
+  fan-out and content-free Registry retention. This is candidate evidence, not
+  a deployment, publication, or availability claim.
 
 ## [1.6.2] — 2026-09-01
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# antenna-relay-deliver.sh — Single-call relay for a transform-staged envelope.
+# antenna-relay-deliver.sh — Single-call relay for Antenna inbound envelopes.
 #
 # Usage:
-#   bash antenna-relay-deliver.sh /tmp/antenna-relay-<uid>/antenna-<uuid>.envelope
+#   cat <raw_envelope> | bash antenna-relay-deliver.sh
+#   bash antenna-relay-deliver.sh /path/to/envelope-file
 #
 # No shell metacharacters in the exec path. Single allowed exec shape:
 #   bash <script> <arg>
@@ -13,21 +14,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 
-# ── Validate the transform-owned input path ─────────────────────────────────
+# ── Determine input ─────────────────────────────────────────────────────────
 
-[[ $# -eq 1 ]] || { echo "Rejected: invalid staged-file path"; exit 0; }
-INPUT_PATH="$1"
-STAGING_DIR="$(realpath -ms "${TMPDIR:-/tmp}/antenna-relay-$(id -u)")"
-INPUT_NAME="$(basename "$INPUT_PATH")"
-[[ "$INPUT_PATH" == "$STAGING_DIR/$INPUT_NAME" ]] || { echo "Rejected: invalid staged-file path"; exit 0; }
-[[ "$INPUT_NAME" =~ ^antenna-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.envelope$ ]] \
-  || { echo "Rejected: invalid staged-file path"; exit 0; }
-[[ -d "$STAGING_DIR" && ! -L "$STAGING_DIR" ]] || { echo "Rejected: unsafe staging directory"; exit 0; }
-[[ -f "$INPUT_PATH" && ! -L "$INPUT_PATH" ]] || { echo "Rejected: unsafe staged file"; exit 0; }
-[[ "$(stat -c '%u:%a:%h' "$STAGING_DIR" 2>/dev/null)" == "$(id -u):700:"* ]] \
-  || { echo "Rejected: unsafe staging directory"; exit 0; }
-[[ "$(stat -c '%u:%a:%h' "$INPUT_PATH" 2>/dev/null)" == "$(id -u):600:1" ]] \
-  || { echo "Rejected: unsafe staged file"; exit 0; }
+if [[ $# -ge 1 && -f "${1:-}" ]]; then
+  INPUT_MODE="file"
+  INPUT_PATH="$1"
+else
+  INPUT_MODE="stdin"
+fi
 
 # ── Logging ────────────────────────────────────────────────────────────────
 
@@ -54,7 +48,12 @@ log_msg() {
   echo "[$ts] DELIVER | $level | $msg" >> "$log_path"
 }
 
-TMPFILE="$INPUT_PATH"
+TMPDIR="${TMPDIR:-/tmp}"
+ANTENNA_TMPDIR="$TMPDIR/antenna-relay"
+mkdir -p "$ANTENNA_TMPDIR"
+chmod 0700 "$ANTENNA_TMPDIR" 2>/dev/null || true
+
+TMPFILE=""
 cleanup() {
   if [[ -n "$TMPFILE" && -f "$TMPFILE" ]]; then
     # shred if available, else truncate + unlink
@@ -67,6 +66,14 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+if [[ "$INPUT_MODE" == "stdin" ]]; then
+  TMPFILE=$(mktemp "$ANTENNA_TMPDIR/msg.XXXXXX")
+  chmod 0600 "$TMPFILE"
+  cat > "$TMPFILE"
+else
+  TMPFILE="$INPUT_PATH"
+fi
 
 # ── Relay via existing scripts ─────────────────────────────────────────────
 

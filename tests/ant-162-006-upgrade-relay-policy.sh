@@ -3,8 +3,8 @@
 # BEFORE any mutation, across both supported OpenClaw generations (7.x list and
 # 8.1 entries rosters).
 #
-# Proves for missing / symlinked / generic-template / marker-free destination
-# agent/AGENTS.md: (a) upgrade exits non-zero, (b) the message names
+# Proves for missing / symlinked / generic-template / marker-free / hash-tampered
+# destination agent/AGENTS.md: (a) upgrade exits non-zero, (b) the message names
 # agent/AGENTS.md and the safe recovery action, and (c) no source, destination
 # runtime, gateway, gateway-backup, or CLI-symlink byte changed. Also proves a
 # valid packaged relay policy passes the gate.
@@ -28,14 +28,14 @@ make_case() {
   local root="$TMP/$name"
   local old="$root/old" new="$root/new" home="$root/home"
   mkdir -p "$old/agent" "$old/bin" \
-           "$new/scripts" "$new/lib/relay-policy/agent" "$new/bin" "$new/agent" "$new/hooks" \
+           "$new/scripts" "$new/lib/relay-policy/agent" "$new/bin" "$new/agent" \
            "$home/.openclaw" "$home/bin"
 
   cp "$ROOT/scripts/antenna-upgrade.sh" "$new/scripts/"
-  cp "$ROOT"/lib/*.sh "$new/lib/"
+  cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" \
+    "$ROOT/lib/v163-staging-cleanup.sh" "$new/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/lib/relay-policy/agent/"
   cp "$ROOT/lib/relay-policy/manifest.sha256" "$new/lib/relay-policy/"
-  cp "$ROOT/hooks/antenna-stage.mjs" "$new/hooks/"
   cp "$ROOT/bin/antenna.sh" "$new/bin/"
   # Destination ships a valid relay policy by default; individual cases tamper it.
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/agent/AGENTS.md"
@@ -96,6 +96,10 @@ run_tamper() {
     symlink) rm -f "$new/agent/AGENTS.md"; ln -s "$new/lib/relay-policy/agent/AGENTS.md" "$new/agent/AGENTS.md" ;;
     generic) printf '# AGENTS.md - Your Workspace\n\nWelcome.\n' > "$new/agent/AGENTS.md" ;;
     markerfree) printf 'not the relay policy\n' > "$new/agent/AGENTS.md" ;;
+    hashmismatch)
+      # Keep the identity marker and byte length intact while changing content.
+      sed -i '0,/mechanical/{s/mechanical/mechanicxl/}' "$new/agent/AGENTS.md"
+      ;;
   esac
   # Re-run the refusal assertions against this prepared tree.
   local old="$root/old" home="$root/home" gateway="$root/home/.openclaw/openclaw.json"
@@ -129,6 +133,7 @@ for generation in list entries; do
   run_tamper symlink "$generation" symlink
   run_tamper generic "$generation" generic
   run_tamper markerfree "$generation" markerfree
+  run_tamper hashmismatch "$generation" hashmismatch
 done
 
 # ── Positive control: a valid packaged relay policy passes the gate ─────────

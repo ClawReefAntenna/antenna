@@ -4,9 +4,9 @@
 #
 # Usage: bash antenna-relay-file.sh /path/to/message-file
 #
-# The package-owned OpenClaw hook transform creates the private staged file
-# before model dispatch. The relay agent never writes or reads its content;
-# antenna-relay-deliver.sh invokes this parser helper after validating the path.
+# Designed so the calling agent never needs to base64-encode or use shell
+# metacharacters. The agent writes raw message text to a unique private temp
+# file, then execs antenna-relay-deliver.sh with that file path.
 
 set -euo pipefail
 

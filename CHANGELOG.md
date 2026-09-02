@@ -10,11 +10,29 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
-Target release: **1.6.3**.
+Target release: **1.6.4**.
 
-Planned patch release. Adds deterministic pre-model staging for signed relay envelopes
-and repairs the side-by-side upgrade and Doctor integrity contracts. No new
-protocol, trust grant, pairing method, or Reef feature is introduced.
+Corrective patch release. Restores the established `/hooks/agent` transport
+used by supported v1.5.x through v1.6.2 peers while retaining the relay-policy,
+workspace/state, permissions, and OpenClaw compatibility hardening developed
+for v1.6.3. No new protocol, trust grant, pairing method, or Reef feature is
+introduced.
+
+### Compatibility restored
+
+- **Ordinary messaging again uses `/hooks/agent` (ANT-164-001).** Direct
+  messages, reply URLs, peer tests, and Distribution Lists use the established
+  request shape with `message`, `agentId`, `sessionKey`, and `name`. No
+  coordinated peer upgrade, transport negotiation, or downgrade fallback is
+  required.
+- **The v1.6.3-only staging architecture is removed.** Setup and upgrade no
+  longer install the `antenna-deterministic-staging` mapping or
+  `antenna-stage.mjs` transform. Exact released v1.6.3 residue is removed;
+  customized or foreign mapping/transform content is preserved and reported.
+- **Relay-policy integrity remains (ANT-164-002).** Setup installs the
+  canonical write-then-exec relay contract. Upgrade validates the packaged
+  `agent/AGENTS.md` before mutation, and Doctor retains its read-only audit and
+  explicit backup-first restore path.
 
 ### Fixed
 
@@ -44,6 +62,8 @@ protocol, trust grant, pairing method, or Reef feature is introduced.
   files. Ownership and manifest are shared with the upgrade preflight through
   `lib/relay-policy.sh` and are structured to cover future Antenna-owned agent
   files.
+
+## [1.6.3] — 2026-09-02 (superseded)
 
 ### Deterministic staging
 

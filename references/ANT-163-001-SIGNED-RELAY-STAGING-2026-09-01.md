@@ -1,8 +1,14 @@
 # ANT-163-001 — Deterministic Signed-Relay Staging
 
 **Date:** 2026-09-01  
-**Status:** Implemented locally for Antenna v1.6.3  
+**Status:** Historical v1.6.3 design; superseded by DEC-2026-09-02-002
 **Scope:** Supported OpenClaw 2026.5.12, 2026.7.x, and 2026.8.1 generations
+
+> **Do not implement this architecture for v1.6.4.** The owner rejected its
+> coordinated-upgrade and network-partitioning cost. The corrective release
+> restores `/hooks/agent` interoperability and retains only the independent
+> relay-policy installation and integrity hardening. This document remains as
+> immutable design history for the public v1.6.3 artifact.
 
 ## Corrected source finding
 

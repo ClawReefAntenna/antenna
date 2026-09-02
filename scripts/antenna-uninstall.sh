@@ -25,10 +25,8 @@ LOG_FILE="$SKILL_DIR/antenna.log"
 RATE_FILE="$SKILL_DIR/antenna-ratelimit.json"
 TEST_RESULTS_DIR="$SKILL_DIR/test-results"
 STATE_DIR="$SKILL_DIR/state"
-# shellcheck source=../lib/relay-policy.sh
-source "$SKILL_DIR/lib/relay-policy.sh"
-# shellcheck source=../lib/hook-staging.sh
-source "$SKILL_DIR/lib/hook-staging.sh"
+# shellcheck source=../lib/v163-staging-cleanup.sh
+source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -177,15 +175,15 @@ cleanup_gateway_config() {
     exit 1
   fi
 
-  mapping_audit="$(hook_staging_mapping_audit "$GATEWAY_CONFIG")" || mapping_audit="fail|could not audit mappings"
+  mapping_audit="$(v163_staging_mapping_audit "$GATEWAY_CONFIG")" || mapping_audit="fail|could not audit mappings"
   case "$mapping_audit" in
     pass\|*) remove_mapping=true ;;
     missing\|*) : ;;
-    *) warn "Preserving customized/conflicting /hooks/antenna mapping: ${mapping_audit#fail|}" ;;
+    *) warn "Preserving customized/conflicting v1.6.3 /hooks/antenna mapping: ${mapping_audit#fail|}" ;;
   esac
-  if hook_staging_resolve_transforms_dir "$GATEWAY_CONFIG" transform_dir; then
-    transform_live="$transform_dir/$HOOK_STAGING_MODULE"
-    transform_audit="$(hook_staging_transform_audit "$transform_live")"
+  if v163_staging_resolve_transforms_dir "$GATEWAY_CONFIG" transform_dir; then
+    transform_live="$transform_dir/$V163_STAGING_MODULE"
+    transform_audit="$(v163_staging_transform_audit "$transform_live")"
   else
     warn "Cannot safely resolve hooks.transformsDir; no external transform will be removed."
   fi
@@ -207,7 +205,7 @@ cleanup_gateway_config() {
 
   tmp="$(mktemp)"
   jq --arg antenna_id "${antenna_agent_id:-antenna}" --argjson remove_mapping "$remove_mapping" \
-    --arg mapping_id "$HOOK_STAGING_ID" '
+    --arg mapping_id "$V163_STAGING_MAPPING_ID" '
     if (.agents | type) == "array" then
       .agents |= map(select(.id != $antenna_id))
     else
@@ -266,7 +264,7 @@ cleanup_gateway_config() {
   elif [[ "$transform_audit" == pass\|* ]]; then
     if [[ "$DRY_RUN" == true ]]; then
       info "Would remove exact canonical Antenna transform: $transform_live"
-    elif hook_staging_remove_if_canonical "$transform_live"; then
+    elif v163_staging_remove_transform_if_canonical "$transform_live"; then
       ok "Removed exact canonical Antenna transform: $transform_live"
     else
       warn "Transform changed during uninstall; preserving it: $transform_live"

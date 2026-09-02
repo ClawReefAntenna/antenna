@@ -12,29 +12,30 @@ description: >
   "cross-host message", "inter-host relay", "ping PEER", "peer list",
   "check antenna inbox", "approve message".
 metadata:
-  version: 1.6.3
+  version: 1.6.4
   repository: "https://github.com/ClawReefAntenna/antenna"
   homepage: "https://github.com/ClawReefAntenna/antenna"
 postInstall: "bash skills/antenna/bin/antenna.sh setup"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.6.3)
+# Antenna — Inter-Host OpenClaw Messaging (v1.6.4)
 
 Send messages between OpenClaw instances over reachable HTTPS via Antenna's
-dedicated built-in hook mapping at `/hooks/antenna`.
+built-in `/hooks/agent` endpoint.
 
 ## Prerequisites
 
 Each participating host needs:
 1. OpenClaw gateway running with hooks enabled (`hooks.enabled: true`)
-2. A reachable HTTPS endpoint for `/hooks/antenna`
+2. A reachable HTTPS endpoint for `/hooks/agent`
 3. Antenna agent registered in gateway config (`agents` section)
 4. `hooks.allowedAgentIds` includes `"antenna"`
-5. When `hooks.allowedSessionKeyPrefixes` is configured and
-   `hooks.defaultSessionKey` is unset, it permits OpenClaw's required `"hook:"`
-   namespace. Antenna's transform still emits only `hook:antenna:<UUID>` sessions.
-6. The canonical `antenna-deterministic-staging` mapping and package-owned
-   `antenna-stage.mjs` transform are installed (setup/upgrade manage both)
+5. `hooks.allowRequestSessionKey` is true and
+   `hooks.allowedSessionKeyPrefixes` permits `"hook:"` plus the local agent
+   session namespace used by Antenna
+6. The canonical Antenna `agent/AGENTS.md` relay policy is present; setup and
+   upgrade validate it, and Doctor audits/restores it through an explicit,
+   backup-first path
 7. Host-specific Antenna config in:
    - `antenna-config.json`
    - `antenna-peers.json`
@@ -44,7 +45,7 @@ Normal path:
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
 Existing v1.5.2 installation:
-- Extract v1.6.3 side by side; do not run `setup --force` in the new tree.
+- Extract v1.6.4 side by side; do not run `setup --force` in the new tree.
 - Run the new tree's `bin/antenna.sh upgrade --from <old-skill-dir>`.
 - Restart OpenClaw, run the new tree's `doctor`, then complete a fresh
   encrypted Ed25519 re-pair for each legacy peer.
@@ -61,21 +62,21 @@ Notes:
 
 ## Architecture
 
-Messages flow through a deterministic pre-model staging pipeline:
+Messages use the established interoperable relay pipeline:
 
-1. **Sender** builds the signed `[ANTENNA_RELAY]` envelope and POSTs only
-   `{message}` to `/hooks/antenna`.
-2. **Gateway transform** writes `ctx.payload.message` byte-faithfully to a
-   unique private 0600 file and returns only a staged-file instruction plus a
-   fresh static `hook:antenna:<UUID>` session.
-3. **Antenna agent** sees no envelope content and makes exactly one shell-tool
-   call to `antenna-relay-deliver.sh <safe-staged-path>`.
-4. **The wrapper** validates the path, verifies and routes the signed envelope,
-   cleans up, and prints one status line.
+1. **Sender** builds the signed `[ANTENNA_RELAY]` envelope and POSTs it to
+   `/hooks/agent` with the recipient agent and hook session fields.
+2. **OpenClaw** routes the request to the Antenna relay agent.
+3. **Antenna agent** writes the complete opaque envelope to a unique private
+   temp file, then makes one simple shell call to
+   `antenna-relay-deliver.sh <temp-path>`.
+4. **The wrapper** verifies and routes the signed envelope, cleans up the temp
+   file, and prints one status line.
 5. **Message appears** persistently in the target conversation thread when accepted.
 
-There is no `/hooks/agent` fallback. A receiver without the v1.6.3 mapping must
-upgrade/configure Antenna before it can accept messages.
+This is wire-compatible with the supported v1.5.x-through-v1.6.2 endpoint and
+payload contract. Marker and signature verification reject a malformed or
+byte-modified signed envelope rather than delivering it.
 
 The LLM never performs relay parsing, delivery formatting, or session-routing logic; the scripts do all processing.
 
@@ -457,8 +458,8 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 
 ## Security Notes
 
-- Relay ingress is staged before the model; the relay agent sees only a safe
-  path instruction and is one-call/non-interpreting
+- The relay agent is mechanical and non-interpreting: it writes the complete
+  opaque envelope, invokes one wrapper command, and returns the wrapper result
 - Inbound sessions are allowlisted (full session keys only)
 - Sender peer must be allowlisted on both inbound and outbound sides
 - Modern peers authenticate sender claims with locally pinned Ed25519 public
@@ -468,10 +469,10 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - Message freshness window rejects stale or future-dated envelopes (defaults: 300s age, 60s future skew)
 - Sender refuses to run without configured `self_id` (no `$(hostname)` fallback)
 - Legacy raw-secret export refuses non-TTY output
-- The exact v1.6.3 and ClawReef Registry `/hooks/antenna` candidates passed
-  controlled OpenClaw 8.1 qualification, including byte-faithful Listed Public
-  Group fan-out and content-free Registry retention. This is candidate
-  evidence, not a deployment or release claim.
+- v1.6.4 restores the established `/hooks/agent` transport after the v1.6.3
+  deterministic-staging experiment proved incompatible with unchanged peers.
+  The corrective candidate remains under qualification; this is not a
+  publication or availability claim.
 - Encrypted bundle export never writes plaintext; encrypted bundle import cleans up plaintext on every exit path (return / fail / SIGINT / SIGTERM)
 - Expired encrypted bundles are refused at import (`--force-expired` is the disaster-recovery override)
 - Email send for bootstrap/pubkey resolves sender address from Himalaya TOML config; no `antenna@localhost` fallback, no free-text `From:` override

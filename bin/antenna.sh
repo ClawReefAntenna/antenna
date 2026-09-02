@@ -592,10 +592,10 @@ cmd_peers() {
 
       local http_code
       http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
-        -X POST "${peer_url}/hooks/antenna" \
+        -X POST "${peer_url}/hooks/agent" \
         -H "Authorization: Bearer ${token}" \
         -H "Content-Type: application/json" \
-        -d '{"message":"[ANTENNA_PING]"}' 2>&1) || {
+        -d '{"message":"[ANTENNA_PING]","agentId":"antenna","sessionKey":"hook:antenna"}' 2>&1) || {
         echo "FAILED: Connection error (peer unreachable)"
         exit 1
       }
@@ -603,7 +603,7 @@ cmd_peers() {
       case "$http_code" in
         200) echo "OK: Peer responded (HTTP 200)" ;;
         401|403) echo "AUTH FAILED: Token rejected (HTTP $http_code)" ;;
-        *) echo "UNEXPECTED: HTTP $http_code — receiving host must upgrade/configure Antenna v1.6.3 (/hooks/antenna; no /hooks/agent fallback)" ;;
+        *) echo "UNEXPECTED: HTTP $http_code" ;;
       esac
       ;;
 

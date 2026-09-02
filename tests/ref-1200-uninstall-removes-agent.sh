@@ -41,13 +41,10 @@ run_case() {
   tmpdir="$(mktemp -d /tmp/ref1200-XXXXXX)"
   skill="$tmpdir/skill"
   gateway="$tmpdir/openclaw.json"
-  mkdir -p "$skill/scripts" "$skill/lib/relay-policy/agent" "$skill/hooks" "$skill/secrets" "$skill/keys" "$skill/state" "$skill/test-results" "$tmpdir/hooks/transforms"
+  mkdir -p "$skill/scripts" "$skill/lib" "$skill/secrets" "$skill/keys" \
+    "$skill/state" "$skill/test-results" "$tmpdir/hooks/transforms"
   cp "$UNINSTALL_SCRIPT" "$skill/scripts/antenna-uninstall.sh"
-  cp "$SKILL_DIR/lib/relay-policy.sh" "$SKILL_DIR/lib/hook-staging.sh" "$skill/lib/"
-  cp "$SKILL_DIR/lib/relay-policy/manifest.sha256" "$skill/lib/relay-policy/"
-  cp "$SKILL_DIR/lib/relay-policy/agent/AGENTS.md" "$skill/lib/relay-policy/agent/"
-  cp "$SKILL_DIR/hooks/antenna-stage.mjs" "$skill/hooks/"
-  cp "$SKILL_DIR/hooks/antenna-stage.mjs" "$tmpdir/hooks/transforms/"
+  cp "$SKILL_DIR/lib/v163-staging-cleanup.sh" "$skill/lib/"
   printf '{}\n' > "$skill/antenna-config.json"
   printf '{}\n' > "$skill/antenna-peers.json"
   printf '[]\n' > "$skill/antenna-inbox.json"
@@ -69,7 +66,7 @@ run_case() {
   done
   assert_no_antenna "$gateway" "$name"
   assert_hooks_clean "$gateway" "$name"
-  [[ ! -e "$tmpdir/hooks/transforms/antenna-stage.mjs" ]] || fail "$name: canonical transform still present"
+  [[ ! -e "$tmpdir/hooks/transforms/antenna-stage.mjs" ]] || fail "$name: staging transform still present"
   rm -rf "$tmpdir"
   pass "$name"
 }

@@ -22,11 +22,10 @@ mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/agent/memory" "$OLD/bin" 
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
 cp "$ROOT/lib/gateway-roster.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
-cp "$ROOT/lib/hook-staging.sh" "$NEW/lib/"
+cp "$ROOT/lib/v163-staging-cleanup.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"
 cp "$ROOT/lib/relay-policy/manifest.sha256" "$NEW/lib/relay-policy/"
 cp "$ROOT/agent/AGENTS.md" "$NEW/agent/"
-cp "$ROOT/hooks/antenna-stage.mjs" "$NEW/hooks/"
 cp "$ROOT/bin/antenna.sh" "$NEW/bin/"
 printf '#!/usr/bin/env bash\n' > "$OLD/bin/antenna.sh"
 chmod +x "$OLD/bin/antenna.sh" "$NEW/bin/antenna.sh" "$NEW/scripts/antenna-upgrade.sh"
@@ -57,7 +56,25 @@ cat > "$GATEWAY" <<JSON
       }
     }
   },
-  "hooks":{"enabled":true,"token":"keep-token"},
+  "hooks":{
+    "enabled":true,
+    "allowRequestSessionKey":true,
+    "allowedAgentIds":["antenna"],
+    "allowedSessionKeyPrefixes":["hook:"],
+    "token":"keep-token",
+    "mappings":[{
+      "id":"antenna-deterministic-staging",
+      "match":{"path":"antenna"},
+      "action":"agent",
+      "agentId":"antenna",
+      "wakeMode":"now",
+      "name":"Antenna",
+      "sessionKey":"hook:antenna",
+      "deliver":false,
+      "allowUnsafeExternalContent":false,
+      "transform":{"module":"antenna-stage.mjs","export":"default"}
+    }]
+  },
   "bindings":[{"agentId":"betty","match":{"channel":"signal"}}],
   "unknownTop":{"keep":true}
 }
@@ -106,10 +123,11 @@ check "8.1 upgrade leaves private rollback backup" bash -c \
   _ "$GATEWAY"
 check "8.1 upgrade repoints existing CLI link" test \
   "$(readlink -f "$HOME_DIR/.local/bin/antenna")" = "$NEW/bin/antenna.sh"
-check "8.1 upgrade adds mapping and OpenClaw-required hook prefix" jq -e '
-  (.hooks.mappings|map(.id)|index("antenna-deterministic-staging"))!=null
+check "8.1 upgrade removes v1.6.3 mapping and preserves hook prefix" jq -e '
+  ((.hooks.mappings // [])|map(.id)|index("antenna-deterministic-staging"))==null
   and (.hooks.allowedSessionKeyPrefixes|index("hook:"))!=null' "$GATEWAY"
-check "8.1 upgrade installs canonical transform" cmp -s "$ROOT/hooks/antenna-stage.mjs" "$HOME_DIR/.openclaw/hooks/transforms/antenna-stage.mjs"
+check "8.1 upgrade leaves no staging transform" test \
+  ! -e "$HOME_DIR/.openclaw/hooks/transforms/antenna-stage.mjs"
 check "8.1 destination has no retired relay workspace files" bash -c \
   '[[ ! -e "$1/agent/HEARTBEAT.md" && ! -e "$1/agent/TOOLS.md" ]]' _ "$NEW"
 

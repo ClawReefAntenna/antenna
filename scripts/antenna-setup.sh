@@ -32,8 +32,8 @@ source "$SKILL_DIR/lib/peers.sh"
 source "$SKILL_DIR/lib/gateway-roster.sh"
 # shellcheck source=../lib/relay-policy.sh
 source "$SKILL_DIR/lib/relay-policy.sh"
-# shellcheck source=../lib/hook-staging.sh
-source "$SKILL_DIR/lib/hook-staging.sh"
+# shellcheck source=../lib/v163-staging-cleanup.sh
+source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -190,7 +190,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
 
   # URL
   header "Step 2/7 — Reachable Endpoint — Where Do Peers Find You?"
-  info "This is the URL other peers use to reach your /hooks/antenna endpoint."
+  info "This is the URL other peers use to reach your /hooks/agent endpoint."
   info "Examples: https://myhost.tailXXXXX.ts.net  or  https://your-host.example.com"
   # REF-1313: loop until the operator gives us something that looks like a
   # reachable HTTPS URL. This prevents the 'url: "main"' class of typo from
@@ -341,7 +341,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
 
   header "Step 6/7 — Hooks Bearer Token — The Key to the Door"
   info "Path to the file containing your OpenClaw hooks bearer token."
-  info "This authenticates HTTP requests to /hooks/antenna."
+  info "This authenticates HTTP requests to /hooks/agent."
 
   # Autodiscovery: try reading from gateway config
   TOKEN_FILE=""
@@ -758,6 +758,13 @@ if [[ -n "$GATEWAY_CFG" ]]; then
   fi
 
   if [[ "$do_auto_register" == "true" ]]; then
+      relay_policy_reason=""
+      if ! relay_policy_require_canonical "$SKILL_DIR/agent/AGENTS.md" "agent/AGENTS.md" relay_policy_reason; then
+        err "Packaged relay policy is not canonical: $relay_policy_reason"
+        err "Restore agent/AGENTS.md from the original Antenna release package before setup."
+        exit 1
+      fi
+
       # Read the hooks token from the token file to register it in gateway config
       file_token=""
       existing_hooks_token=""
@@ -785,10 +792,21 @@ if [[ -n "$GATEWAY_CFG" ]]; then
         err "Gateway roster is not safe for automatic Antenna registration."
         exit 1
       fi
-      _transform_dir=""
-      if ! relay_policy_default_ok "$HOOK_STAGING_RELNAME" \
-          || ! hook_staging_resolve_transforms_dir "$GATEWAY_CFG" _transform_dir; then
-        err "Antenna's packaged hook transform is invalid or hooks.transformsDir is outside the safe OpenClaw hooks/transforms root."
+      _v163_mapping_audit="$(v163_staging_mapping_audit "$GATEWAY_CFG")" \
+        || { err "Could not audit the superseded v1.6.3 hook mapping."; exit 1; }
+      if [[ "$_v163_mapping_audit" == fail\|* ]]; then
+        err "Refusing customized/conflicting v1.6.3 hook mapping: ${_v163_mapping_audit#fail|}"
+        exit 1
+      fi
+      _v163_transform_dir=""
+      if ! v163_staging_resolve_transforms_dir "$GATEWAY_CFG" _v163_transform_dir; then
+        err "Cannot safely resolve hooks.transformsDir for v1.6.3 staging cleanup."
+        exit 1
+      fi
+      _v163_transform_live="$_v163_transform_dir/$V163_STAGING_MODULE"
+      _v163_transform_audit="$(v163_staging_transform_audit "$_v163_transform_live")"
+      if [[ "$_v163_transform_audit" == fail\|* ]]; then
+        err "Refusing customized/unsafe v1.6.3 transform: ${_v163_transform_audit#fail|}"
         exit 1
       fi
       _roster_kind="$GATEWAY_ROSTER_KIND"
@@ -813,19 +831,26 @@ if [[ -n "$GATEWAY_CFG" ]]; then
         fi
       done
       _roster_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-roster.XXXXXX")"
-      _hooks_base_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-hooks-base.XXXXXX")"
+      _gateway_base_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-hooks.XXXXXX")"
       _gateway_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-setup.XXXXXX")"
       if ! gateway_roster_write_setup_candidate \
           "$GATEWAY_CFG" "$_roster_candidate" "$AGENT_ID" "$RELAY_MODEL" "$SKILL_DIR/agent" "$_state_root"; then
-        rm -f -- "$_roster_candidate" "$_hooks_base_candidate" "$_gateway_candidate"
+        rm -f -- "$_roster_candidate" "$_gateway_base_candidate" "$_gateway_candidate"
         err "Could not construct a safe Antenna roster update."
         exit 1
       fi
-      if ! jq --arg aid "antenna" --arg file_token "$file_token" '
+      if ! jq --arg aid "antenna" --arg prefix "hook:" \
+          --arg agent_prefix "agent:${AGENT_ID}:" --arg file_token "$file_token" '
           .hooks = (if (.hooks | type) == "object" then .hooks else {} end)
           | .hooks.enabled = true
+          | .hooks.allowRequestSessionKey = true
           | .hooks.allowedAgentIds = ((.hooks.allowedAgentIds // []) |
               if (index($aid) | not) then . + [$aid] else . end)
+          | .hooks.allowedSessionKeyPrefixes = (
+              (.hooks.allowedSessionKeyPrefixes // [])
+              | if (index($prefix) | not) then . + [$prefix] else . end
+              | if (index($agent_prefix) | not) then . + [$agent_prefix] else . end
+            )
           | (if $file_token != "" and
                 ((.hooks.token // "") == "" or (.hooks.token == $file_token))
              then .hooks.token = $file_token else . end)
@@ -834,32 +859,29 @@ if [[ -n "$GATEWAY_CFG" ]]; then
           | .tools.sessions.visibility = "all"
           | .tools.agentToAgent = (if (.tools.agentToAgent | type) == "object" then .tools.agentToAgent else {} end)
           | .tools.agentToAgent.enabled = true
-        ' "$_roster_candidate" > "$_hooks_base_candidate"; then
-        rm -f -- "$_roster_candidate" "$_hooks_base_candidate" "$_gateway_candidate"
+        ' "$_roster_candidate" > "$_gateway_base_candidate"; then
+        rm -f -- "$_roster_candidate" "$_gateway_base_candidate" "$_gateway_candidate"
         err "Could not construct the complete gateway update."
         exit 1
       fi
       rm -f -- "$_roster_candidate"
-      if ! hook_staging_write_gateway_candidate "$_hooks_base_candidate" "$_gateway_candidate"; then
-        rm -f -- "$_hooks_base_candidate" "$_gateway_candidate"
-        err "Conflicting /hooks/antenna mapping or unsafe hook configuration; preserving all existing mappings."
+      if ! v163_staging_write_cleanup_candidate "$_gateway_base_candidate" "$_gateway_candidate"; then
+        rm -f -- "$_gateway_base_candidate" "$_gateway_candidate"
+        err "Could not remove the exact superseded v1.6.3 hook mapping."
         exit 1
       fi
-      rm -f -- "$_hooks_base_candidate"
-      _transform_action=""
-      if ! hook_staging_install_transform "$GATEWAY_CFG" _transform_action; then
-        rm -f -- "$_gateway_candidate"
-        err "Could not install the canonical Antenna hook transform without replacing foreign content."
-        exit 1
-      fi
+      rm -f -- "$_gateway_base_candidate"
       if ! gateway_config_commit_candidate \
           "$GATEWAY_CFG" "$_gateway_candidate" "antenna-pre-register"; then
         rm -f -- "$_gateway_candidate"
-        if [[ "$_transform_action" == "installed" ]]; then
-          hook_staging_remove_if_canonical "$_transform_dir/$HOOK_STAGING_MODULE" || true
-        fi
         err "Gateway candidate failed validation; the original config is unchanged."
         exit 1
+      fi
+      if [[ "$_v163_transform_audit" == pass\|* ]]; then
+        if ! v163_staging_remove_transform_if_canonical "$_v163_transform_live"; then
+          err "Gateway was updated, but the canonical v1.6.3 transform could not be removed: $_v163_transform_live"
+          exit 1
+        fi
       fi
 
       ok "Gateway update validated and committed atomically"
@@ -872,7 +894,10 @@ if [[ -n "$GATEWAY_CFG" ]]; then
       else
         ok "Registered Antenna agent in agents.$_roster_kind (sandbox off, least-privilege tools)"
       fi
-      ok "Dedicated /hooks/antenna mapping and deterministic staging transform installed"
+      ok "Hooks enabled and allowlists updated"
+      if [[ "$_v163_mapping_audit" == pass\|* || "$_v163_transform_audit" == pass\|* ]]; then
+        ok "Removed exact canonical v1.6.3 deterministic-staging residue"
+      fi
       case "$hooks_token_action" in
         registered) ok "Hooks token registered in gateway config" ;;
         unchanged) info "Gateway hooks.token already matched Antenna token" ;;
@@ -886,10 +911,11 @@ if [[ -n "$GATEWAY_CFG" ]]; then
       AUTO_REGISTERED=true
 
       # 6) Register exec allowlist for the antenna agent
-      #    The relay agent makes one shell call to the deterministic wrapper.
+      #    The relay agent stages the envelope and makes one shell call to the
+      #    deterministic wrapper.
       #    without requiring manual approval on each inbound message.
       if command -v openclaw &>/dev/null; then
-        _allowlist_cmds=("/usr/bin/bash")
+        _allowlist_cmds=("/usr/bin/bash" "/usr/bin/echo" "/usr/bin/jq" "/usr/bin/cat")
         for _cmd in "${_allowlist_cmds[@]}"; do
           # Resolve actual path in case of different distro layouts
           _real_cmd="$_cmd"
@@ -898,11 +924,14 @@ if [[ -n "$GATEWAY_CFG" ]]; then
           fi
           openclaw approvals allowlist add --agent antenna "$_real_cmd" >/dev/null 2>&1 || true
         done
-        ok "Exec allowlist configured for antenna agent (bash only)"
+        ok "Exec allowlist configured for antenna agent (bash, echo, jq, cat)"
       else
         warn "Could not configure exec allowlist (openclaw CLI not found)"
         info "You may need to approve exec commands manually or run:"
         info "  openclaw approvals allowlist add --agent antenna /usr/bin/bash"
+        info "  openclaw approvals allowlist add --agent antenna /usr/bin/echo"
+        info "  openclaw approvals allowlist add --agent antenna /usr/bin/jq"
+        info "  openclaw approvals allowlist add --agent antenna /usr/bin/cat"
       fi
 
   fi
@@ -972,20 +1001,10 @@ if [[ "$AUTO_REGISTERED" == "false" ]]; then
   echo -e "  ${BOLD}1. Enable hooks:${NC}"
   echo "     hooks:"
   echo "       enabled: true"
+  echo "       allowRequestSessionKey: true"
   echo "       token: <contents of your hooks token file>"
   echo "       allowedAgentIds: [\"antenna\"]"
-  echo "       allowedSessionKeyPrefixes: [\"hook:\"]"
-  echo "       mappings:"
-  echo "         - id: antenna-deterministic-staging"
-  echo "           match: { path: antenna }"
-  echo "           action: agent"
-  echo "           agentId: antenna"
-  echo "           sessionKey: hook:antenna"
-  echo "           deliver: false"
-  echo "           allowUnsafeExternalContent: false"
-  echo "           transform: { module: antenna-stage.mjs, export: default }"
-  echo "     Install the exact package hooks/antenna-stage.mjs atomically under"
-  echo "     the gateway config's hooks/transforms directory before restarting."
+  echo "       allowedSessionKeyPrefixes: [\"hook:\", \"agent:${AGENT_ID}:\"]"
   echo ""
   echo -e "  ${BOLD}2. Register the Antenna agent (sandbox off + least-privilege):${NC}"
   echo "     agents:"
@@ -1009,6 +1028,9 @@ if [[ "$AUTO_REGISTERED" == "false" ]]; then
   echo ""
   echo -e "  ${BOLD}4. Allow exec for the relay agent (no manual approval needed):${NC}"
   echo "     openclaw approvals allowlist add --agent antenna /usr/bin/bash"
+  echo "     openclaw approvals allowlist add --agent antenna /usr/bin/echo"
+  echo "     openclaw approvals allowlist add --agent antenna /usr/bin/jq"
+  echo "     openclaw approvals allowlist add --agent antenna /usr/bin/cat"
   echo ""
   echo -e "  ${BOLD}5. Restart your gateway:${NC}"
   echo "     openclaw gateway restart"

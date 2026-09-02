@@ -27,7 +27,6 @@ RELAY_POLICY_MANIFEST="$RELAY_POLICY_DIR/manifest.sha256"
 # Unique to Antenna and absent from OpenClaw's generic workspace AGENTS.md
 # template, so identity holds even when a file has been legitimately edited.
 RELAY_POLICY_MARKER='antenna-relay-policy: id=antenna-relay-agent'
-RELAY_TRANSFORM_MARKER='antenna-hook-transform: id=antenna-deterministic-staging'
 
 # relay_policy_sha256 <file> — print lowercase hex SHA-256, or fail.
 relay_policy_sha256() {
@@ -56,16 +55,12 @@ relay_policy_expected_hash() {
 
 # relay_policy_default_file <relname> — absolute path to the packaged default.
 relay_policy_default_file() {
-  case "$1" in
-    hooks/antenna-stage.mjs) printf '%s/../../hooks/antenna-stage.mjs\n' "$RELAY_POLICY_DIR" ;;
-    *) printf '%s\n' "$RELAY_POLICY_DIR/$1" ;;
-  esac
+  printf '%s\n' "$RELAY_POLICY_DIR/$1"
 }
 
 # relay_policy_has_marker <file> — 0 if the file carries the identity marker.
 relay_policy_has_marker() {
-  local f="$1" relname="${2:-agent/AGENTS.md}" marker="$RELAY_POLICY_MARKER"
-  [[ "$relname" == "hooks/antenna-stage.mjs" ]] && marker="$RELAY_TRANSFORM_MARKER"
+  local f="$1" marker="$RELAY_POLICY_MARKER"
   [[ -f "$f" ]] || return 1
   grep -Fq -- "$marker" "$f"
 }

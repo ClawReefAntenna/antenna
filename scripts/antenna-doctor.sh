@@ -25,8 +25,8 @@ source "$SKILL_DIR/lib/config.sh"
 source "$SKILL_DIR/lib/gateway-roster.sh"
 # shellcheck source=../lib/relay-policy.sh
 source "$SKILL_DIR/lib/relay-policy.sh"
-# shellcheck source=../lib/hook-staging.sh
-source "$SKILL_DIR/lib/hook-staging.sh"
+# shellcheck source=../lib/v163-staging-cleanup.sh
+source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -534,7 +534,12 @@ else
   fi
 
   allow_session=$(jq -r '.hooks.allowRequestSessionKey // false' "$GATEWAY_CONFIG" 2>/dev/null)
-  info "hooks.allowRequestSessionKey = $allow_session (Antenna's static mapping does not require request-selected sessions)"
+  if [[ "$allow_session" == "true" ]]; then
+    pass "hooks.allowRequestSessionKey = true"
+  else
+    fail "hooks.allowRequestSessionKey is not true"
+    hint "Set hooks.allowRequestSessionKey: true in gateway config"
+  fi
 
   # Check allowedAgentIds contains "antenna"
   has_antenna_agent=$(jq -r '.hooks.allowedAgentIds // [] | map(select(. == "antenna")) | length' "$GATEWAY_CONFIG" 2>/dev/null)
@@ -545,29 +550,45 @@ else
     hint "Add \"antenna\" to hooks.allowedAgentIds array"
   fi
 
-  mapping_audit="$(hook_staging_mapping_audit "$GATEWAY_CONFIG")"
-  case "$mapping_audit" in
-    pass\|*) pass "Dedicated /hooks/antenna mapping is canonical" ;;
-    missing\|*) fail "Dedicated /hooks/antenna mapping is missing" ;;
-    *) fail "Dedicated /hooks/antenna mapping is unsafe: ${mapping_audit#fail|}" ;;
-  esac
-
-  prefix_audit="$(hook_staging_session_prefix_audit "$GATEWAY_CONFIG")"
-  case "$prefix_audit" in
-    pass\|*) pass "Antenna hook-session namespace is permitted (${prefix_audit#pass|})" ;;
-    *) fail "Antenna hook-session namespace is blocked: ${prefix_audit#fail|}" ;;
-  esac
-
-  transform_dir=""
-  if ! hook_staging_resolve_transforms_dir "$GATEWAY_CONFIG" transform_dir; then
-    fail "hooks.transformsDir is outside the safe OpenClaw hooks/transforms root or has symlinked ancestors"
+  has_hook_prefix=$(jq -r '.hooks.allowedSessionKeyPrefixes // [] | map(select(. == "hook:" or . == "hook:antenna" or startswith("hook"))) | length' "$GATEWAY_CONFIG" 2>/dev/null)
+  if [[ "$has_hook_prefix" -gt 0 ]]; then
+    pass "hooks.allowedSessionKeyPrefixes includes hook prefix"
   else
-    transform_audit="$(hook_staging_transform_audit "$transform_dir/$HOOK_STAGING_MODULE")"
-    case "$transform_audit" in
-      pass\|*) pass "Installed Antenna staging transform matches package manifest (${transform_audit#pass|})" ;;
-      missing\|*) fail "Antenna staging transform is missing: $transform_dir/$HOOK_STAGING_MODULE" ;;
-      *) fail "Antenna staging transform integrity failed: ${transform_audit#fail|}" ;;
+    warn "hooks.allowedSessionKeyPrefixes may not include \"hook:\" or \"hook:antenna\""
+    hint "Add \"hook:antenna\" to hooks.allowedSessionKeyPrefixes array"
+  fi
+
+  v163_mapping_audit="$(v163_staging_mapping_audit "$GATEWAY_CONFIG")"
+  case "$v163_mapping_audit" in
+    pass\|*)
+      warn "Superseded v1.6.3 /hooks/antenna mapping remains installed"
+      hint "Run the v1.6.4 upgrade path to remove the exact canonical mapping safely"
+      ;;
+    missing\|*) : ;;
+    *) fail "Customized/conflicting v1.6.3 hook mapping requires manual review: ${v163_mapping_audit#fail|}" ;;
+  esac
+
+  v163_transform_dir=""
+  if ! v163_staging_resolve_transforms_dir "$GATEWAY_CONFIG" v163_transform_dir; then
+    fail "Cannot safely resolve hooks.transformsDir while auditing v1.6.3 residue"
+  else
+    v163_transform_live="$v163_transform_dir/$V163_STAGING_MODULE"
+    v163_transform_audit="$(v163_staging_transform_audit "$v163_transform_live")"
+    case "$v163_transform_audit" in
+      pass\|*)
+        warn "Superseded v1.6.3 staging transform remains installed: $v163_transform_live"
+        hint "Run the v1.6.4 upgrade path to remove the exact canonical transform safely"
+        ;;
+      missing\|*) : ;;
+      *) fail "Customized/unsafe v1.6.3 transform requires manual review: ${v163_transform_audit#fail|}" ;;
     esac
+  fi
+
+  v163_temp_dir="${TMPDIR:-/tmp}/antenna-relay-$(id -u)"
+  if [[ -d "$v163_temp_dir" ]] \
+      && find "$v163_temp_dir" -maxdepth 1 -type f -name 'antenna-*.envelope' -print -quit 2>/dev/null | grep -q .; then
+    warn "Superseded v1.6.3 staged-envelope files remain under $v163_temp_dir"
+    hint "Review and remove those private files after confirming no v1.6.3 relay is active"
   fi
 
   echo ""

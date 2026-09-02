@@ -2,7 +2,7 @@
 # antenna-test-suite.sh — Two-tier Antenna model/script tester with comparison
 #
 # Test A: Script validation (no model, no network)
-# Test B: Model → one exact staged-file exec tool call
+# Test B: Model → raw-envelope write tool call
 #
 # Usage:
 #   antenna-test-suite.sh [--model <model>] [--models <m1,m2,...>] [--tier A|B|all]
@@ -91,7 +91,7 @@ Usage: antenna-test-suite.sh [options]
 
 Tiers:
   A  Script validation — tests antenna-relay.sh parsing (no model, no network)
-  B  Model → tool call — does the model call exec with relay script?
+  B  Model → tool call — does the model write the raw envelope exactly once?
 
 Examples:
   antenna-test-suite.sh --tier A
@@ -1022,7 +1022,7 @@ Wrong signature test.
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TIER B: Model → exec tool call
+# TIER B: Model → exact raw-envelope write tool call
 # ══════════════════════════════════════════════════════════════════════════════
 
 run_tier_b() {
@@ -1041,16 +1041,16 @@ run_tier_b() {
 
   if [[ "$check" == "unsupported_provider" ]]; then
     skip "B.1" "API call" "Provider not supported: ${model%%/*}" "$model"
-    skip "B.2" "First tool call is exec" "Skipped (no API)" "$model"
-    skip "B.3" "Staged-file relay command shape" "Skipped (no API)" "$model"
-    skip "B.4" "Single-tool stop shape" "Skipped (no API)" "$model"
+    skip "B.2" "First tool call is write" "Skipped (no API)" "$model"
+    skip "B.3" "Write path/content shape" "Skipped (no API)" "$model"
+    skip "B.4" "Tool-call stop shape" "Skipped (no API)" "$model"
     return
   fi
   if [[ "$check" == "no_key" ]]; then
     skip "B.1" "API call" "No API key for ${model%%/*}" "$model"
-    skip "B.2" "First tool call is exec" "Skipped (no key)" "$model"
-    skip "B.3" "Staged-file relay command shape" "Skipped (no key)" "$model"
-    skip "B.4" "Single-tool stop shape" "Skipped (no key)" "$model"
+    skip "B.2" "First tool call is write" "Skipped (no key)" "$model"
+    skip "B.3" "Write path/content shape" "Skipped (no key)" "$model"
+    skip "B.4" "Tool-call stop shape" "Skipped (no key)" "$model"
     return
   fi
 
@@ -1067,10 +1067,18 @@ run_tier_b() {
   local allowed_test_session
   allowed_test_session=$(jq -r '.allowed_inbound_sessions[0] // .default_target_session // "agent:betty:main"' "$CONFIG_FILE" 2>/dev/null)
 
-  local staged_fixture="/tmp/antenna-relay-$(id -u)/antenna-123e4567-e89b-42d3-a456-426614174000.envelope"
-  local test_message="[ANTENNA_STAGED_FILE_V1]
-path: ${staged_fixture}
-Run the one permitted relay shell call for this staged path."
+  local test_message="[ANTENNA_RELAY]
+from: ${SELF_PEER:-testhost}
+target_session: ${allowed_test_session}
+timestamp: ${test_ts}
+
+[Antenna Test Suite — Tier B]
+model_under_test: ${model}
+host: $(hostname)
+test_time: ${test_ts}
+
+This automated compatibility probe verifies that the model writes the complete raw inbound envelope to a unique private temp file before invoking the relay wrapper.
+[/ANTENNA_RELAY]"
 
   # Build request based on provider format
   local request_input result
@@ -1122,41 +1130,43 @@ Run the one permitted relay shell call for this staged path."
     local err_msg
     err_msg=$(echo "$raw_response" | jq -r '.error.message // .error.type // "unknown"' 2>/dev/null || echo "HTTP $http_code")
     fail "B.1" "API call" "HTTP $http_code: $err_msg" "$model"
-    skip "B.2" "First tool call is exec" "Skipped (API failed)" "$model"
-    skip "B.3" "Staged-file relay command shape" "Skipped (API failed)" "$model"
-    skip "B.4" "Single-tool stop shape" "Skipped (API failed)" "$model"
+    skip "B.2" "First tool call is write" "Skipped (API failed)" "$model"
+    skip "B.3" "Write path/content shape" "Skipped (API failed)" "$model"
+    skip "B.4" "Tool-call stop shape" "Skipped (API failed)" "$model"
     return
   fi
   pass "B.1" "API call succeeded (${elapsed}ms)" "$model"
 
   if [[ -z "$tool_name" || "$tool_name" == "null" ]]; then
     fail "B.2" "Produced tool call" "Model returned text instead of tool call" "$model"
-    skip "B.3" "Staged-file relay command shape" "No tool call" "$model"
-    skip "B.4" "Temp-file relay exec command shape" "No tool call" "$model"
+    skip "B.3" "Write path/content shape" "No tool call" "$model"
+    skip "B.4" "Tool-call stop shape" "No tool call" "$model"
     return
   fi
 
-  if [[ "$tool_name" == "exec" && "$tool_call_count" == "1" ]]; then
-    pass "B.2" "First and only tool call is 'exec'" "$model"
+  if [[ "$tool_name" == "write" && "$tool_call_count" == "1" ]]; then
+    pass "B.2" "First and only tool call is 'write'" "$model"
   else
-    fail "B.2" "Exactly one tool call and it is 'exec'" "Got count=$tool_call_count first='$tool_name'" "$model"
-    skip "B.3" "Staged-file relay command shape" "First tool was not exec" "$model"
-    skip "B.4" "Single-tool stop shape" "First tool was not exec" "$model"
+    fail "B.2" "Exactly one first-turn tool call and it is 'write'" "Got count=$tool_call_count first='$tool_name'" "$model"
+    skip "B.3" "Write path/content shape" "First tool was not write" "$model"
+    skip "B.4" "Tool-call stop shape" "First tool was not write" "$model"
     return
   fi
 
-  local exec_command
-  exec_command=$(echo "$tool_args" | jq -r '.command // ""' 2>/dev/null)
-  if [[ "$exec_command" == "bash ../scripts/antenna-relay-deliver.sh $staged_fixture" ]]; then
-    pass "B.3" "Exec uses the exact staged path and relay wrapper" "$model"
+  local write_path write_content
+  write_path=$(echo "$tool_args" | jq -r '.path // ""' 2>/dev/null)
+  write_content=$(echo "$tool_args" | jq -r '.content // ""' 2>/dev/null)
+  if echo "$write_path" | grep -Eq '^/tmp/antenna-relay/msg-[A-Za-z0-9._-]+\.txt$' \
+      && [[ "$write_content" == "$test_message" ]]; then
+    pass "B.3" "Write uses a unique temp path and byte-identical envelope content" "$model"
   else
-    fail "B.3" "Staged-file relay command shape" "Got '$exec_command'" "$model"
+    fail "B.3" "Write path/content shape" "Path=$write_path exact_content=$([[ "$write_content" == "$test_message" ]] && echo yes || echo no)" "$model"
   fi
 
   local finish_reason
   finish_reason=$(echo "$raw_response" | jq -r '.choices[0].finish_reason // .stop_reason // ""' 2>/dev/null)
   if [[ "$tool_call_count" == "1" && ( "$finish_reason" == "tool_calls" || "$finish_reason" == "tool_use" || "$finish_reason" == "" ) ]]; then
-    pass "B.4" "Tier B stops after the one permitted tool call" "$model"
+    pass "B.4" "Tier B stops after the required first write call" "$model"
   else
     fail "B.4" "Tier B stop shape" "Unexpected finish_reason=$finish_reason" "$model"
   fi

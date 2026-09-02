@@ -82,6 +82,9 @@ check "real 7.1 setup commits hooks and session policy together" jq -e \
    and (.hooks.mappings|map(.id)|index("antenna-deterministic-staging"))!=null
    and .tools.sessions.visibility=="all"
    and .tools.agentToAgent.enabled==true' "$list_gateway"
+check "real 7.1 setup separates relay workspace from agent state" jq -e --arg workspace "$list_skill/agent" --arg state "$list_home/.openclaw/agents/antenna/agent" \
+  '(.agents.list[]|select(.id=="antenna")|.workspace)==$workspace
+   and (.agents.list[]|select(.id=="antenna")|.agentDir)==$state' "$list_gateway"
 check "real 7.1 setup installs canonical transform" cmp -s "$ROOT/hooks/antenna-stage.mjs" "$list_home/.openclaw/hooks/transforms/antenna-stage.mjs"
 
 IFS=$'\t' read -r entries_case entries_skill entries_home < <(
@@ -104,6 +107,9 @@ check "real 8.1 setup preserves bindings and writes Antenna policy" jq -e \
   '.bindings[0].agentId=="betty"
    and .agents.entries.antenna.sandbox.mode=="off"
    and (.agents.entries.antenna.tools.deny|index("group:web"))!=null' "$entries_gateway"
+check "real 8.1 setup separates relay workspace from agent state" jq -e --arg workspace "$entries_skill/agent" --arg state "$entries_home/.openclaw/agents/antenna/agent" \
+  '.agents.entries.antenna.workspace==$workspace
+   and .agents.entries.antenna.agentDir==$state' "$entries_gateway"
 check "real 8.1 setup installs canonical transform" cmp -s "$ROOT/hooks/antenna-stage.mjs" "$entries_home/.openclaw/hooks/transforms/antenna-stage.mjs"
 
 IFS=$'\t' read -r reject_case reject_skill reject_home < <(
@@ -126,6 +132,23 @@ check "candidate validation rejection rolls back newly installed transform" test
 check "successful setup rollback backup is private" bash -c \
   'files=("$1".antenna-pre-register.*); [[ -f "${files[0]}" && "$(stat -c %a "${files[0]}")" == 600 ]]' \
   _ "$entries_gateway"
+
+IFS=$'\t' read -r db_case db_skill db_home < <(
+  make_case workspace-db 2026.8.1 '{
+    "agents":{"ownership":"explicit","defaults":{"systemAgent":{"agentId":"betty"}},"entries":{"betty":{}}},
+    "gateway":{"port":18789},"sentinel":"unchanged"
+  }'
+)
+db_gateway="$db_home/.openclaw/openclaw.json"
+printf 'foreign state\n' > "$db_skill/agent/openclaw-agent.sqlite"
+db_before_hash="$(sha256sum "$db_gateway" | awk '{print $1}')"
+if run_setup "$db_case" "$db_skill" "$db_home" >/dev/null 2>&1; then
+  fail "setup refuses OpenClaw database inside relay workspace"
+else
+  pass "setup refuses OpenClaw database inside relay workspace"
+fi
+check "workspace-database refusal leaves gateway byte-identical" test \
+  "$db_before_hash" = "$(sha256sum "$db_gateway" | awk '{print $1}')"
 
 printf 'SUMMARY %d passed, %d failed\n' "$PASS" "$FAIL"
 [[ "$FAIL" -eq 0 ]]

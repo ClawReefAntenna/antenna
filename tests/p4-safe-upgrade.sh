@@ -101,8 +101,8 @@ check "7.x upgrade retains legacy HEARTBEAT.md" cmp -s \
   "$OLD/agent/HEARTBEAT.md" "$NEW/agent/HEARTBEAT.md"
 check "private runtime permissions remain private" test "$(stat -c %a "$NEW/secrets/peer.secret")" = 600
 check "copied private runtime directories are hardened" test "$(stat -c %a "$NEW/secrets")" = 700
-check "gateway agent paths point to new release" jq -e --arg path "$NEW/agent" \
-  '.agents.list[] | select(.id=="antenna") | .agentDir==$path and .workspace==$path' "$GATEWAY"
+check "gateway separates new workspace from stable agent state" jq -e --arg workspace "$NEW/agent" --arg state "$HOME_DIR/.openclaw/agents/antenna/agent" \
+  '.agents.list[] | select(.id=="antenna") | .agentDir==$state and .workspace==$workspace' "$GATEWAY"
 check "gateway custom agent tools and unrelated config survive" jq -e \
   '.hooks.token=="keep-me" and (.agents.list[] | select(.id=="antenna") | .tools.exec.security)=="allowlist" and (.agents.list[] | select(.id=="betty") | .workspace)=="/keep/betty"' "$GATEWAY"
 check "gateway backup is private and present" bash -c 'f=("$1".antenna-upgrade-backup-*); [[ -f "${f[0]}" && "$(stat -c %a "${f[0]}")" == 600 ]]' _ "$GATEWAY"

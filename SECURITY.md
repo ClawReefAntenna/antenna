@@ -63,6 +63,10 @@ commitments are load-bearing and in scope for vulnerability reports:
   before dispatch. The model receives only the safe path instruction, makes one
   shell-tool call, and never parses, encodes, copies, writes, or sees signed
   envelope content. There is no `/hooks/agent` fallback.
+- **Separated state boundary —** Antenna owns the relay workspace policy, but
+  OpenClaw credentials, sessions, and databases remain under the stable
+  `agentDir` in OpenClaw's state root. They never enter the replaceable skill
+  tree.
 - **Layered trust in v1.6.3 —** HTTPS transport, hook bearer token, locally
   pinned Ed25519 sender public keys, exact message-ID replay rejection, peer
   allowlists (inbound and outbound), session allowlist (full keys only),

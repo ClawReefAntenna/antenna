@@ -737,15 +737,6 @@ echo ""
 # ── Attempt automatic gateway registration ──────────────────────────────────
 AUTO_REGISTERED=false
 if [[ -n "$GATEWAY_CFG" ]]; then
-  # Detect whether the gateway build supports systemPrompt in agent entries
-  # by checking existing agents or trying a conservative approach (omit it)
-  AGENT_ENTRY_FIELDS='{
-    id: "antenna",
-    name: "Antenna Relay",
-    model: $model,
-    agentDir: $agentdir
-  }'
-
   # Check if openclaw CLI is available for agent/hooks management
   OPENCLAW_BIN=""
   for oc_candidate in "openclaw" "$HOME/.local/bin/openclaw" "/usr/local/bin/openclaw"; do
@@ -813,11 +804,19 @@ if [[ -n "$GATEWAY_CFG" ]]; then
       fi
 
       _gateway_dir="$(dirname "$GATEWAY_CFG")"
+      _state_root="$(realpath -m "${OPENCLAW_STATE_DIR:-$_gateway_dir}")"
+      for _db_path in "$SKILL_DIR/agent/openclaw-agent.sqlite" "$SKILL_DIR/agent/openclaw-agent.sqlite-wal" "$SKILL_DIR/agent/openclaw-agent.sqlite-shm"; do
+        if [[ -e "$_db_path" || -L "$_db_path" ]]; then
+          err "OpenClaw state is present inside the Antenna workspace: $_db_path"
+          err "Move it through OpenClaw's supported state/Doctor workflow before rerunning setup; Antenna will not place agent state inside a replaceable skill tree."
+          exit 1
+        fi
+      done
       _roster_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-roster.XXXXXX")"
       _hooks_base_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-hooks-base.XXXXXX")"
       _gateway_candidate="$(mktemp "$_gateway_dir/.openclaw.antenna-setup.XXXXXX")"
       if ! gateway_roster_write_setup_candidate \
-          "$GATEWAY_CFG" "$_roster_candidate" "$AGENT_ID" "$RELAY_MODEL" "$SKILL_DIR/agent"; then
+          "$GATEWAY_CFG" "$_roster_candidate" "$AGENT_ID" "$RELAY_MODEL" "$SKILL_DIR/agent" "$_state_root"; then
         rm -f -- "$_roster_candidate" "$_hooks_base_candidate" "$_gateway_candidate"
         err "Could not construct a safe Antenna roster update."
         exit 1
@@ -993,7 +992,7 @@ if [[ "$AUTO_REGISTERED" == "false" ]]; then
   echo "       - id: antenna"
   echo "         name: Antenna Relay"
   echo "         model: $RELAY_MODEL"
-  echo "         agentDir: $SKILL_DIR/agent"
+  echo "         agentDir: ${OPENCLAW_STATE_DIR:-$HOME/.openclaw}/agents/antenna/agent"
   echo "         workspace: $SKILL_DIR/agent"
   echo "         sandbox:"
   echo "           mode: off"

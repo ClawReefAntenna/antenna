@@ -463,6 +463,9 @@ adds deterministic `/hooks/antenna` pre-model staging plus checksum-backed
 integrity contracts for the Antenna-owned relay policy and transform:
 side-by-side upgrade refuses an invalid `agent/AGENTS.md` before any mutation,
 and Doctor audits it read-only with an explicit, backup-first restore path.
+The package-owned relay policy remains in the Antenna workspace while
+OpenClaw auth and session state stays in the stable
+`~/.openclaw/agents/antenna/agent` directory.
 Receivers without the v1.6.3 endpoint fail closed; there is no `/hooks/agent`
 fallback. Listed Public Group fan-out remains pending until ClawReef Registry's
 separate URL construction is reconciled to `/hooks/antenna` and requalified.

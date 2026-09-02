@@ -193,7 +193,7 @@ gateway_roster_has_agent() {
 }
 
 gateway_roster_write_setup_candidate() {
-  local source="$1" destination="$2" primary_id="$3" model="$4" agent_dir="$5"
+  local source="$1" destination="$2" primary_id="$3" model="$4" workspace_dir="$5" state_root="$6"
   [[ "$primary_id" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]{0,63}$ ]] || {
     gateway_roster_error "invalid primary agent ID: $primary_id"
     return 1
@@ -206,21 +206,21 @@ gateway_roster_write_setup_candidate() {
 
   case "$GATEWAY_ROSTER_KIND" in
     list)
-      jq --arg primary "$primary_id" --arg model "$model" --arg agentdir "$agent_dir" '
+      jq --arg primary "$primary_id" --arg model "$model" --arg workspace "$workspace_dir" --arg state_root "$state_root" '
         .agents = (if (.agents | type) == "object" then .agents else {} end)
         | if ((.agents.list // []) | length) == 0 then
             .agents.list = [{
               id: $primary,
               name: "Main Agent",
               model: (.agents.defaults.model.primary // "openai/gpt-4o-mini"),
-              agentDir: (.agents.defaults.workspace // "~/clawd"),
+              agentDir: ($state_root + "/agents/" + $primary + "/agent"),
               workspace: (.agents.defaults.workspace // "~/clawd")
             }]
           else . end
         | if any(.agents.list[]; ((.id // "") | ascii_downcase) == "antenna") then .
           else .agents.list += [{
             id: "antenna", name: "Antenna Relay", model: $model,
-            agentDir: $agentdir, workspace: $agentdir,
+            agentDir: ($state_root + "/agents/antenna/agent"), workspace: $workspace,
             sandbox: {mode: "off"},
             tools: {deny: [
               "group:web", "browser", "image", "image_generate",
@@ -241,7 +241,7 @@ gateway_roster_write_setup_candidate() {
       ' "$source" > "$destination"
       ;;
     entries)
-      jq --arg primary "$primary_id" --arg model "$model" --arg agentdir "$agent_dir" '
+      jq --arg primary "$primary_id" --arg model "$model" --arg workspace "$workspace_dir" --arg state_root "$state_root" '
         .agents = (if (.agents | type) == "object" then .agents else {} end)
         | if ((.agents.entries // {}) | length) == 0 then
             .agents.ownership = "explicit"
@@ -256,7 +256,7 @@ gateway_roster_write_setup_candidate() {
                 ($primary): {
                   name: "Main Agent",
                   model: (.agents.defaults.model.primary // "openai/gpt-4o-mini"),
-                  agentDir: (.agents.defaults.workspace // "~/clawd"),
+                  agentDir: ($state_root + "/agents/" + $primary + "/agent"),
                   workspace: (.agents.defaults.workspace // "~/clawd")
                 }
               }
@@ -279,7 +279,7 @@ gateway_roster_write_setup_candidate() {
               else . end
             | .agents.entries.antenna = {
                 name: "Antenna Relay", model: $model,
-                agentDir: $agentdir, workspace: $agentdir,
+                agentDir: ($state_root + "/agents/antenna/agent"), workspace: $workspace,
                 sandbox: {mode: "off"},
                 tools: {deny: [
                   "group:web", "browser", "image", "image_generate",
@@ -288,6 +288,8 @@ gateway_roster_write_setup_candidate() {
               }
           end
         | (.agents.entries | keys[] | select(ascii_downcase == "antenna")) as $antenna_key
+        | .agents.entries[$antenna_key].agentDir = ($state_root + "/agents/antenna/agent")
+        | .agents.entries[$antenna_key].workspace = $workspace
         | .agents.entries[$antenna_key].sandbox =
             (if (.agents.entries[$antenna_key].sandbox | type) == "object"
              then .agents.entries[$antenna_key].sandbox else {} end)
@@ -307,7 +309,7 @@ gateway_roster_write_setup_candidate() {
 }
 
 gateway_roster_write_agent_paths_candidate() {
-  local source="$1" destination="$2" agent_dir="$3"
+  local source="$1" destination="$2" workspace_dir="$3" state_root="$4"
   gateway_roster_prepare_mutation "$source" || return 1
   gateway_roster_has_agent "$source" antenna "$GATEWAY_ROSTER_KIND" || {
     gateway_roster_error "gateway config has no existing Antenna agent"
@@ -315,17 +317,17 @@ gateway_roster_write_agent_paths_candidate() {
   }
   case "$GATEWAY_ROSTER_KIND" in
     list)
-      jq --arg agentdir "$agent_dir" '
+      jq --arg workspace "$workspace_dir" --arg state_root "$state_root" '
         .agents.list = [.agents.list[] |
           if ((.id // "") | ascii_downcase) == "antenna"
-          then .agentDir = $agentdir | .workspace = $agentdir else . end]
+          then .agentDir = ($state_root + "/agents/antenna/agent") | .workspace = $workspace else . end]
       ' "$source" > "$destination"
       ;;
     entries)
-      jq --arg agentdir "$agent_dir" '
+      jq --arg workspace "$workspace_dir" --arg state_root "$state_root" '
         (.agents.entries | keys[] | select(ascii_downcase == "antenna")) as $key
-        | .agents.entries[$key].agentDir = $agentdir
-        | .agents.entries[$key].workspace = $agentdir
+        | .agents.entries[$key].agentDir = ($state_root + "/agents/antenna/agent")
+        | .agents.entries[$key].workspace = $workspace
       ' "$source" > "$destination"
       ;;
   esac

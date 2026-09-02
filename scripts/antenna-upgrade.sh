@@ -39,8 +39,8 @@ The destination is the Antenna tree containing this command. The migration:
     secrets, replay/rate state, logs, and ignored agent-local runtime files
     without changing the source;
   - updates only install_path in the copied Antenna config;
-  - backs up openclaw.json and repoints the existing Antenna agent's agentDir
-    and workspace to this release; and
+  - backs up openclaw.json, repoints the existing Antenna workspace to this
+    release, and keeps agentDir under OpenClaw's stable state root; and
   - repoints an existing Antenna CLI symlink when it targets the old release.
 
 It does not silently convert legacy peer authentication. Re-pair every old
@@ -84,11 +84,19 @@ if ! relay_policy_require_canonical "$SKILL_DIR/agent/AGENTS.md" "agent/AGENTS.m
    Restore this release package's agent/AGENTS.md from the original Antenna download, then rerun the upgrade.
    No runtime state, gateway config, gateway backup, or CLI symlink was changed."
 fi
+for workspace_db in "$SKILL_DIR/agent/openclaw-agent.sqlite" "$SKILL_DIR/agent/openclaw-agent.sqlite-wal" "$SKILL_DIR/agent/openclaw-agent.sqlite-shm"; do
+  [[ ! -e "$workspace_db" && ! -L "$workspace_db" ]] || die \
+    "Destination Antenna workspace contains OpenClaw agent state: $workspace_db. Restore a clean release package and keep agentDir under OpenClaw's state directory."
+done
 
 SOURCE_CONFIG="$SOURCE_DIR/antenna-config.json"
 SOURCE_PEERS="$SOURCE_DIR/antenna-peers.json"
 [[ -f "$SOURCE_CONFIG" && ! -L "$SOURCE_CONFIG" ]] || die "Source antenna-config.json is missing or unsafe"
 [[ -f "$SOURCE_PEERS" && ! -L "$SOURCE_PEERS" ]] || die "Source antenna-peers.json is missing or unsafe"
+for source_db in "$SOURCE_DIR/agent/openclaw-agent.sqlite" "$SOURCE_DIR/agent/openclaw-agent.sqlite-wal" "$SOURCE_DIR/agent/openclaw-agent.sqlite-shm"; do
+  [[ ! -e "$source_db" && ! -L "$source_db" ]] || die \
+    "Source Antenna workspace contains OpenClaw agent state: $source_db. Stop OpenClaw and migrate that database into OpenClaw's stable agentDir before upgrading."
+done
 jq empty "$SOURCE_CONFIG" >/dev/null 2>&1 || die "Source antenna-config.json is invalid JSON"
 jq empty "$SOURCE_PEERS" >/dev/null 2>&1 || die "Source antenna-peers.json is invalid JSON"
 jq -e '[to_entries[] | select((.value | type) == "object" and .value.self == true)] | length == 1' \
@@ -245,12 +253,13 @@ chmod --reference="$stage/antenna-config.json" "$config_tmp" 2>/dev/null || chmo
 mv -- "$config_tmp" "$stage/antenna-config.json"
 
 gateway_dir="$(dirname "$GATEWAY_CONFIG")"
+openclaw_state_root="$(realpath -m "${OPENCLAW_STATE_DIR:-$gateway_dir}")"
 gateway_backup="$(mktemp "$GATEWAY_CONFIG.antenna-upgrade-backup-$(date +%Y%m%d-%H%M%S).XXXXXX")"
 gateway_paths_tmp="$(mktemp "$gateway_dir/.openclaw.antenna-paths.XXXXXX")"
 gateway_tmp="$(mktemp "$gateway_dir/.openclaw.antenna-upgrade.XXXXXX")"
 trap 'rm -f -- "$gateway_paths_tmp" "$gateway_tmp"; cleanup' EXIT
 gateway_roster_write_agent_paths_candidate \
-  "$GATEWAY_CONFIG" "$gateway_paths_tmp" "$SKILL_DIR/agent" \
+  "$GATEWAY_CONFIG" "$gateway_paths_tmp" "$SKILL_DIR/agent" "$openclaw_state_root" \
   || die "Could not construct the gateway path update"
 hook_staging_write_gateway_candidate "$gateway_paths_tmp" "$gateway_tmp" \
   || die "Could not add the dedicated /hooks/antenna mapping without changing unrelated mappings"
@@ -323,7 +332,8 @@ done
 
 ok "Copied runtime state without modifying $SOURCE_DIR"
 ok "Updated install_path to $SKILL_DIR"
-ok "Repointed gateway Antenna agentDir/workspace to $SKILL_DIR/agent"
+ok "Repointed gateway Antenna workspace to $SKILL_DIR/agent"
+ok "Kept Antenna agent state under $openclaw_state_root/agents/antenna/agent"
 ok "Installed dedicated /hooks/antenna mapping and deterministic staging transform"
 ok "Gateway backup: $gateway_backup"
 [[ "$repointed" -gt 0 ]] && ok "Repointed $repointed Antenna CLI symlink(s)" \

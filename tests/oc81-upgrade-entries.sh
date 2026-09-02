@@ -87,9 +87,9 @@ check "8.1 upgrade rewrites destination install path" test \
   "$(jq -r .install_path "$NEW/antenna-config.json")" = "$NEW"
 check "8.1 upgrade preserves entries-only roster" jq -e \
   '.agents.entries and (.agents|has("list")|not)' "$GATEWAY"
-check "8.1 upgrade changes only keyed Antenna paths" jq -e --arg path "$NEW/agent" \
-  '.agents.entries.antenna.agentDir==$path
-   and .agents.entries.antenna.workspace==$path
+check "8.1 upgrade separates keyed Antenna workspace and state" jq -e --arg workspace "$NEW/agent" --arg state "$HOME_DIR/.openclaw/agents/antenna/agent" \
+  '.agents.entries.antenna.agentDir==$state
+   and .agents.entries.antenna.workspace==$workspace
    and .agents.entries.betty.workspace=="/keep/betty"' "$GATEWAY"
 check "8.1 upgrade preserves ownership, defaults, policy, and unknown fields" jq -e \
   '.agents.ownership=="explicit"

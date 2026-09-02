@@ -64,6 +64,12 @@ protocol, trust grant, pairing method, or Reef feature is introduced.
   `hook:` allowlist prefix. The transform still creates only isolated
   `hook:antenna:<UUID>` sessions, and Antenna still has no `/hooks/agent`
   transport fallback.
+- **Relay workspace and OpenClaw agent state are separated.** Setup and upgrade
+  keep Antenna's package-owned policy in `workspace` while placing `agentDir`
+  under OpenClaw's stable state root. This prevents OAuth/session databases
+  from entering a replaceable skill tree or being rejected as foreign state
+  during startup. Setup and upgrade fail closed if a database is already
+  present inside the destination workspace.
 - **ClawReef Registry compatibility is prepared for qualification.** The
   reviewed Registry candidate now constructs `/hooks/antenna` fan-out URLs and
   sends only `{message}`. Listed Public Groups remain unqualified until the

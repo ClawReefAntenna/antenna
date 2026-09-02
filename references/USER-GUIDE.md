@@ -75,9 +75,11 @@ bash ~/clawd/skills/antenna-v1.6.3/bin/antenna.sh doctor
 
 The upgrade refuses a destination that already contains runtime state. It
 copies the old local state without modifying the source, rewrites only the
-copied `install_path`, backs up `openclaw.json`, repoints the Antenna agent's
-`agentDir` and `workspace`, preserves ignored agent-local auth/runtime files,
-and repoints an existing CLI symlink when possible.
+copied `install_path`, backs up `openclaw.json`, repoints the Antenna
+`workspace` to the new package, keeps `agentDir` under OpenClaw's stable state
+root, preserves ignored workspace files, and repoints an existing CLI symlink
+when possible. OpenClaw auth/session databases must never be placed inside the
+replaceable Antenna workspace.
 
 Do not run `setup --force`; that is a fresh-setup operation. Existing legacy
 peer records remain deliberately unclassified and therefore fail closed. Use

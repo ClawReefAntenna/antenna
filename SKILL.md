@@ -559,7 +559,10 @@ Notes:
 
 On each host:
 - agent `antenna` registered in OpenClaw config under `agents` with:
-  - `agentDir` and `workspace` both pointing to the Antenna `agent/` directory
+  - `workspace` pointing to Antenna's package-owned `agent/` relay policy
+  - `agentDir` under OpenClaw's stable state root
+    (`~/.openclaw/agents/antenna/agent` by default), so auth and session state
+    never enters the replaceable skill tree
   - `sandbox: { mode: "off" }` (required — sandbox silently clamps session visibility, breaking cross-agent relay)
   - restrictive `tools.deny` (block web, browser, image, cron, memory tools)
   - **Default advice:** do not set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (see v1.2.14 changelog). If you've intentionally customized these, setup reruns now preserve your overrides rather than wiping them.

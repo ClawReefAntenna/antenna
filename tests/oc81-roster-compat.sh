@@ -67,13 +67,13 @@ write_json "$LIST" '{
 OC_FIXTURE_VERSION=2026.7.1
 export OC_FIXTURE_VERSION
 LIST_OUT="$TMP/list-out.json"
-gateway_roster_write_setup_candidate "$LIST" "$LIST_OUT" betty fixture/relay /opt/antenna/agent
+gateway_roster_write_setup_candidate "$LIST" "$LIST_OUT" betty fixture/relay /opt/antenna/agent /state
 check "7.1 setup preserves list and never creates entries" jq -e \
   '.agents.list and (.agents | has("entries") | not)' "$LIST_OUT"
 check "7.1 setup preserves unrelated agent and unknown fields" jq -e \
   '(.agents.list[] | select(.id=="betty") | .custom.future)==true and .unknownTop.keep==1' "$LIST_OUT"
 check "7.1 setup adds one least-privilege Antenna entry" jq -e \
-  '[.agents.list[] | select(.id=="antenna" and .sandbox.mode=="off")] | length==1' "$LIST_OUT"
+  '[.agents.list[] | select(.id=="antenna" and .sandbox.mode=="off" and .workspace=="/opt/antenna/agent" and .agentDir=="/state/agents/antenna/agent")] | length==1' "$LIST_OUT"
 
 ENTRIES="$TMP/entries.json"
 write_json "$ENTRIES" '{
@@ -84,7 +84,7 @@ write_json "$ENTRIES" '{
 OC_FIXTURE_VERSION=2026.8.1
 export OC_FIXTURE_VERSION
 ENTRIES_OUT="$TMP/entries-out.json"
-gateway_roster_write_setup_candidate "$ENTRIES" "$ENTRIES_OUT" ops fixture/relay /opt/antenna/agent
+gateway_roster_write_setup_candidate "$ENTRIES" "$ENTRIES_OUT" ops fixture/relay /opt/antenna/agent /state
 check "8.1 setup preserves entries and never creates list" jq -e \
   '.agents.entries and (.agents | has("list") | not)' "$ENTRIES_OUT"
 check "sole keyed owner transition becomes explicit" jq -e \
@@ -113,13 +113,15 @@ write_json "$RERUN" '{
   "bindings":[{"agentId":"betty","match":{"channel":"signal"}}]
 }'
 RERUN_OUT="$TMP/rerun-out.json"
-gateway_roster_write_setup_candidate "$RERUN" "$RERUN_OUT" betty fixture/relay /opt/antenna/agent
+gateway_roster_write_setup_candidate "$RERUN" "$RERUN_OUT" betty fixture/relay /opt/antenna/agent /state
 check "8.1 rerun preserves ownership, defaults, bindings, and custom fields" jq -e \
   '.agents.ownership=="explicit"
    and .agents.defaults.systemAgent.agentId=="betty"
    and .agents.defaults.heartbeat.agentId=="betty"
    and .bindings[0].agentId=="betty"
-   and .agents.entries.antenna.custom=="keep"' "$RERUN_OUT"
+   and .agents.entries.antenna.custom=="keep"
+   and .agents.entries.antenna.workspace=="/opt/antenna/agent"
+   and .agents.entries.antenna.agentDir=="/state/agents/antenna/agent"' "$RERUN_OUT"
 check "8.1 rerun preserves exec, deny, skills, and sandbox extensions" jq -e \
   '.agents.entries.antenna.tools.exec.mode=="deny"
    and .agents.entries.antenna.tools.deny==["custom:one"]
@@ -132,13 +134,13 @@ write_json "$ABSENT" '{"agents":{"defaults":{"workspace":"/default","model":{"pr
 OC_FIXTURE_VERSION=2026.7.1
 export OC_FIXTURE_VERSION
 ABSENT_LIST="$TMP/absent-list.json"
-gateway_roster_write_setup_candidate "$ABSENT" "$ABSENT_LIST" betty fixture/relay /opt/antenna/agent
+gateway_roster_write_setup_candidate "$ABSENT" "$ABSENT_LIST" betty fixture/relay /opt/antenna/agent /state
 check "absent 7.1 roster creates native list" jq -e \
   '.agents.list|length==2' "$ABSENT_LIST"
 OC_FIXTURE_VERSION=2026.8.1
 export OC_FIXTURE_VERSION
 ABSENT_ENTRIES="$TMP/absent-entries.json"
-gateway_roster_write_setup_candidate "$ABSENT" "$ABSENT_ENTRIES" betty fixture/relay /opt/antenna/agent
+gateway_roster_write_setup_candidate "$ABSENT" "$ABSENT_ENTRIES" betty fixture/relay /opt/antenna/agent /state
 check "absent 8.1 roster creates native entries with explicit system owner" jq -e \
   '.agents.ownership=="explicit"
    and .agents.defaults.systemAgent.agentId=="betty"
@@ -148,7 +150,7 @@ EMPTY_ENTRIES="$TMP/empty-entries.json"
 write_json "$EMPTY_ENTRIES" '{"agents":{"entries":{}},"gateway":{"port":18789}}'
 EMPTY_ENTRIES_OUT="$TMP/empty-entries-out.json"
 gateway_roster_write_setup_candidate \
-  "$EMPTY_ENTRIES" "$EMPTY_ENTRIES_OUT" betty fixture/relay /opt/antenna/agent
+  "$EMPTY_ENTRIES" "$EMPTY_ENTRIES_OUT" betty fixture/relay /opt/antenna/agent /state
 check "empty 8.1 entries roster creates primary and Antenna agents" jq -e \
   '.agents.ownership=="explicit"
    and .agents.defaults.systemAgent.agentId=="betty"
@@ -157,9 +159,10 @@ check "empty 8.1 entries roster creates primary and Antenna agents" jq -e \
 OC_FIXTURE_VERSION=2026.7.1
 export OC_FIXTURE_VERSION
 LIST_PATHS="$TMP/list-paths.json"
-gateway_roster_write_agent_paths_candidate "$LIST_OUT" "$LIST_PATHS" /new/agent
+gateway_roster_write_agent_paths_candidate "$LIST_OUT" "$LIST_PATHS" /new/agent /new-state
 check "7.1 upgrade changes only Antenna paths" jq -e \
-  '(.agents.list[]|select(.id=="antenna")|.agentDir)=="/new/agent"
+  '(.agents.list[]|select(.id=="antenna")|.agentDir)=="/new-state/agents/antenna/agent"
+   and (.agents.list[]|select(.id=="antenna")|.workspace)=="/new/agent"
    and (.agents.list[]|select(.id=="betty")|.workspace)=="/keep/betty"
    and .unknownTop.keep==1' "$LIST_PATHS"
 LIST_MODEL="$TMP/list-model.json"
@@ -171,9 +174,10 @@ check "7.1 model sync preserves unrelated list data" jq -e \
 OC_FIXTURE_VERSION=2026.8.1
 export OC_FIXTURE_VERSION
 ENTRIES_PATHS="$TMP/entries-paths.json"
-gateway_roster_write_agent_paths_candidate "$RERUN_OUT" "$ENTRIES_PATHS" /new/agent
+gateway_roster_write_agent_paths_candidate "$RERUN_OUT" "$ENTRIES_PATHS" /new/agent /new-state
 check "8.1 upgrade changes only keyed Antenna paths" jq -e \
-  '.agents.entries.antenna.agentDir=="/new/agent"
+  '.agents.entries.antenna.agentDir=="/new-state/agents/antenna/agent"
+   and .agents.entries.antenna.workspace=="/new/agent"
    and .agents.entries.betty.workspace=="/keep/betty"
    and .agents.defaults.systemAgent.agentId=="betty"' "$ENTRIES_PATHS"
 ENTRIES_MODEL="$TMP/entries-model.json"

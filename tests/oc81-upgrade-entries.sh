@@ -106,9 +106,9 @@ check "8.1 upgrade leaves private rollback backup" bash -c \
   _ "$GATEWAY"
 check "8.1 upgrade repoints existing CLI link" test \
   "$(readlink -f "$HOME_DIR/.local/bin/antenna")" = "$NEW/bin/antenna.sh"
-check "8.1 upgrade adds mapping and narrow Antenna hook prefix" jq -e '
+check "8.1 upgrade adds mapping and OpenClaw-required hook prefix" jq -e '
   (.hooks.mappings|map(.id)|index("antenna-deterministic-staging"))!=null
-  and (.hooks.allowedSessionKeyPrefixes|index("hook:antenna:"))!=null' "$GATEWAY"
+  and (.hooks.allowedSessionKeyPrefixes|index("hook:"))!=null' "$GATEWAY"
 check "8.1 upgrade installs canonical transform" cmp -s "$ROOT/hooks/antenna-stage.mjs" "$HOME_DIR/.openclaw/hooks/transforms/antenna-stage.mjs"
 check "8.1 destination has no retired relay workspace files" bash -c \
   '[[ ! -e "$1/agent/HEARTBEAT.md" && ! -e "$1/agent/TOOLS.md" ]]' _ "$NEW"

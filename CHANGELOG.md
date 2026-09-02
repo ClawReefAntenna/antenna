@@ -59,6 +59,11 @@ protocol, trust grant, pairing method, or Reef feature is introduced.
 - **No legacy endpoint fallback.** A peer without the v1.6.3 mapping fails
   closed with an upgrade/configuration diagnostic; falling back to
   `/hooks/agent` would restore the rejected transcription path.
+- **Fresh OpenClaw 8.1 startup now satisfies the hook-prefix invariant.** When
+  `hooks.defaultSessionKey` is unset, setup and upgrade add OpenClaw's required
+  `hook:` allowlist prefix. The transform still creates only isolated
+  `hook:antenna:<UUID>` sessions, and Antenna still has no `/hooks/agent`
+  transport fallback.
 - **ClawReef Registry compatibility is prepared for qualification.** The
   reviewed Registry candidate now constructs `/hooks/antenna` fan-out URLs and
   sends only `{message}`. Listed Public Groups remain unqualified until the

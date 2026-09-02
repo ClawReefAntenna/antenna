@@ -9,6 +9,7 @@ HOOK_STAGING_PATH="antenna"
 HOOK_STAGING_MODULE="antenna-stage.mjs"
 HOOK_STAGING_RELNAME="hooks/antenna-stage.mjs"
 HOOK_STAGING_SESSION_PREFIX="hook:antenna:"
+HOOK_STAGING_OPENCLAW_PREFIX="hook:"
 
 hook_staging_packaged_file() { printf '%s/%s\n' "$SKILL_DIR" "$HOOK_STAGING_RELNAME"; }
 
@@ -46,11 +47,14 @@ hook_staging_write_gateway_candidate() {
   [[ $rc -eq 0 ]] || return 1
   case "$audit" in fail\|*) printf '%s\n' "${audit#fail|}" >&2; return 1 ;; esac
   jq --argjson canonical "$hook_staging_mapping_filter" \
-    --arg antenna_prefix "$HOOK_STAGING_SESSION_PREFIX" '
+    --arg openclaw_prefix "$HOOK_STAGING_OPENCLAW_PREFIX" '
     .hooks = (if (.hooks|type)=="object" then .hooks else {} end)
-    | .hooks.allowedSessionKeyPrefixes = ((.hooks.allowedSessionKeyPrefixes // [])
-        | if any(.[]; . as $prefix | ($antenna_prefix + "probe") | startswith($prefix))
-          then . else . + [$antenna_prefix] end)
+    | .hooks.allowedSessionKeyPrefixes = (
+        if .hooks.allowedSessionKeyPrefixes == null then []
+        elif (.hooks.allowedSessionKeyPrefixes | type) == "array" then .hooks.allowedSessionKeyPrefixes
+        else error("hooks.allowedSessionKeyPrefixes is not an array") end
+        | if any(.[]; . as $prefix | ($openclaw_prefix + "example") | startswith($prefix))
+          then . else . + [$openclaw_prefix] end)
     | .hooks.mappings = (if (.hooks.mappings|type)=="array" then .hooks.mappings else [] end)
     | if any(.hooks.mappings[]; .id==$canonical.id) then
         .hooks.mappings = [.hooks.mappings[] | if .id==$canonical.id then $canonical else . end]
@@ -60,16 +64,24 @@ hook_staging_write_gateway_candidate() {
 
 hook_staging_session_prefix_audit() {
   local gateway="$1"
-  jq -r --arg antenna_prefix "$HOOK_STAGING_SESSION_PREFIX" '
+  jq -r --arg antenna_probe "${HOOK_STAGING_SESSION_PREFIX}probe" \
+    --arg openclaw_probe "${HOOK_STAGING_OPENCLAW_PREFIX}example" '
+    def permits($prefixes; $key):
+      any($prefixes[]; . as $prefix | $key | startswith($prefix));
     if (.hooks.allowedSessionKeyPrefixes? == null) then
-      "pass|prefix allowlist is not configured (static mapping is allowed)"
+      "pass|prefix allowlist is not configured"
     elif ((.hooks.allowedSessionKeyPrefixes | type) != "array") then
       "fail|hooks.allowedSessionKeyPrefixes is not an array"
-    elif any(.hooks.allowedSessionKeyPrefixes[];
-             . as $prefix | ($antenna_prefix + "probe") | startswith($prefix)) then
-      "pass|Antenna hook-session namespace is allowed"
-    else
+    elif ((.hooks.defaultSessionKey? // "") == "")
+         and (permits(.hooks.allowedSessionKeyPrefixes; $openclaw_probe) | not) then
+      "fail|OpenClaw requires a prefix permitting hook: when hooks.defaultSessionKey is unset"
+    elif (permits(.hooks.allowedSessionKeyPrefixes; $antenna_probe) | not) then
       "fail|hooks.allowedSessionKeyPrefixes excludes hook:antenna:*"
+    elif ((.hooks.defaultSessionKey? // "") != "")
+         and (permits(.hooks.allowedSessionKeyPrefixes; .hooks.defaultSessionKey) | not) then
+      "fail|hooks.defaultSessionKey is excluded by hooks.allowedSessionKeyPrefixes"
+    else
+      "pass|OpenClaw and Antenna hook-session namespaces are allowed"
     end
   ' "$gateway"
 }

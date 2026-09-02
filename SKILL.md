@@ -30,8 +30,9 @@ Each participating host needs:
 2. A reachable HTTPS endpoint for `/hooks/antenna`
 3. Antenna agent registered in gateway config (`agents` section)
 4. `hooks.allowedAgentIds` includes `"antenna"`
-5. When `hooks.allowedSessionKeyPrefixes` is configured, it permits the narrow
-   `"hook:antenna:"` namespace (setup adds that prefix without broadening to all hooks)
+5. When `hooks.allowedSessionKeyPrefixes` is configured and
+   `hooks.defaultSessionKey` is unset, it permits OpenClaw's required `"hook:"`
+   namespace. Antenna's transform still emits only `hook:antenna:<UUID>` sessions.
 6. The canonical `antenna-deterministic-staging` mapping and package-owned
    `antenna-stage.mjs` transform are installed (setup/upgrade manage both)
 7. Host-specific Antenna config in:
@@ -563,8 +564,9 @@ On each host:
   - restrictive `tools.deny` (block web, browser, image, cron, memory tools)
   - **Default advice:** do not set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (see v1.2.14 changelog). If you've intentionally customized these, setup reruns now preserve your overrides rather than wiping them.
 - `hooks.allowedAgentIds` includes `"antenna"`
-- `hooks.allowedSessionKeyPrefixes` permits `"hook:antenna:"` when the prefix
-  allowlist is configured
+- `hooks.allowedSessionKeyPrefixes` permits OpenClaw's required `"hook:"`
+  namespace when the prefix allowlist is configured and no default hook session
+  is set; Antenna itself emits only `hook:antenna:<UUID>` sessions
 - `tools.sessions.visibility` set to `"all"` (required for cross-session relay delivery)
 - `tools.agentToAgent.enabled` set to `true`
 

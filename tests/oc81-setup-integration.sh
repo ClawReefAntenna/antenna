@@ -78,7 +78,7 @@ check "real 7.1 setup preserves unrelated config and adds Antenna once" jq -e \
 check "real 7.1 setup commits hooks and session policy together" jq -e \
   '.hooks.enabled==true
    and (.hooks.allowedAgentIds|index("antenna"))!=null
-   and (.hooks.allowedSessionKeyPrefixes|index("hook:antenna:"))!=null
+   and (.hooks.allowedSessionKeyPrefixes|index("hook:"))!=null
    and (.hooks.mappings|map(.id)|index("antenna-deterministic-staging"))!=null
    and .tools.sessions.visibility=="all"
    and .tools.agentToAgent.enabled==true' "$list_gateway"

@@ -90,14 +90,17 @@ HOME="$TILDE_HOME" hook_staging_resolve_transforms_dir "$TILDE_HOME/.openclaw/op
 check "tilde transformsDir resolves under the gateway default root" test "$TILDE_DIR" = "$TILDE_HOME/.openclaw/hooks/transforms/nested"
 OUT="$TMP/out.json"
 check "canonical mapping candidate builds" hook_staging_write_gateway_candidate "$GW" "$OUT"
-check "mapping preserves unrelated entries and adds narrow Antenna hook prefix" jq -e '
+check "mapping preserves unrelated entries and adds OpenClaw-required hook prefix" jq -e '
   .foreign.keep==true and (.hooks.mappings|map(.id)|index("foreign"))!=null
   and (.hooks.mappings|map(.id)|index("antenna-deterministic-staging"))!=null
-  and (.hooks.allowedSessionKeyPrefixes|index("hook:antenna:"))!=null
-  and (.hooks.allowedSessionKeyPrefixes|index("hook:"))==null' "$OUT"
-check "narrow Antenna namespace passes prefix audit" bash -c '
+  and (.hooks.allowedSessionKeyPrefixes|index("hook:"))!=null' "$OUT"
+check "OpenClaw and Antenna namespaces pass prefix audit" bash -c '
   source "$1/lib/hook-staging.sh"
   [[ "$(hook_staging_session_prefix_audit "$2")" == pass\|* ]]' _ "$ROOT" "$OUT"
+printf '%s\n' '{"hooks":{"allowedSessionKeyPrefixes":["hook:antenna:"]}}' > "$TMP/narrow-only.json"
+check "8.1 narrow-only prefix is diagnosed before gateway startup" bash -c '
+  source "$1/lib/hook-staging.sh"
+  [[ "$(hook_staging_session_prefix_audit "$2")" == fail\|OpenClaw* ]]' _ "$ROOT" "$TMP/narrow-only.json"
 jq '.hooks.mappings += [{"id":"collision","match":{"path":"/antenna/"},"action":"wake"}]' "$GW" >"$TMP/conflict.json"
 if hook_staging_write_gateway_candidate "$TMP/conflict.json" "$TMP/nope" 2>/dev/null; then false; else true; fi
 check "conflicting /hooks/antenna path refuses" test ! -e "$TMP/nope"

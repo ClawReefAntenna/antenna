@@ -975,7 +975,7 @@ if [[ "$AUTO_REGISTERED" == "false" ]]; then
   echo "       enabled: true"
   echo "       token: <contents of your hooks token file>"
   echo "       allowedAgentIds: [\"antenna\"]"
-  echo "       allowedSessionKeyPrefixes: [\"hook:antenna:\"]"
+  echo "       allowedSessionKeyPrefixes: [\"hook:\"]"
   echo "       mappings:"
   echo "         - id: antenna-deterministic-staging"
   echo "           match: { path: antenna }"

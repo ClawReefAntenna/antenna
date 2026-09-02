@@ -69,7 +69,11 @@ protocol, trust grant, pairing method, or Reef feature is introduced.
   under OpenClaw's stable state root. This prevents OAuth/session databases
   from entering a replaceable skill tree or being rejected as foreign state
   during startup. Setup and upgrade fail closed if a database is already
-  present inside the destination workspace.
+  present inside the destination workspace, and Doctor reports a failed
+  workspace/state boundary.
+- **Fresh runtime secrets are private from creation.** Every setup path creates
+  the Antenna `secrets/` directory as mode 0700 before writing token or peer
+  material, eliminating the clean-install 0755 permission warning.
 - **ClawReef Registry compatibility is prepared for qualification.** The
   reviewed Registry candidate now constructs `/hooks/antenna` fan-out URLs and
   sends only `{message}`. Listed Public Groups remain unqualified until the

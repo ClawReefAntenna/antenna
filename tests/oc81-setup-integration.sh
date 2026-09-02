@@ -110,6 +110,8 @@ check "real 8.1 setup preserves bindings and writes Antenna policy" jq -e \
 check "real 8.1 setup separates relay workspace from agent state" jq -e --arg workspace "$entries_skill/agent" --arg state "$entries_home/.openclaw/agents/antenna/agent" \
   '.agents.entries.antenna.workspace==$workspace
    and .agents.entries.antenna.agentDir==$state' "$entries_gateway"
+check "real 8.1 setup creates a private secrets directory" test \
+  "$(stat -c %a "$entries_skill/secrets")" = 700
 check "real 8.1 setup installs canonical transform" cmp -s "$ROOT/hooks/antenna-stage.mjs" "$entries_home/.openclaw/hooks/transforms/antenna-stage.mjs"
 
 IFS=$'\t' read -r reject_case reject_skill reject_home < <(

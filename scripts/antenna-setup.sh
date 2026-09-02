@@ -353,7 +353,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
         info "Found hooks token in gateway config ($gw_candidate)"
         suggested_path="$SECRETS_DIR/hooks_token_${HOST_ID}"
         if prompt_yn "Create token file at $suggested_path from gateway config?" "y"; then
-          mkdir -p "$SECRETS_DIR"
+          install -d -m 700 "$SECRETS_DIR"
           printf '%s' "$DISCOVERED_TOKEN" > "$suggested_path"
           chmod 600 "$suggested_path"
           ok "Created token file: $suggested_path"
@@ -373,7 +373,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
       echo ""
       if prompt_yn "Generate a new hooks bearer token now?" "y"; then
         gen_path="$SECRETS_DIR/hooks_token_${HOST_ID}"
-        mkdir -p "$SECRETS_DIR"
+        install -d -m 700 "$SECRETS_DIR"
         openssl rand -hex 24 > "$gen_path"
         chmod 600 "$gen_path"
         ok "Generated token file: $gen_path"
@@ -538,7 +538,7 @@ else
         [[ -n "$ni_discovered" ]] && break
       fi
     done
-    mkdir -p "$SKILL_DIR/secrets"
+    install -d -m 700 "$SKILL_DIR/secrets"
     ni_path="$SKILL_DIR/secrets/hooks_token_${HOST_ID}"
     if [[ -n "$ni_discovered" ]]; then
       printf '%s' "$ni_discovered" > "$ni_path"
@@ -631,7 +631,7 @@ ok "Created $CONFIG_FILE"
 
 CANONICAL_TOKEN_REF="secrets/hooks_token_${HOST_ID}"
 CANONICAL_TOKEN_ABS="$SKILL_DIR/$CANONICAL_TOKEN_REF"
-mkdir -p "$SECRETS_DIR"
+install -d -m 700 "$SECRETS_DIR"
 
 if [[ -n "$TOKEN_FILE" && -f "$TOKEN_FILE" && "$TOKEN_FILE" != "$CANONICAL_TOKEN_ABS" ]]; then
   # Copy token contents to canonical location so the self peer always uses
@@ -669,7 +669,7 @@ ok "Created $PEERS_FILE (self-peer: $HOST_ID)"
 
 # ── Generate identity secret ────────────────────────────────────────────────
 
-mkdir -p "$SECRETS_DIR"
+install -d -m 700 "$SECRETS_DIR"
 SECRET_PATH="$SECRETS_DIR/antenna-peer-${HOST_ID}.secret"
 SECRET=$(openssl rand -hex 32)
 echo -n "$SECRET" > "$SECRET_PATH"

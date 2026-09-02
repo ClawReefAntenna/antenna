@@ -67,6 +67,9 @@ commitments are load-bearing and in scope for vulnerability reports:
   OpenClaw credentials, sessions, and databases remain under the stable
   `agentDir` in OpenClaw's state root. They never enter the replaceable skill
   tree.
+- **Private runtime secrets —** Setup creates the Antenna `secrets/` directory
+  as mode 0700 before writing bearer tokens or peer identity material. Doctor
+  audits directory and file permissions without repairing them implicitly.
 - **Layered trust in v1.6.3 —** HTTPS transport, hook bearer token, locally
   pinned Ed25519 sender public keys, exact message-ID replay rejection, peer
   allowlists (inbound and outbound), session allowlist (full keys only),

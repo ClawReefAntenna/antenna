@@ -243,6 +243,22 @@ if grep -Fq 'Antenna agent is registered in gateway config' <<<"$doctor_output";
 else
   fail "Doctor recognizes canonical 8.1 Antenna entry"
 fi
+if grep -Fq 'Antenna relay workspace and OpenClaw agent state are separated' <<<"$doctor_output"; then
+  pass "Doctor accepts separated relay workspace and agent state"
+else
+  fail "Doctor accepts separated relay workspace and agent state"
+fi
+
+COLLAPSED_PATHS="$TMP/collapsed-paths.json"
+jq '.agents.entries.antenna.agentDir = .agents.entries.antenna.workspace' \
+  "$RERUN_OUT" > "$COLLAPSED_PATHS"
+collapsed_doctor_output="$(HOME="$DOCTOR_HOME" USER=fixture OC_FIXTURE_VERSION=2026.8.1 \
+  bash "$ROOT/scripts/antenna-doctor.sh" --gateway "$COLLAPSED_PATHS" 2>&1 || true)"
+if grep -Fq 'Antenna agentDir must be stable OpenClaw state' <<<"$collapsed_doctor_output"; then
+  pass "Doctor rejects collapsed relay workspace and agent state"
+else
+  fail "Doctor rejects collapsed relay workspace and agent state"
+fi
 
 INCLUDE_BASE="$TMP/include-base.json"
 INCLUDE_ROOT="$TMP/include-root.json"

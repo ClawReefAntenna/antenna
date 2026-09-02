@@ -607,6 +607,34 @@ else
 
   if [[ "$has_agent" == true ]]; then
     pass "Antenna agent is registered in gateway config"
+    direct_paths="$(jq -r '
+      if (.agents.entries | type) == "object" then
+        ([.agents.entries | to_entries[] | select((.key | ascii_downcase) == "antenna")][0].value // {}) as $agent
+        | [($agent.workspace // ""), ($agent.agentDir // "")] | @tsv
+      elif (.agents.list | type) == "array" then
+        ([.agents.list[] | select(((.id // "") | ascii_downcase) == "antenna")][0] // {}) as $agent
+        | [($agent.workspace // ""), ($agent.agentDir // "")] | @tsv
+      else "" end
+    ' "$GATEWAY_CONFIG" 2>/dev/null || true)"
+    if [[ -n "$direct_paths" ]]; then
+      IFS=$'\t' read -r antenna_workspace antenna_agent_dir <<<"$direct_paths"
+      if [[ -z "$antenna_workspace" || -z "$antenna_agent_dir" ]]; then
+        fail "Antenna workspace/agentDir boundary is incomplete"
+      else
+        resolved_skill="$(realpath -m "$SKILL_DIR")"
+        resolved_workspace="$(realpath -m "$antenna_workspace")"
+        resolved_agent_dir="$(realpath -m "$antenna_agent_dir")"
+        if [[ "$resolved_workspace" == "$resolved_agent_dir" \
+             || "$resolved_agent_dir" == "$resolved_skill" \
+             || "$resolved_agent_dir" == "$resolved_skill/"* ]]; then
+          fail "Antenna agentDir must be stable OpenClaw state, separate from the replaceable relay workspace"
+        else
+          pass "Antenna relay workspace and OpenClaw agent state are separated"
+        fi
+      fi
+    else
+      info "Antenna paths are include-owned; direct workspace/state boundary audit skipped"
+    fi
   else
     fail "Antenna agent not found in gateway config"
     if gateway_roster_has_unsafe_include "$GATEWAY_CONFIG"; then

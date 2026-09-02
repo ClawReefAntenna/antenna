@@ -74,6 +74,11 @@ protocol, trust grant, pairing method, or Reef feature is introduced.
 - **Fresh runtime secrets are private from creation.** Every setup path creates
   the Antenna `secrets/` directory as mode 0700 before writing token or peer
   material, eliminating the clean-install 0755 permission warning.
+- **Doctor recognizes canonical public keys.** The secrets-hygiene audit now
+  accepts 0644 for `antenna-exchange.agepub` and
+  `antenna-signing-public.pem`, recognizes their 0600 private-key partners,
+  and no longer reports a successful encrypted Ed25519 pairing as loose or
+  unrecognized secret material.
 - **ClawReef Registry compatibility is prepared for qualification.** The
   reviewed Registry candidate now constructs `/hooks/antenna` fan-out URLs and
   sends only `{message}`. Listed Public Groups remain unqualified until the

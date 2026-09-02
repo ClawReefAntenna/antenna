@@ -24,7 +24,8 @@
 #   6. Backup file (`*.bak-*`) → warn + filename visible, not counted as orphan.
 #   7. File with loose perms (644) → warn + filename + perm visible.
 #   8. Unknown-shape file → warn + filename visible.
-#   9. Missing secrets dir → info, never crashes.
+#   9. Canonical age/Ed25519 public and private key files → no false warning.
+#  10. Missing secrets dir → info, never crashes.
 #
 # Isolated SKILL_DIR; does not touch the live registry.
 
@@ -303,10 +304,28 @@ else
   pass "unknown-shape file was not miscounted as an orphan"
 fi
 
-# ── Case 9: missing secrets dir ──────────────────────────────────────────
+# ── Case 9: canonical key files ──────────────────────────────────────────
 echo ""
-echo "── REF-2003 case 9: missing secrets dir degrades gracefully ───────────"
+echo "── REF-2003 case 9: canonical age/Ed25519 key files are recognized ────"
 setup_skill_dir case9
+install -m 600 /dev/stdin "$SKILL_DIR/secrets/antenna-exchange.agekey" <<<"private-age"
+install -m 644 /dev/stdin "$SKILL_DIR/secrets/antenna-exchange.agepub" <<<"public-age"
+install -m 600 /dev/stdin "$SKILL_DIR/secrets/antenna-signing-private.pem" <<<"private-signing"
+install -m 644 /dev/stdin "$SKILL_DIR/secrets/antenna-signing-public.pem" <<<"public-signing"
+
+out="$(run_doctor)"
+sec="$(extract_hygiene_section "$out")"
+
+if grep -qE "file\(s\) in secrets/ with loose permissions|unrecognized file\(s\) in secrets/" <<<"$sec"; then
+  fail "canonical key files produced a false hygiene warning" "$sec"
+else
+  pass "canonical public/private key files produced no false hygiene warning"
+fi
+
+# ── Case 10: missing secrets dir ─────────────────────────────────────────
+echo ""
+echo "── REF-2003 case 10: missing secrets dir degrades gracefully ──────────"
+setup_skill_dir case10
 rm -rf "$SKILL_DIR/secrets"
 
 out="$(run_doctor)"

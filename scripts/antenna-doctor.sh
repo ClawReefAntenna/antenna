@@ -807,7 +807,18 @@ else
   # (The age keypair is Layer A bootstrap material; it isn't tied to one peer.)
   is_known_nonpeer_file() {
     case "$1" in
-      antenna-exchange.agekey|antenna-exchange.agepub) return 0 ;;
+      antenna-exchange.agekey|antenna-exchange.agepub|antenna-signing-private.pem|antenna-signing-public.pem) return 0 ;;
+      *) return 1 ;;
+    esac
+  }
+
+  # Public-key material is intentionally readable and may safely use 0644.
+  # Private keys, bearer tokens, and peer secrets remain restricted to 0600
+  # (or 0400). Classify before the generic permission audit so Doctor does not
+  # report a successful Ed25519/age pairing as a secrets-permission defect.
+  is_known_public_file() {
+    case "$1" in
+      antenna-exchange.agepub|antenna-signing-public.pem) return 0 ;;
       *) return 1 ;;
     esac
   }
@@ -850,12 +861,20 @@ else
   while IFS= read -r -d '' entry; do
     fn="$(basename "$entry")"
 
-    # Any regular file in secrets/ is expected to be 600 / 400 (or 640 at most).
+    # Secret material is expected to be 600/400. Packaged public-key files may
+    # also be 644 because their contents are explicitly non-secret.
     f_perms=$(stat -c '%a' "$entry" 2>/dev/null || stat -f '%Lp' "$entry" 2>/dev/null || echo "unknown")
-    case "$f_perms" in
-      600|400) ;;
-      *) loose_perm_list+="$fn|$f_perms"$'\n' ;;
-    esac
+    if is_known_public_file "$fn"; then
+      case "$f_perms" in
+        644|600|400) ;;
+        *) loose_perm_list+="$fn|$f_perms"$'\n' ;;
+      esac
+    else
+      case "$f_perms" in
+        600|400) ;;
+        *) loose_perm_list+="$fn|$f_perms"$'\n' ;;
+      esac
+    fi
 
     # Classify by filename
     if is_backup_filename "$fn"; then

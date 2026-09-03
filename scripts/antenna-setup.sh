@@ -234,10 +234,10 @@ if [[ "$INTERACTIVE" == "true" ]]; then
 
   # Relay model
   header "Step 4/7 — Relay Model — Choosing Your Dispatcher"
-  info "The model used by Antenna's relay agent for tool dispatch."
+  info "You don’t need the biggest lobster in the reef just to pass a message along."
+  info "Antenna gives its relay model a small, mechanical dispatch job, so smaller models are generally the best fit."
+  info "GPT‑5.6 Luna, Gemini Flash, and Haiku have shown reliable results."
   info "Use a full provider/model ID (not an alias) for portability."
-  info "Pick something lightweight — the relay agent is a courier, not a philosopher."
-  info "It dispatches messages, not opinions."
 
   # Try to load default model and aliases from gateway config
   _alias_names=()

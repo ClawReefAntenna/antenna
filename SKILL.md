@@ -343,12 +343,12 @@ antenna sessions list                             # Show allowed inbound session
 antenna sessions add antv3                        # Bare name → auto-expanded to agent:<local>:antv3
 antenna sessions add "agent:marie:lab1"            # Cross-agent: use full session key
 antenna sessions remove antv3                     # Remove (bare names are expanded)
-antenna sessions remove "agent:betty:main" --force # Core sessions need --force
+antenna sessions remove "agent:assistant:main" --force # Core sessions need --force
 ```
 
 Controls which session targets inbound messages can request via `allowed_inbound_sessions` in `antenna-config.json`.
 
-**Convention: full session keys everywhere.** The allowlist stores full keys like `agent:betty:main` and `agent:marie:lab1`. The relay requires full keys from senders — bare names are rejected. The CLI auto-expands bare names to `agent:<local_agent>:<name>` for convenience when adding/removing, but the stored value is always the full key.
+**Convention: full session keys everywhere.** The allowlist stores full keys like `agent:assistant:main` and `agent:research:lab1`. The relay requires full keys from senders — bare names are rejected. The CLI auto-expands bare names to `agent:<local_agent>:<name>` for convenience when adding/removing, but the stored value is always the full key.
 
 Core sessions (`agent:<local>:main`, `agent:<local>:antenna`) are protected from removal unless `--force` is used. Supports batch add/remove.
 
@@ -366,7 +366,7 @@ antenna log --tail 50
 
 `antenna doctor` includes warn-only drift audits that complement the hard config/permission checks:
 
-- **Section 1b — Peer-State Drift.** Audits `allowed_inbound_peers`, `allowed_outbound_peers`, and peer-scoped inbound sessions in `antenna-config.json` against `antenna-peers.json`. Orphan peer IDs (allowlist entries for peers that no longer exist) are warnings, never failures. Catches the `nexus` / `bruce`-era debris class automatically.
+- **Section 1b — Peer-State Drift.** Audits `allowed_inbound_peers`, `allowed_outbound_peers`, and peer-scoped inbound sessions in `antenna-config.json` against `antenna-peers.json`. Orphan peer IDs (allowlist entries for peers that no longer exist) are warnings, never failures.
 - **Section 6b — Secrets Directory Hygiene.** File-side counterpart to 1b. Warns on orphan peer-scoped secret / token files in `secrets/` (`antenna-peer-<id>.secret`, `hooks_token_<id>`, `peer_secret_<id>` whose `<id>` is no longer in `antenna-peers.json`), backup-pattern leftovers (`.bak*`, `.backup*`, `~`, `.old`), loose `secrets/` directory permissions (target `700`), loose per-file permissions on secret-shaped files (target `600`), and unknown-shape files inside `secrets/`.
 - **Section 1c — Relay Policy File.** Checksum-backed audit of the Antenna-owned relay policy `agent/AGENTS.md` against the pristine packaged default (`lib/relay-policy/`), keyed by SHA-256 and a stable identity marker — file size is never used. An exact match passes; a regular but customized file warns and is never overwritten; a missing, symlinked, generic OpenClaw-template, or identity-marker-free file fails. Normal `antenna doctor` stays read-only. To recover a failed policy, run `antenna doctor --restore-policy` (add `--yes` for non-interactive): it previews the change, requires confirmation, saves a timestamped private backup of the current file, atomically installs the local packaged default (never over the network), re-verifies by hash, and never touches OpenClaw-created workspace files (`BOOTSTRAP.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`, `HEARTBEAT.md`, memory, auth/model state). Doctor also fails when the relay `workspace` and stable OpenClaw `agentDir` collapse onto the same or package-owned path.
 
@@ -514,38 +514,16 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 ```text
 skills/antenna/
 ├── SKILL.md
-├── README.md
-├── CHANGELOG.md
-├── antenna-config.example.json
-├── antenna-peers.example.json
-├── antenna-peers.json
-├── antenna-config.json
-├── antenna.log
 ├── install.sh
-├── bin/
-│   └── antenna.sh
-├── scripts/
-│   ├── antenna-send.sh
-│   ├── antenna-relay.sh
-│   ├── antenna-relay-deliver.sh         # v1.4+ — canonical single-call deliver wrapper
-│   ├── antenna-relay-file.sh           # internal file-based relay adapter
-│   ├── antenna-relay-exec.sh            # v1.1.6 — base64 wrapper (legacy fallback)
-│   ├── antenna-pair.sh                  # v1.1.9 — interactive peer pairing wizard
-│   ├── antenna-health.sh
-│   ├── antenna-peers.sh
-│   ├── antenna-doctor.sh
-│   ├── antenna-exchange.sh
-│   ├── antenna-inbox.sh
-│   ├── antenna-model-test.sh
-│   └── antenna-test-suite.sh
+├── antenna-*.example.json           # Tracked configuration templates
+├── bin/antenna.sh                   # CLI dispatcher
+├── scripts/                         # Commands and deterministic helpers
+├── lib/                             # Shared parsing, policy, and config logic
 ├── references/
-│   ├── ANTENNA-RELAY-FSD.md          # Historical v1.5.2 relay reference
-│   ├── USER-GUIDE.md                 # Installation and operator guide
-│   ├── ED25519-PROTOCOL-V1.md        # Signed-envelope protocol
-│   ├── OPENCLAW-2026.8.1-UPGRADE.md  # Stopped-writer host upgrade guide
-│   └── CHANGELOG-HISTORY.md          # Pre-v1.3.0 release history
-└── agent/
-    └── AGENTS.md
+│   ├── USER-GUIDE.md                # Installation and operator guide
+│   ├── ED25519-PROTOCOL-V1.md       # Signed-envelope protocol
+│   └── OPENCLAW-2026.8.1-UPGRADE.md # Stopped-writer host upgrade guide
+└── agent/AGENTS.md                  # Relay policy and tool contract
 ```
 
 Notes:
@@ -578,4 +556,4 @@ On each host:
 
 - 📧 **Email:** [help@clawreef.io](mailto:help@clawreef.io)
 - 🐛 **Issues:** [github.com/ClawReefAntenna/antenna/issues](https://github.com/ClawReefAntenna/antenna/issues)
-- 🔒 **Security:** See [SECURITY.md](SECURITY.md)
+- 🔒 **Security:** See [the repository security policy](https://github.com/ClawReefAntenna/antenna/blob/main/SECURITY.md)

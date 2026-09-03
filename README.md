@@ -484,7 +484,8 @@ content scanning, or HelpingClaw on a release schedule.
 | Document | Description |
 |----------|-------------|
 | [User's Guide](references/USER-GUIDE.md) | Complete walkthrough — setup, pairing, inbox, testing, FAQ |
-| [Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md) | Historical v1.5.2 relay reference; current behavior is defined by SKILL.md and SECURITY.md |
+| [Ed25519 Protocol](references/ED25519-PROTOCOL-V1.md) | Canonical signed-envelope format and verification rules |
+| [OpenClaw 2026.8.1+ Upgrade](references/OPENCLAW-2026.8.1-UPGRADE.md) | Stopped-writer host-upgrade checklist |
 | [CHANGELOG](CHANGELOG.md) | Release history and corrective-release details |
 
 ---

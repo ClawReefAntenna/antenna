@@ -1,11 +1,11 @@
 {
   "operations": [
     {
-      "peer": "bettyxx",
-      "session": "agent:betty:main"
+      "peer": "peer-one",
+      "session": "agent:assistant:main"
     },
     {
-      "peer": "nexus"
+      "peer": "peer-two"
     }
   ]
 }

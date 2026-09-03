@@ -507,8 +507,8 @@ cmd_peers() {
       # entry. Orphaned references in allowed_inbound_peers /
       # allowed_outbound_peers / inbox_auto_approve_peers stayed behind, which
       # looked fine but meant a future peer with the same id would inherit
-      # stale trust the operator thought they had cleared. The live 'nexus'
-      # cleanup on 2026-04-21 surfaced this. Fix: remove the peer AND prune
+      # stale trust the operator thought they had cleared. Fix: remove the peer
+      # AND prune
       # every peer-scoped allowlist in one coordinated mutation. Session
       # allowlists (allowed_inbound_sessions) are NOT pruned because they hold
       # session strings, not peer ids.

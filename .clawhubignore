@@ -1,37 +1,11 @@
-# Files in this list are excluded from the ClawHub publish bundle only.
-# They stay in the git repo for history/context; they are not shipped to the registry.
-#
-# Keep in git, exclude from registry:
-#   - internal review/QA docs
-#   - old marketing drafts
-#   - old release notes already summarized in CHANGELOG
-
-references/ANTV4-PHASE-1-REVIEW.md
-references/ANTV4-VALIDATION-CHECKLIST.md
-references/ANTV4-VALIDATION-CHECKLIST-SHORT.md
-references/copy-draft-v1.2.0.md
-references/issues.md
-references/setup-completion-v1.1.8.md
-references/GAPS.md
-
-# Unreleased development control/evidence. Keep in Git; do not ship as
-# operator documentation or imply that local work is publicly available.
-references/DEVELOPMENT-BACKLOG.md
-references/DEVELOPMENT-HANDOFF.md
-references/DEVELOPMENT-STATE.md
-references/FOUR-PHASE-DEVELOPMENT-STATUS-2026-08-11.md
-references/SIGNATURE-BROADCAST-ARCHITECTURE-2026-08-11.md
-references/PUBLIC-GROUP-RELAY-ARCHITECTURE-2026-08-11.md
-references/DL-*-SCOPE-CONTRACT.md
-references/DL-*-IMPLEMENTATION-REPORT.md
-references/DL-*-OWNER-REVIEW-*.md
-references/SIG-*-SCOPE-CONTRACT.md
-references/SIG-*-IMPLEMENTATION-REPORT.md
-references/SIG-*-SECURITY-REVIEW-*.md
-
-# v1.6.3 fix-scope decision/blocker evidence. Keep in Git for the primary agent
-# and release review; not shipped as operator documentation.
-references/ANT-163-001-SIGNED-RELAY-STAGING-2026-09-01.md
+# Repository material that is useful to source reviewers but not required by
+# an installed Antenna runtime.
+/README.md
+/CHANGELOG.md
+/SECURITY.md
+/lib/README.md
+/references/CHANGELOG-HISTORY.md
+/tests/
 
 # OpenClaw workspace/bootstrap files can appear when this checkout is used as
 # an agent workspace. They are installation-local identity/state, never skill
@@ -43,11 +17,3 @@ references/ANT-163-001-SIGNED-RELAY-STAGING-2026-09-01.md
 /TOOLS.md
 /USER.md
 /openclaw-workspace-state.json
-
-# Controlled live-validation evidence is retained in Git/project records, not
-# shipped to operators through ClawHub.
-references/VAL-*.md
-references/PUB-*.md
-references/PUBLIC-GROUP-PROTOCOL-V1.md
-spikes/
-tests/rel-001-release-readiness.sh

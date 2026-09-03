@@ -2,7 +2,7 @@
 
 All notable changes to the Antenna skill are documented here.
 
-This file is the recent-releases changelog shipped with the skill.
+This file is the recent-releases changelog in the source repository.
 For the complete version history prior to `1.3.0`, see:
 
 - GitHub releases: https://github.com/ClawReefAntenna/antenna/releases
@@ -68,6 +68,11 @@ introduced.
   and the shipped package tree now describe v1.6.4 consistently. Setup
   continues to inherit the host's primary model; no universal relay-model
   default is claimed.
+- **Public package contents are intentional.** Superseded design records and
+  obsolete specifications were removed from the current source tree. ClawHub
+  installs contain the runtime, current operator references, and protocol
+  material; repository-only tests and release history remain available on
+  GitHub for review.
 
 ## [1.6.3] — 2026-09-02 (superseded)
 
@@ -105,12 +110,10 @@ introduced.
   `antenna-signing-public.pem`, recognizes their 0600 private-key partners,
   and no longer reports a successful encrypted Ed25519 pairing as loose or
   unrecognized secret material.
-- **ClawReef Registry compatibility passed controlled qualification.** The
-  reviewed Registry candidate constructs `/hooks/antenna` fan-out URLs and
-  sends only `{message}`. The exact Antenna and Registry candidates passed the
-  controlled OpenClaw 8.1 matrix, including byte-faithful Listed Public Group
-  fan-out and content-free Registry retention. This is candidate evidence, not
-  a deployment, publication, or availability claim.
+- **ClawReef Registry compatibility was qualified with v1.6.3.** The matching
+  Registry implementation constructed `/hooks/antenna` fan-out URLs and sent
+  only `{message}`. Qualification covered OpenClaw 8.1, byte-faithful Listed
+  Public Group fan-out, and content-free Registry retention.
 
 ## [1.6.2] — 2026-09-01
 
@@ -328,8 +331,7 @@ Highlights:
 ## [1.4.0] — 2026-04-25
 
 Relay agent simplification. **No protocol change, no sender-side change**
-— fully backward-compatible with v1.3.x peers (BETTYXX, devon1545,
-clawreef can keep sending unchanged).
+— fully backward-compatible with deployed v1.3.x peers.
 
 Highlights:
 - Relay agent now performs **1 tool call per inbound** (was 3): a single
@@ -338,7 +340,7 @@ Highlights:
   directly. The agent no longer calls `write` or `sessions_send` itself.
 - Smaller relay-agent prompt surface — less room for prompt injection,
   fewer allowlist exec shapes to maintain, simpler debugging.
-- 7-test plan executed on bettyxix before commit (happy / stale-ts /
+- Seven-path regression plan passed before release (happy / stale-ts /
   bad-auth / unknown-peer / bad-target-session / concurrent / log-shape).
 
 ### Added
@@ -404,13 +406,13 @@ Highlights:
   Docs impact: bundle_verification
 
 ### Fixed
-- **REF-1312 — `antenna peers remove` now prunes peer-scoped allowlist entries.** When a peer is removed, its entries in `allowed_inbound_peers`, `allowed_outbound_peers`, and any peer-scoped inbound session allowlists are also pruned so stale allowlist debris (the `nexus` / `bruce` class of leftover) doesn't accumulate. Peer secret material is intentionally left in place; secret deletion remains an explicit operator action.
+- **REF-1312 — `antenna peers remove` now prunes peer-scoped allowlist entries.** When a peer is removed, its entries in `allowed_inbound_peers`, `allowed_outbound_peers`, and any peer-scoped inbound session allowlists are also pruned so stale allowlist debris doesn't accumulate. Peer secret material is intentionally left in place; secret deletion remains an explicit operator action.
   Docs impact: peer_remove_allowlist_pruning
 - **REF-1313 — peer endpoint URLs are validated at every ingress path.** `antenna peers add`, `antenna setup`, `antenna peers exchange export`, and `antenna peers exchange import` now reject non-HTTPS / malformed URLs (e.g. bare strings like `main`, `localhost` without a scheme) rather than silently accepting them and corrupting peer state downstream.
   Docs impact: peer_url_validation
 - **REF-2001 — `antenna doctor` now validates the self-peer URL shape.** A malformed self-peer `url` (for example a legacy `"main"` value) is now a doctor failure rather than silently passing. Malformed non-self peer URLs are reported as warnings rather than failures so existing paired peers don't break operations. A self-marked peer missing `url` entirely is also surfaced as a distinct failure.
   Docs impact: doctor_url_validation
-- **REF-2002 — `antenna doctor` now audits peer-state drift.** New section `1b. Peer-State Drift` audits the three peer-scoped allowlists in `antenna-config.json` (`allowed_inbound_peers`, `allowed_outbound_peers`, peer-scoped inbound sessions) against `antenna-peers.json`. Orphan peer IDs (allowlist entries for peers that no longer exist) surface as warnings, never failures. Catches the `nexus` / `bruce`-era debris class automatically and complements the REF-1312 pruning at peer removal time.
+- **REF-2002 — `antenna doctor` now audits peer-state drift.** New section `1b. Peer-State Drift` audits the three peer-scoped allowlists in `antenna-config.json` (`allowed_inbound_peers`, `allowed_outbound_peers`, peer-scoped inbound sessions) against `antenna-peers.json`. Orphan peer IDs (allowlist entries for peers that no longer exist) surface as warnings, never failures and complement the REF-1312 pruning at peer removal time.
   Docs impact: doctor_peer_state_drift
 - **REF-2003 — `antenna doctor` now audits on-disk secrets hygiene.** New section `6b. Secrets Directory Hygiene` audits the live `secrets/` directory: orphan peer-scoped secret / token files whose peer IDs are no longer in `antenna-peers.json` (the file-side counterpart to REF-1312 / 1b), backup-pattern leftovers (`.bak*`, `.backup*`, `~`, `.old`), loose `secrets/` directory permissions (target `700`), loose per-file permissions on secret-shaped files (target `600`), and unknown-shape files inside `secrets/`. All findings surface as warnings, never failures, so a peer removal that leaves stale secret files on disk does not break the health check while still getting visible attention.
   Docs impact: doctor_secrets_hygiene
@@ -436,7 +438,8 @@ Highlights:
 ### Changed
 - **Changelog slimmed down.** Pre-`1.3.0` entries moved to `references/CHANGELOG-HISTORY.md`. The current file covers `[Unreleased]` plus the most recent releases; full history lives on GitHub and in the history file.
   Docs impact: changelog_layout
-- **Registry bundle trimmed.** Added `.clawhubignore` so internal review/QA documents and historical drafts stay in the git repo but are no longer shipped to the ClawHub registry. Specifically excluded: `references/ANTV4-PHASE-1-REVIEW.md`, `references/ANTV4-VALIDATION-CHECKLIST.md`, `references/ANTV4-VALIDATION-CHECKLIST-SHORT.md`, `references/copy-draft-v1.2.0.md`, `references/issues.md`, `references/setup-completion-v1.1.8.md`, `references/GAPS.md`.
+- **Registry bundle trimmed.** Added `.clawhubignore` so repository-only review
+  and historical material is not shipped in ClawHub installations.
   Docs impact: registry_bundle_contents
 
 ### Docs

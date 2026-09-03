@@ -297,10 +297,9 @@ if [[ -f "$PEERS_FILE" ]]; then
     if [[ -n "$local_self" ]]; then
       pass "Self-peer found: $local_self"
 
-      # REF-2001: self-peer URL shape check. The live `url: "main"` incident
-      # (devon1545, 2026-04-21) landed because the validator didn't exist yet.
-      # Now it does; doctor should surface drift here since this is exactly
-      # the class of bug doctor is for.
+      # REF-2001: self-peer URL shape check. Legacy installs could contain
+      # `url: "main"` because the validator did not exist yet; Doctor surfaces
+      # that drift explicitly.
       self_url=$(peers_get "$local_self" url)
       if [[ -z "$self_url" ]]; then
         fail "Self-peer has no URL configured"
@@ -362,7 +361,7 @@ echo ""
 # IDs actually present in antenna-peers.json. Orphan entries (allowlist
 # references to peers that no longer exist) are a warn, not a fail: the peer
 # cannot communicate anyway, but the debris is a common migration hazard and
-# previously had to be cleaned up by hand (e.g. the nexus / bruce cleanup).
+# previously had to be cleaned up by hand.
 #
 # `peers remove <id>` now prunes these lists (REF-1312), but this check covers
 # configs that pre-date that fix or were edited manually.
@@ -789,8 +788,8 @@ echo ""
 #
 # Section 6 audits per-peer secrets *referenced from antenna-peers.json*. It
 # says nothing about files sitting in secrets/ that no peer references anymore
-# (orphans: the file equivalent of the REF-1312 allowlist drift, pre-cleanup
-# `bruce` / `nexus`), and nothing about forgotten `.bak` backups whose perms
+# (orphans: the file equivalent of REF-1312 allowlist drift), and nothing about
+# forgotten `.bak` backups whose permissions
 # drift silently over time. It also doesn't check that secrets/ itself is not
 # group/world-readable. This is the file-side counterpart to 1b.
 #

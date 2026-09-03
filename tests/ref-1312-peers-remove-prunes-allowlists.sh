@@ -8,7 +8,7 @@
 #   - inbox_auto_approve_peers
 # That leftover state meant a future peer with the same id would silently
 # inherit trust the operator thought they had cleared. Surfaced live during
-# the 2026-04-21 'bruce' / 'nexus' cleanup.
+# earlier manual cleanup incidents.
 #
 # Guarantees under test:
 #   1. `peers remove` deletes the registry entry (unchanged behavior).

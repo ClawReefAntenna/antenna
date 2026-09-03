@@ -55,10 +55,9 @@ delivery-audit metadata.
 ## Security-Relevant Design
 
 Antenna's current security model is documented in [SKILL.md](SKILL.md#trust-model),
-this policy, and the [User Guide](references/USER-GUIDE.md). The
-[Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md) is retained as a
-historical v1.5.2 reference and does not define v1.6.4 ingress. The following
-commitments are load-bearing and in scope for vulnerability reports:
+this policy, the [Ed25519 protocol](references/ED25519-PROTOCOL-V1.md), and the
+[User Guide](references/USER-GUIDE.md). The following commitments are
+load-bearing and in scope for vulnerability reports:
 
 - **Mechanical relay policy with fail-closed signatures —** `/hooks/agent`
   routes the complete opaque envelope to the Antenna relay agent. Its canonical
@@ -108,10 +107,9 @@ These are openly acknowledged trade-offs and limitations of the current design. 
   peer/session trust decisions for ordinary unicast.
 - **Untrusted input framing is advisory.** Relayed content is framed with a security notice so receiving agents treat it as external input, but enforcement ultimately depends on the receiving agent's own behavior. This is why the relay-agent itself is kept deliberately thin and non-interpreting.
 
-For deeper architectural detail, see
-[`references/ANTENNA-RELAY-FSD.md`](references/ANTENNA-RELAY-FSD.md),
-[`references/ED25519-PROTOCOL-V1.md`](references/ED25519-PROTOCOL-V1.md), and
-the [User Guide](references/USER-GUIDE.md).
+For deeper architectural detail, see the
+[`Ed25519 protocol`](references/ED25519-PROTOCOL-V1.md) and the
+[User Guide](references/USER-GUIDE.md).
 
 ## Out of Scope
 

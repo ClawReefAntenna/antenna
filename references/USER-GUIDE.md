@@ -706,29 +706,16 @@ The pairing wizard (`antenna pair`) offers both paths. Setup also mentions ClawR
 ```
 skills/antenna/
 ├── SKILL.md                         # Skill definition (for OpenClaw)
-├── CHANGELOG.md                     # Release history
-├── bin/
-│   └── antenna.sh                   # CLI dispatcher
-├── scripts/
-│   ├── antenna-send.sh              # Sender: builds envelope, POSTs
-│   ├── antenna-relay.sh             # Receiver: parse, validate, format
-│   ├── antenna-relay-file.sh        # Internal file-based relay adapter
-│   ├── antenna-relay-exec.sh        # Base64 relay wrapper (legacy)
-│   ├── antenna-pair.sh              # Interactive pairing wizard
-│   ├── antenna-inbox.sh             # Inbox queue management
-│   ├── antenna-setup.sh             # First-run setup wizard
-│   ├── antenna-exchange.sh          # Encrypted bootstrap exchange
-│   ├── antenna-health.sh            # Peer health checks
-│   ├── antenna-peers.sh             # Peer listing
-│   ├── antenna-doctor.sh            # Diagnostic health check
-│   ├── antenna-model-test.sh        # Single-model smoke test
-│   └── antenna-test-suite.sh        # Two-tier test framework
+├── install.sh                       # Installer entry point
+├── antenna-*.example.json           # Tracked configuration templates
+├── bin/antenna.sh                   # CLI dispatcher
+├── scripts/                         # Commands and deterministic helpers
+├── lib/                             # Shared parsing, policy, and config logic
 ├── references/
 │   ├── USER-GUIDE.md                # This document
-│   ├── ANTENNA-RELAY-FSD.md         # Relay protocol specification
-│   └── setup-completion-v1.1.8.md   # Setup output reference
-├── agent/
-│   └── AGENTS.md                    # Relay policy and tool contract
+│   ├── ED25519-PROTOCOL-V1.md       # Signed-envelope protocol
+│   └── OPENCLAW-2026.8.1-UPGRADE.md # Stopped-writer upgrade guide
+├── agent/AGENTS.md                  # Relay policy and tool contract
 ├── secrets/                          # Token & secret files (chmod 600)
 ├── antenna-config.json               # Local runtime config (gitignored)
 ├── antenna-peers.json                # Local runtime peer registry (gitignored)
@@ -737,6 +724,6 @@ skills/antenna/
 
 ---
 
-*Antenna for OpenClaw · [GitHub](https://github.com/ClawReefAntenna/antenna) · [ClawHub](https://clawhub.ai/cshirley001/antenna) · [ClawReef](https://clawreef.io)*
+*Antenna for OpenClaw · [GitHub](https://github.com/ClawReefAntenna/antenna) · [ClawHub](https://clawhub.ai/clawreefantenna/antenna) · [ClawReef](https://clawreef.io)*
 
 *The ocean is big, the reef is growing, and the best antennae are the ones that reach out. 🦞 📡*

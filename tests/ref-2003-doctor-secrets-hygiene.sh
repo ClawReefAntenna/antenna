@@ -6,7 +6,7 @@
 # from antenna-peers.json*. It says nothing about:
 #   - orphan secret files whose peer ID is no longer in the registry
 #     (the file-side counterpart to the pre-REF-1312 allowlist drift
-#      for `nexus` / `bruce`)
+#      for removed peers)
 #   - `.bak*` / `.backup*` / `~` / `.old` backup files whose perms drift
 #     silently over time
 #   - the permissions on secrets/ itself being too loose
@@ -174,7 +174,7 @@ chmod 700 "$SKILL_DIR/secrets"  # restore for further checks
 echo ""
 echo "── REF-2003 case 3: orphan antenna-peer-<unknown>.secret ──────────────"
 setup_skill_dir case3
-install -m 600 /dev/stdin "$SKILL_DIR/secrets/antenna-peer-nexus.secret" <<<"x"
+install -m 600 /dev/stdin "$SKILL_DIR/secrets/antenna-peer-orphan-one.secret" <<<"x"
 
 out="$(run_doctor)"
 sec="$(extract_hygiene_section "$out")"
@@ -184,7 +184,7 @@ if grep -qF "orphan secret file(s) in secrets/: 1" <<<"$sec"; then
 else
   fail "orphan antenna-peer-*.secret was not reported" "$sec"
 fi
-if grep -qE -- "- antenna-peer-nexus\.secret" <<<"$sec"; then
+if grep -qE -- "- antenna-peer-orphan-one\.secret" <<<"$sec"; then
   pass "orphan filename appears in output"
 else
   fail "orphan filename missing from output" "$sec"
@@ -194,7 +194,7 @@ fi
 echo ""
 echo "── REF-2003 case 4: orphan hooks_token_<unknown> ──────────────────────"
 setup_skill_dir case4
-install -m 600 /dev/stdin "$SKILL_DIR/secrets/hooks_token_bruce" <<<"x"
+install -m 600 /dev/stdin "$SKILL_DIR/secrets/hooks_token_orphan-two" <<<"x"
 
 out="$(run_doctor)"
 sec="$(extract_hygiene_section "$out")"
@@ -204,7 +204,7 @@ if grep -qF "orphan secret file(s) in secrets/: 1" <<<"$sec"; then
 else
   fail "orphan hooks_token was not reported" "$sec"
 fi
-if grep -qE -- "- hooks_token_bruce" <<<"$sec"; then
+if grep -qE -- "- hooks_token_orphan-two" <<<"$sec"; then
   pass "orphan hooks_token filename appears in output"
 else
   fail "orphan hooks_token filename missing from output" "$sec"
@@ -346,7 +346,7 @@ fi
 echo ""
 echo "── REF-2003 invariant: orphans/backups are warns, never fails ─────────"
 setup_skill_dir invariant
-install -m 600 /dev/stdin "$SKILL_DIR/secrets/antenna-peer-nexus.secret" <<<"x"
+install -m 600 /dev/stdin "$SKILL_DIR/secrets/antenna-peer-orphan-one.secret" <<<"x"
 install -m 600 /dev/stdin "$SKILL_DIR/secrets/hooks_token_alice.bak" <<<"x"
 
 out="$(run_doctor)"

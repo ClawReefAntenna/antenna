@@ -6,7 +6,7 @@
 # in .self.url. This test locks down doctor's new behavior:
 #
 #   1. Self-peer URL is valid → pass line present, no "malformed" fail.
-#   2. Self-peer URL is literally "main" (the devon1545 incident) → doctor
+#   2. Self-peer URL is literally "main" (legacy regression) → doctor
 #      fails loud with the specific URL in the output.
 #   3. Self-peer URL is missing → doctor fails with a "no URL configured"
 #      signal (distinct from the malformed path).
@@ -93,7 +93,7 @@ else
   pass "valid self URL did not produce a malformed-URL fail line"
 fi
 
-# ── Case 2: self URL is literally "main" (the devon1545 incident) ─────────
+# ── Case 2: self URL is literally "main" (legacy regression) ─────────────
 echo ""
 echo "── REF-2001 case 2: self URL 'main' is caught ─────────────────────────"
 cat > "$SKILL_DIR/antenna-peers.json" <<'JSON'

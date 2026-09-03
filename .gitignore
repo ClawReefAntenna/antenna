@@ -27,22 +27,12 @@ agent/models.json
 # OS junk
 .DS_Store
 Thumbs.db
+*.txt:Zone.Identifier
 antenna-ratelimit.json
 antenna-*.lock
 *.pre-ticket-*
 *.age.txt
-references/GAPS.md
-references/ANTV4-PHASE-1-REVIEW.md
-references/ANTV4-VALIDATION-CHECKLIST-SHORT.md
-references/ANTV4-VALIDATION-CHECKLIST.md
-references/copy-draft-v1.2.0.md
-references/issues.md
-references/setup-completion-v1.1.8.md
 agent/auth-profiles.json
-docs/
-bruce_bundle1.txt
-bruce_reply_bundle1.txt
-bruce_import1.txt:Zone.Identifier
 
 # Runtime backups created by antenna-cli during destructive ops
 antenna-config.json.bak.*
@@ -62,10 +52,3 @@ agent/memory
 /TOOLS.md
 /USER.md
 /openclaw-workspace-state.json
-
-# Private infrastructure inventories/rollback manifests retained outside the
-# public source history. The sanitized validation report remains tracked.
-/references/VAL-001-INVENTORY-2026-08-15.md
-/references/VAL-001-PRECHANGE-MANIFEST-2026-08-15.md
-/references/VAL-001-ROLLOUT-RESTORE-2026-08-15.md
-/references/VAL-001-THREE-HOST-MATRIX-2026-08-15.md

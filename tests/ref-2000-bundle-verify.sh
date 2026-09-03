@@ -16,7 +16,7 @@
 #   1. Accepts a well-formed, fresh bundle (exit 0, ok=true).
 #   2. Rejects a malformed schema_version (exit 1, shape reason).
 #   3. Rejects a bundle whose from_endpoint_url is "main" — the
-#      devon1545 incident (REF-1313). Locks in that the verifier
+#      malformed legacy-peer incident (REF-1313). Locks in that the verifier
 #      is using the shared validator, not a soft string check.
 #   4. Rejects an expired bundle, and accepts it with --force-expired.
 #   5. Never leaks the token / identity secret into the output. This is
@@ -148,7 +148,7 @@ else
   fail "T2: expected 'schema_version must be 1 or 2' reason" "$out"
 fi
 
-# ── T3: malformed URL (devon1545 "main" regression) ─────────────────────
+# ── T3: malformed URL (legacy "main" regression) ────────────────────────
 out=$(run_verify "$BAD_URL" --no-decrypt); rc=$?
 if [[ $rc -eq 1 ]]; then
   pass "T3: from_endpoint_url='main' → exit 1"

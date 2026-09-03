@@ -8,7 +8,7 @@
 # edited antenna-config.json) had no signal that `allowed_inbound_peers`,
 # `allowed_outbound_peers`, or `inbox_auto_approve_peers` referenced peer
 # IDs that no longer existed. This is the check that would have caught the
-# pre-cleanup nexus / bruce debris automatically.
+# pre-cleanup orphan references automatically.
 #
 # Cases covered:
 #   1. Clean config (no orphans) → affirmative pass line, no warn.
@@ -118,7 +118,7 @@ echo "── REF-2002 case 2: orphan in allowed_inbound_peers is caught ──�
 cat > "$SKILL_DIR/antenna-config.json" <<'JSON'
 {
   "self_id": "testhost",
-  "allowed_inbound_peers": ["alice", "nexus"],
+  "allowed_inbound_peers": ["alice", "orphan-one"],
   "allowed_outbound_peers": ["alice"],
   "inbox_auto_approve_peers": [],
   "allowed_inbound_sessions": []
@@ -133,10 +133,10 @@ if grep -qF "allowed_inbound_peers references unknown peer(s): 1" <<<"$drift"; t
 else
   fail "orphan in allowed_inbound_peers was not reported" "$drift"
 fi
-if grep -qE -- "- nexus" <<<"$drift"; then
-  pass "orphan ID 'nexus' appears in hint lines"
+if grep -qE -- "- orphan-one" <<<"$drift"; then
+  pass "orphan ID 'orphan-one' appears in hint lines"
 else
-  fail "orphan ID 'nexus' missing from output" "$drift"
+  fail "orphan ID 'orphan-one' missing from output" "$drift"
 fi
 
 # ── Case 3: orphan in allowed_outbound_peers ─────────────────────────────
@@ -146,7 +146,7 @@ cat > "$SKILL_DIR/antenna-config.json" <<'JSON'
 {
   "self_id": "testhost",
   "allowed_inbound_peers": ["alice"],
-  "allowed_outbound_peers": ["alice", "bruce"],
+  "allowed_outbound_peers": ["alice", "orphan-two"],
   "inbox_auto_approve_peers": [],
   "allowed_inbound_sessions": []
 }
@@ -160,10 +160,10 @@ if grep -qF "allowed_outbound_peers references unknown peer(s): 1" <<<"$drift"; 
 else
   fail "orphan in allowed_outbound_peers was not reported" "$drift"
 fi
-if grep -qE -- "- bruce" <<<"$drift"; then
-  pass "orphan ID 'bruce' appears in hint lines"
+if grep -qE -- "- orphan-two" <<<"$drift"; then
+  pass "orphan ID 'orphan-two' appears in hint lines"
 else
-  fail "orphan ID 'bruce' missing from output" "$drift"
+  fail "orphan ID 'orphan-two' missing from output" "$drift"
 fi
 
 # ── Case 4: orphan in inbox_auto_approve_peers ───────────────────────────
@@ -199,8 +199,8 @@ echo "── REF-2002 case 5: multiple orphans in multiple lists ─────
 cat > "$SKILL_DIR/antenna-config.json" <<'JSON'
 {
   "self_id": "testhost",
-  "allowed_inbound_peers": ["alice", "nexus", "zombie"],
-  "allowed_outbound_peers": ["bruce"],
+  "allowed_inbound_peers": ["alice", "orphan-one", "zombie"],
+  "allowed_outbound_peers": ["orphan-two"],
   "inbox_auto_approve_peers": ["ghost", "phantom"],
   "allowed_inbound_sessions": []
 }

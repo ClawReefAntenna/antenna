@@ -170,10 +170,10 @@ fi
 
 SYNTH_LOG=$(mktemp)
 cat > "$SYNTH_LOG" <<EOF
-[2026-04-20T15:00:00Z] OUTBOUND | to:bettyxix | session:agent:antenna:modeltest | nonce:MODELTEST_AAA111 | status:sent
-[2026-04-20T15:00:00Z] OUTBOUND | to:bettyxix | session:agent:antenna:modeltest | nonce:MODELTEST_BBB222 | status:sent
-[2026-04-20T15:00:02Z] INBOUND  | from:bettyxix | session:agent:antenna:modeltest | nonce:MODELTEST_AAA111 | status:relayed | chars:200
-[2026-04-20T15:00:03Z] INBOUND  | from:bettyxix | session:agent:antenna:modeltest | nonce:MODELTEST_BBB222 | status:relayed | chars:200
+[2026-04-20T15:00:00Z] OUTBOUND | to:local-peer | session:agent:antenna:modeltest | nonce:MODELTEST_AAA111 | status:sent
+[2026-04-20T15:00:00Z] OUTBOUND | to:local-peer | session:agent:antenna:modeltest | nonce:MODELTEST_BBB222 | status:sent
+[2026-04-20T15:00:02Z] INBOUND  | from:local-peer | session:agent:antenna:modeltest | nonce:MODELTEST_AAA111 | status:relayed | chars:200
+[2026-04-20T15:00:03Z] INBOUND  | from:local-peer | session:agent:antenna:modeltest | nonce:MODELTEST_BBB222 | status:relayed | chars:200
 EOF
 
 # Run A's poll (nonce=AAA111) should match exactly one relayed line, and it must be AAA111.

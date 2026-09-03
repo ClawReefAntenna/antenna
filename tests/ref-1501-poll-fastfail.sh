@@ -109,10 +109,10 @@ cp "$SKILL_DIR/lib/peers.sh" "$SKILL_DIR/lib/config.sh" \
   "$SKILL_DIR/lib/antenna-envelope-parse.py" "$TMP/skill/lib/"
 SCRATCH_LOG="$TMP/skill/relay.log"
 cat > "$TMP/skill/antenna-config.json" <<JSON
-{"log_path":"$SCRATCH_LOG","log_enabled":"true","allowed_inbound_peers":["bettyxix"],"allowed_inbound_sessions":["agent:betty:main"]}
+{"log_path":"$SCRATCH_LOG","log_enabled":"true","allowed_inbound_peers":["local-peer"],"allowed_inbound_sessions":["agent:assistant:main"]}
 JSON
 cat > "$TMP/skill/antenna-peers.json" <<'JSON'
-{"bettyxix":{"self":true,"url":"http://localhost"}}
+{"local-peer":{"self":true,"url":"http://localhost"}}
 JSON
 OUT=$(printf '%s' "$ENV" | bash "$TMP/skill/scripts/antenna-relay.sh" --stdin 2>&1 || true)
 LOG_FILE="$SCRATCH_LOG"

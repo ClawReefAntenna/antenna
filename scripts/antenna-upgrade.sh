@@ -72,8 +72,8 @@ SKILL_DIR="$(realpath "$SKILL_DIR")"
 
 # ANT-162-006: refuse before ANY mutation if this release package's relay policy
 # is missing, symlinked, the generic OpenClaw workspace template, or otherwise
-# not the canonical Antenna relay contract. Bruce's v1.5.1→v1.6.2 qualification
-# showed that copying runtime state and repointing the gateway onto a package
+# not the canonical Antenna relay contract. Upgrade qualification showed that
+# copying runtime state and repointing the gateway onto a package
 # whose agent/AGENTS.md had been deleted and recreated empty left the relay
 # agent interpreting messages instead of executing the mechanical write/exec
 # contract. This gate runs before any source copy, staging directory, gateway

@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*Version 1.6.4 candidate · An AgentSkill from the OpenClaw community*
+*Version 1.6.4 · An AgentSkill from the OpenClaw community*
 
 ---
 
@@ -61,14 +61,16 @@ When it's done, you'll see:
 ✓ Setup complete! Welcome to the reef, myhost. 🦞
 ```
 
-### Upgrade an Existing v1.5.2 Installation
+### Upgrade an Existing v1.5.2 through v1.6.3 Installation
 
-Keep the working v1.5.2 directory as the rollback point and extract v1.6.4 to
-a different directory. Run the command from the **new** tree:
+Keep the working installation directory as the rollback point and extract
+v1.6.4 to a different directory. Run the command from the **new** tree,
+substituting the actual source directory for `old_antenna_dir`:
 
 ```bash
+old_antenna_dir=~/clawd/skills/antenna-v1.6.3
 bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh upgrade \
-  --from ~/clawd/skills/antenna-v1.5.2
+  --from "$old_antenna_dir"
 openclaw gateway restart
 bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh doctor
 ```
@@ -81,11 +83,12 @@ root, preserves ignored workspace files, and repoints an existing CLI symlink
 when possible. OpenClaw auth/session databases must never be placed inside the
 replaceable Antenna workspace.
 
-Do not run `setup --force`; that is a fresh-setup operation. Existing legacy
-peer records remain deliberately unclassified and therefore fail closed. Use
-the encrypted exchange workflow to re-pair every old peer as `ed25519-v1`
-before sending. Rollback remains local: restore the printed gateway backup,
-repoint the CLI to the untouched v1.5.2 tree, and restart OpenClaw.
+Do not run `setup --force`; that is a fresh-setup operation. Unclassified
+legacy peer records, typically from pre-Ed25519 v1.5.x installations, remain
+unclassified and therefore fail closed. Re-pair those records as `ed25519-v1`
+before sending; already classified Ed25519 peers remain classified. Rollback
+remains local: restore the printed gateway backup, repoint the CLI to the
+untouched source tree, and restart OpenClaw.
 
 If the host is also moving from OpenClaw 2026.7.x to 2026.8.1 or later,
 complete the [stopped-writer OpenClaw upgrade checklist](OPENCLAW-2026.8.1-UPGRADE.md)
@@ -182,9 +185,12 @@ Your primary agent's ID (e.g., `lobster`, `betty`). This is used in full session
 
 ### Step 4: Relay Model
 
-The LLM that powers the relay agent. Pick something lightweight and fast - the relay is a courier, not a philosopher. `openai/gpt-5.4-nano` is the current recommended default based on the current three-way comparison run. Use a full `provider/model` ID for portability.
-
-> **Use case:** Want the best current relay-duty speed/fit? `openai/gpt-5.4-nano` is the recommended default. Prefer a pinned version for stricter reproducibility? `openai/gpt-5.4-nano-2026-03-17` has also passed the suite cleanly. Running Antenna on a local box with Ollama? Point it at your local model.
+Setup inherits the host's configured primary model. Antenna gives the relay a
+small, mechanical dispatch job, so smaller models are generally the best fit.
+GPT-5.6 Luna, Gemini Flash, and Haiku have shown reliable physical results.
+Provider availability and authentication vary by host, so use a full
+`provider/model` ID and run `antenna test <model>` or `antenna test-suite`
+before committing to a relay model.
 
 ### Step 5: Inbox Mode
 
@@ -491,7 +497,7 @@ Not all models are created equal when it comes to relay work. Some are fast but 
 
 ### Tier A - Script Validation
 
-Fifteen deterministic tests. No model involved. They check relay parsing and validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks. This is the foundation - if Tier A fails, nothing else matters.
+Twenty deterministic tests. No model involved. They check relay parsing and validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks. This is the foundation - if Tier A fails, nothing else matters.
 
 ### Tier B - Tool Call Generation
 
@@ -503,7 +509,7 @@ delivery wrapper against that private file.
 ### Multi-Model Comparison
 
 ```bash
-antenna test-suite --models "openai/gpt-5.4,anthropic/claude-sonnet-4,google/gemini-2.5-flash"
+antenna test-suite --models "openai/gpt-5.6-luna,anthropic/claude-haiku-4-5,google/gemini-3.5-flash"
 ```
 
 Side-by-side results with per-test pass/fail, scores, timing, and a recommendation. Structured JSON and Markdown reports included.
@@ -633,8 +639,9 @@ Distribution Lists, and Listed Public Groups, plus v1.6.2's generation-native
 OpenClaw 2026.7/2026.8.1 roster handling. It also keeps the useful v1.6.3
 hardening: consolidated relay workspace policy, fail-closed upgrade validation,
 read-only Doctor integrity checks, stable OpenClaw agent state, and complete
-uninstall cleanup. Mixed-version and ClawReef qualification remain release
-gates. This candidate is not a publication or availability claim.
+uninstall cleanup. Mixed-version, physical-host, ClawReef fan-out, and
+independent upgrade qualification passed before the release package was
+frozen. ClawHub catalog availability remains a separate distribution state.
 
 Each local Distribution List member records a required peer ID and an optional
 full session key. A pinned session targets that recipient directly; omitting it

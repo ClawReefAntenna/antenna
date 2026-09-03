@@ -85,15 +85,17 @@ bash skills/antenna/bin/antenna.sh setup
 
 After setup, `antenna` is on your PATH — all future commands are just `antenna <command>`. Your agent can also invoke these directly.
 
-### Upgrading from v1.5.2
+### Upgrading from v1.5.2 through v1.6.3
 
-Extract v1.6.4 beside the known-good v1.5.2 directory. Do **not** run
+Extract v1.6.4 beside the known-good existing installation. Do **not** run
 `setup --force` in the new directory: setup creates fresh state and is not an
-upgrade command. Instead, invoke the new release directly:
+upgrade command. Instead, invoke the new release directly, substituting the
+actual source directory for `old_antenna_dir`:
 
 ```bash
+old_antenna_dir=~/clawd/skills/antenna-v1.6.3
 bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh upgrade \
-  --from ~/clawd/skills/antenna-v1.5.2
+  --from "$old_antenna_dir"
 openclaw gateway restart
 bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh doctor
 ```
@@ -102,7 +104,7 @@ The upgrade refuses before touching anything if the new release's
 `agent/AGENTS.md` relay policy is missing, symlinked, or the generic OpenClaw
 workspace template — restore that file from the original download and rerun.
 
-`antenna upgrade` refuses to overwrite destination state, leaves the v1.5.2
+`antenna upgrade` refuses to overwrite destination state, leaves the source
 tree untouched, preserves local configuration, peers, lists, Public Group
 routes, keys, secrets, queues, replay/rate state, and logs, and backs up
 agent-local runtime/auth files plus `openclaw.json` before repointing the
@@ -113,12 +115,14 @@ If the host is also moving from OpenClaw 2026.7.x to 2026.8.1 or later,
 complete the [stopped-writer OpenClaw upgrade checklist](references/OPENCLAW-2026.8.1-UPGRADE.md)
 before running the Antenna side-by-side upgrade.
 
-Legacy peer records are preserved exactly, but they are not silently promoted
-to Ed25519. They fail closed until each operator completes a fresh encrypted
-Ed25519 re-pair. There is no automatic downgrade or mixed-mode window.
+Peer records are preserved exactly. Unclassified legacy records, typically
+from pre-Ed25519 v1.5.x installations, are not silently promoted and fail
+closed until each operator completes a fresh encrypted Ed25519 re-pair.
+Already classified Ed25519 peers remain classified. There is no automatic
+downgrade or mixed-mode window.
 
 To roll back, restore the printed `openclaw.json.antenna-upgrade-backup-*`,
-repoint the CLI symlink to the untouched v1.5.2 tree, and restart OpenClaw.
+repoint the CLI symlink to the untouched source tree, and restart OpenClaw.
 
 ### 2. Pair with a Peer
 
@@ -264,18 +268,21 @@ Two-tier test suite across 7 provider families (OpenAI, Codex, OpenRouter, Nvidi
 antenna test-suite --tier A
 
 # Full suite against a single model
-antenna test-suite --model openai/gpt-5.4-nano
+antenna test-suite --model openai/gpt-5.6-luna
 
 # Compare multiple models side-by-side (max 6)
-antenna test-suite --models "openai/gpt-5.4-nano,anthropic/claude-sonnet-4-5,google/gemini-2.5-pro"
+antenna test-suite --models "openai/gpt-5.6-luna,anthropic/claude-haiku-4-5,google/gemini-3.5-flash"
 
 # Save structured report
 antenna test-suite --report
 ```
 
+Model availability and provider authentication vary by host. Qualify the exact
+model/runtime combination you intend to use before making it the relay model.
+
 | Tier | Tests | What It Checks |
 |------|-------|----------------|
-| A | 15 | Relay parsing, validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks |
+| A | 20 | Relay parsing, validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks |
 | B | 4 | Model writes the complete inbound envelope exactly once to a private relay file before invoking the delivery wrapper |
 
 ---
@@ -449,7 +456,7 @@ That peer-to-peer cooperation is Antenna's durable product direction. Community-
 
 ## Development Direction
 
-Version 1.6.4 is a corrective candidate over the immutable v1.6.3 release. It
+Version 1.6.4 is the corrective release over the immutable v1.6.3 release. It
 restores the `/hooks/agent` wire contract used by v1.5.x through v1.6.2 while
 retaining v1.6.1's reviewed Ed25519 identity, local Distribution Lists, and
 Listed Public Groups, plus v1.6.2's generation-native OpenClaw
@@ -462,8 +469,8 @@ OpenClaw auth and session state stays in the stable
 `~/.openclaw/agents/antenna/agent` directory.
 The v1.6.3-only mapping and transform are removed when they match the released
 canonical files; customized or foreign content is preserved and reported.
-Mixed-version and ClawReef qualification remain release gates. This is
-candidate evidence, not a publication or availability claim.
+Mixed-version, physical-host, ClawReef fan-out, and independent upgrade
+qualification all passed before the release package was frozen.
 
 The first Public Group slice is Listed/open. Pseudonymous groups are not
 advertised or supported for public use yet. Antenna does not promise payload
@@ -478,16 +485,17 @@ content scanning, or HelpingClaw on a release schedule.
 |----------|-------------|
 | [User's Guide](references/USER-GUIDE.md) | Complete walkthrough — setup, pairing, inbox, testing, FAQ |
 | [Relay Protocol FSD](references/ANTENNA-RELAY-FSD.md) | Historical v1.5.2 relay reference; current behavior is defined by SKILL.md and SECURITY.md |
-| [CHANGELOG](CHANGELOG.md) | Release history and clearly marked unreleased development changes |
+| [CHANGELOG](CHANGELOG.md) | Release history and corrective-release details |
 
 ---
 
 ## Version
 
-**v1.6.4 candidate** — restores the interoperable `/hooks/agent` transport
+**v1.6.4** — restores the interoperable `/hooks/agent` transport
 used by supported v1.5.x through v1.6.2 peers while retaining checksum-backed
-relay-policy integrity and the OpenClaw 2026.8.1 compatibility work. It is not
-yet published or available through ClawHub.
+relay-policy integrity and the OpenClaw 2026.8.1 compatibility work. ClawHub
+catalog availability is a separate distribution state and should be verified
+there before relying on it.
 
 For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md).
 

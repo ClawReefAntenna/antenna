@@ -22,16 +22,16 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 
 | Version | Supported |
 |---------|-----------|
-| 1.6.4 (unreleased) | 🧪 Corrective candidate |
+| 1.6.4 | ✅ Current supported release |
 | 1.6.3 | ⚠️ Superseded; do not install on mixed-version peer networks |
-| 1.6.2 | ✅ Current GitHub release |
-| 1.6.0 – 1.6.1 | ⚠️ Superseded; install 1.6.2 |
+| 1.6.2 | ⚠️ Compatible previous release; upgrade recommended |
+| 1.6.0 – 1.6.1 | ⚠️ Superseded; install 1.6.4 |
 | 1.5.2 | ⚠️ Upgrade recommended |
 | 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
 | 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |
 | < 1.3.0 | ❌ Unsupported |
 
-The v1.6.4 corrective candidate restores the established `/hooks/agent`
+The v1.6.4 corrective release restores the established `/hooks/agent`
 transport and request shape used by supported v1.5.x-through-v1.6.2 peers. It
 retains checksum-backed relay-policy installation, upgrade preflight, and
 Doctor audit/restore, Ed25519 sender signatures, exact message-ID

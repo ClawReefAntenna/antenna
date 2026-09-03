@@ -253,7 +253,7 @@ echo "<raw_message>" | antenna-relay.sh --stdin
 | Property | Value |
 |---|---|
 | Agent ID | `antenna` |
-| Model | `openai/gpt-5.4-nano` (current recommended relay model) |
+| Model | `<provider/model-id>` (historical placeholder; qualify locally) |
 | Workspace | `~/.openclaw/agents/antenna/` or `~/clawd/agents/antenna/` |
 | Purpose | Execute relay script, then relay into the target session. Nothing else. |
 
@@ -333,7 +333,8 @@ exec antenna-relay-deliver.sh
 Reply with script stdout
 ```
 
-One possible path. One tool call (exec). Zero ambiguity. Any lightweight model handles this perfectly.
+One constrained path. Two tool calls (`write`, then `exec`). Qualify the model
+with the shipped test suite because provider/runtime behavior varies.
 
 ---
 
@@ -346,7 +347,7 @@ One possible path. One tool call (exec). Zero ambiguity. Any lightweight model h
   "max_message_length": 10000,
   "default_target_session": "agent:<local_agent_id>:main",
   "relay_agent_id": "antenna",
-  "relay_agent_model": "openai/gpt-5.4-nano",
+  "relay_agent_model": "<provider/model-id>",
   "note": "Use a full provider/model ID, not a local alias, for portability",
   "local_agent_id": "<your-agent-id>",
   "install_path": "<absolute-path-to-skill-directory>",
@@ -373,7 +374,7 @@ One possible path. One tool call (exec). Zero ambiguity. Any lightweight model h
 | `max_message_length` | int | 10000 | Max message body chars. Reject if exceeded. |
 | `default_target_session` | string | `"main"` | Target session when sender doesn't specify |
 | `relay_agent_id` | string | `"antenna"` | Agent ID for the relay agent |
-| `relay_agent_model` | string | `"openai/gpt-5.4-nano"` | Full provider/model ID for the relay agent. Use a specific model, not a local alias, for portability. |
+| `relay_agent_model` | string | inherited during setup | Full provider/model ID for the relay agent. Use a specific model, not a local alias, for portability, and qualify it locally. |
 | `local_agent_id` | string | (required) | Local primary agent ID (for resolving `main` → `agent:<id>:main`). |
 | `install_path` | string | (required) | Absolute path to this skill directory on the host. Used by the agent to resolve script paths. |
 | `log_enabled` | bool | `true` | Enable transaction logging |
@@ -708,7 +709,7 @@ Summary (when --runs > 1):
 
 ## 18. Historical Test-Suite Design (superseded)
 
-> **Superseded by v1.5.2.** The current `antenna test-suite` is two-tier: Tier A has 15 deterministic script/state checks; Tier B has four model checks for write-first behavior, raw-envelope preservation, and unique relay temp paths. The historical Tier C design below is not a runnable current test tier.
+> **Superseded by v1.5.2.** The current `antenna test-suite` is two-tier: Tier A has 20 deterministic script/state checks; Tier B has four model checks for write-first behavior, raw-envelope preservation, and unique relay temp paths. The historical Tier C design below is not a runnable current test tier.
 
 ### Purpose
 

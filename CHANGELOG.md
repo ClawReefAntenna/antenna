@@ -2,15 +2,13 @@
 
 All notable changes to the Antenna skill are documented here.
 
-This file is the forward-looking, `[Unreleased]` + recent-releases changelog shipped with the skill.
+This file is the recent-releases changelog shipped with the skill.
 For the complete version history prior to `1.3.0`, see:
 
 - GitHub releases: https://github.com/ClawReefAntenna/antenna/releases
 - Full historical changelog (in-repo): [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md)
 
-## [Unreleased]
-
-Target release: **1.6.4**.
+## [1.6.4] — 2026-09-03
 
 Corrective patch release. Restores the established `/hooks/agent` transport
 used by supported v1.5.x through v1.6.2 peers while retaining the relay-policy,
@@ -62,6 +60,14 @@ introduced.
   files. Ownership and manifest are shared with the upgrade preflight through
   `lib/relay-policy.sh` and are structured to cover future Antenna-owned agent
   files.
+
+### Documentation reconciled
+
+- **Final package guidance matches the qualified release.** Release status,
+  Tier A test count, side-by-side upgrade coverage, model-selection guidance,
+  and the shipped package tree now describe v1.6.4 consistently. Setup
+  continues to inherit the host's primary model; no universal relay-model
+  default is claimed.
 
 ## [1.6.3] — 2026-09-02 (superseded)
 

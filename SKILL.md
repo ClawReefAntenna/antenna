@@ -44,11 +44,12 @@ Normal path:
 - Run `antenna setup` to generate the live runtime files.
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
-Existing v1.5.2 installation:
+Existing v1.5.2 through v1.6.3 installation:
 - Extract v1.6.4 side by side; do not run `setup --force` in the new tree.
 - Run the new tree's `bin/antenna.sh upgrade --from <old-skill-dir>`.
-- Restart OpenClaw, run the new tree's `doctor`, then complete a fresh
-  encrypted Ed25519 re-pair for each legacy peer.
+- Restart OpenClaw and run the new tree's `doctor`. Complete a fresh encrypted
+  Ed25519 re-pair only for unclassified legacy peer records; already classified
+  Ed25519 peers remain classified.
 - The upgrade command preserves runtime state, leaves the old tree untouched,
   backs up the gateway config, and repoints the Antenna agent paths. It does
   not invent `auth_mode` or silently convert reusable legacy credentials.
@@ -115,8 +116,8 @@ Tracked reference files live beside them:
 
 Use `antenna setup` for normal installation; use the `*.example.json` files for schema reference or manual recovery.
 
-Use `antenna upgrade --from <old-skill-dir>` for a side-by-side v1.5.2
-migration. The destination must have no runtime state. Never use
+Use `antenna upgrade --from <old-skill-dir>` for a side-by-side migration from
+v1.5.2 through v1.6.3. The destination must have no runtime state. Never use
 `setup --force` as an upgrade mechanism.
 
 ### `antenna-config.json`
@@ -126,7 +127,7 @@ migration. The destination must have no runtime state. Never use
   "max_message_length": 10000,
   "default_target_session": "agent:betty:main",
   "relay_agent_id": "antenna",
-  "relay_agent_model": "openai/gpt-5.4-nano",
+  "relay_agent_model": "<provider/model-id>",
   "local_agent_id": "<your-agent-id>",
   "install_path": "<absolute-path-to-this-skill-directory>",
   "log_enabled": true,
@@ -471,8 +472,9 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - Legacy raw-secret export refuses non-TTY output
 - v1.6.4 restores the established `/hooks/agent` transport after the v1.6.3
   deterministic-staging experiment proved incompatible with unchanged peers.
-  The corrective candidate remains under qualification; this is not a
-  publication or availability claim.
+  It preserves the v1.6.3 relay-policy hardening while restoring supported
+  mixed-version interoperability. ClawHub availability is a separate catalog
+  state and should be verified there.
 - Encrypted bundle export never writes plaintext; encrypted bundle import cleans up plaintext on every exit path (return / fail / SIGINT / SIGTERM)
 - Expired encrypted bundles are refused at import (`--force-expired` is the disaster-recovery override)
 - Email send for bootstrap/pubkey resolves sender address from Himalaya TOML config; no `antenna@localhost` fallback, no free-text `From:` override
@@ -537,14 +539,11 @@ skills/antenna/
 │   ├── antenna-model-test.sh
 │   └── antenna-test-suite.sh
 ├── references/
-│   ├── ANTENNA-RELAY-FSD.md          # Relay architecture contract
-│   └── issues.md                      # Known issues / gaps tracker
-├── docs/                               # Repo-only (operator / historical)
-│   ├── full-removal-checklist.md
-│   ├── SECURITY-ASSESSMENT-v1.0.20.md
-│   ├── RED-TEAM-REPORT-v1.0.4.md
-│   ├── LAYER-A-SECRET-EXCHANGE-PLAN.md
-│   └── SECRET-EXCHANGE-OPTIONS.md
+│   ├── ANTENNA-RELAY-FSD.md          # Historical v1.5.2 relay reference
+│   ├── USER-GUIDE.md                 # Installation and operator guide
+│   ├── ED25519-PROTOCOL-V1.md        # Signed-envelope protocol
+│   ├── OPENCLAW-2026.8.1-UPGRADE.md  # Stopped-writer host upgrade guide
+│   └── CHANGELOG-HISTORY.md          # Pre-v1.3.0 release history
 └── agent/
     └── AGENTS.md
 ```

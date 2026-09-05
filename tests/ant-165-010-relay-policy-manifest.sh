@@ -42,13 +42,19 @@ fixture_manifest_path() {
 expected_hash="$(sha256sum "$DEFAULT" | awk '{print $1}')"
 
 check "canonical source manifest exists" test -f "$CANONICAL"
-check "canonical source manifest is tracked" \
-  bash -c 'git -C "$1" ls-files --error-unmatch lib/relay-policy/manifest.txt >/dev/null' _ "$ROOT"
 check "canonical manifest has a ClawHub-supported .txt extension" \
   test "${CANONICAL##*.}" = txt
 check "legacy source manifest is absent" test ! -e "$LEGACY"
-check "ClawHub ignore rules retain the canonical manifest" \
-  bash -c '! git check-ignore -q -- "$1"' _ "$CANONICAL"
+if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  check "canonical source manifest is tracked" \
+    bash -c 'git -C "$1" ls-files --error-unmatch lib/relay-policy/manifest.txt >/dev/null' _ "$ROOT"
+  check "ClawHub ignore rules retain the canonical manifest" \
+    bash -c '! git -C "$1" check-ignore -q -- lib/relay-policy/manifest.txt' _ "$ROOT"
+else
+  check "release archive contains the canonical manifest" test -f "$CANONICAL"
+  check "release archive does not explicitly exclude the canonical manifest" \
+    bash -c '! grep -Eq "(^|/)manifest\\.txt$|^\\*\\.txt$" "$1/.clawhubignore"' _ "$ROOT"
+fi
 
 canonical_fixture="$(new_fixture canonical)"
 cp "$CANONICAL" "$canonical_fixture/lib/relay-policy/"

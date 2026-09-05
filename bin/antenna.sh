@@ -97,8 +97,8 @@ Antenna — Inter-Host OpenClaw Messaging
 
 Usage:
   antenna setup                              First-run setup wizard
-  antenna setup --host-id <id> ...           Non-interactive setup (see --help)
-  antenna upgrade --from <old-skill-dir>     Preserve state into this side-by-side release
+  antenna setup --host-id <id> ... --yes     Authorized non-interactive setup
+  antenna upgrade --from <old-skill-dir>     Preview and preserve state into this side-by-side release
   antenna pair [--peer-id <id>]              Interactive peer pairing wizard
   antenna uninstall [options]                Remove Antenna runtime state / optional gateway config
 

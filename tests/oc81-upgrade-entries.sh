@@ -20,7 +20,8 @@ mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/agent/memory" "$OLD/bin" 
   "$NEW/scripts" "$NEW/lib/relay-policy/agent" "$NEW/bin" "$NEW/agent" "$NEW/hooks" \
   "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
-cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" "$NEW/lib/"
+cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
+  "$ROOT/lib/change-plan.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
 cp "$ROOT/lib/v163-staging-cleanup.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"
@@ -96,7 +97,7 @@ chmod +x "$HOME_DIR/bin/openclaw"
 
 before="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=fixture \
-  bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" >/dev/null
+  bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" --yes >/dev/null
 after="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 
 check "8.1 upgrade leaves source tree byte-identical" test "$before" = "$after"

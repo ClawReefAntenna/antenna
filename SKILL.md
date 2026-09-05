@@ -52,11 +52,16 @@ Each participating host needs:
 
 Normal path:
 - Run `antenna setup` to generate the live runtime files.
+- Setup shows one administrative change plan before writing persistent state.
+  Already-authorized non-interactive setup must pass `--yes`.
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
 Existing v1.5.2 through v1.6.3 installation:
 - Extract v1.6.4 side by side; do not run `setup --force` in the new tree.
 - Run the new tree's `bin/antenna.sh upgrade --from <old-skill-dir>`.
+- Upgrade previews the source, destination, gateway, CLI, authentication, and
+  restart effects before mutation. Already-authorized non-interactive jobs add
+  `--yes`.
 - Restart OpenClaw and run the new tree's `doctor`. Complete a fresh encrypted
   Ed25519 re-pair only for unclassified legacy peer records; already classified
   Ed25519 peers remain classified.

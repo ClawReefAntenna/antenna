@@ -12,6 +12,15 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Administrative mutations now have one clear consent boundary
+  (ANT-165-008).** Setup defers token-file creation until it has shown one
+  concise plan covering runtime state, gateway registration, credentials, CLI
+  installation, and restart requirements. Upgrade shows its source,
+  destination, gateway, CLI, authentication, and restart effects before its
+  first persistent write. Setup and upgrade require `--yes` for authorized
+  non-interactive use; uninstall and relay-policy restore use the same consent
+  semantics while preserving dry-run, backup, rollback, and foreign-target
+  safeguards. Routine messaging is unchanged.
 - **Model testing is a focused compatibility checker again (ANT-165-004,
   ANT-165-005, ANT-165-011).** `antenna test-suite` now performs one synthetic,
   bounded `write`-tool exercise per model and reports only the verdict, reason,

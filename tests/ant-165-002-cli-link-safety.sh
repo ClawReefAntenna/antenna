@@ -159,7 +159,8 @@ UNINSTALL_HOME="$UNINSTALL_ROOT/home"
 mkdir -p "$UNINSTALL_SKILL/scripts" "$UNINSTALL_SKILL/lib" "$UNINSTALL_SKILL/bin" \
   "$UNINSTALL_HOME/.local/bin"
 cp "$ROOT/scripts/antenna-uninstall.sh" "$UNINSTALL_SKILL/scripts/"
-cp "$ROOT/lib/cli-link.sh" "$ROOT/lib/v163-staging-cleanup.sh" "$UNINSTALL_SKILL/lib/"
+cp "$ROOT/lib/cli-link.sh" "$ROOT/lib/v163-staging-cleanup.sh" \
+  "$ROOT/lib/change-plan.sh" "$UNINSTALL_SKILL/lib/"
 printf '#!/usr/bin/env bash\n' >"$UNINSTALL_SKILL/bin/antenna.sh"
 ln -s "$UNINSTALL_ROOT/missing-foreign" "$UNINSTALL_HOME/.local/bin/antenna"
 uninstall_output="$(HOME="$UNINSTALL_HOME" USER=fixture \
@@ -197,7 +198,7 @@ run_setup_fixture() {
     bash "$SETUP_SKILL/scripts/antenna-setup.sh" \
       --host-id fixture --display-name Fixture \
       --url https://fixture.example.com --agent-id betty \
-      --model fixture/relay --token-file "$SETUP_HOME/hooks.token" --inbox false "$@"
+      --model fixture/relay --token-file "$SETUP_HOME/hooks.token" --inbox false --yes "$@"
 }
 
 setup_output="$(run_setup_fixture 2>&1)"

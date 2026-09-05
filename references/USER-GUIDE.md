@@ -61,6 +61,10 @@ bash skills/antenna/bin/antenna.sh setup
 ```
 
 After setup, `antenna` is on your PATH - all future commands are just `antenna <command>`.
+Before setup writes persistent state, it shows one concise plan covering local
+files, gateway registration, credentials, the CLI path, and the required
+restart. Interactive setup asks once. Already-authorized automation supplies
+all non-interactive values and adds `--yes`.
 
 When it's done, you'll see:
 
@@ -93,6 +97,11 @@ default; intentional replacement requires the exact command path through
 `--replace-cli-link /absolute/path/antenna`. Directories and ambiguous targets
 are always refused. OpenClaw auth/session databases must never be placed inside
 the replaceable Antenna workspace.
+
+Upgrade shows its complete change plan before copying state or changing the
+gateway. Interactive use asks once; already-authorized non-interactive jobs
+add `--yes`. Declining or omitting that authorization in a non-interactive
+session leaves persistent state unchanged.
 
 Do not run `setup --force`; that is a fresh-setup operation. Unclassified
 legacy peer records, typically from pre-Ed25519 v1.5.x installations, remain

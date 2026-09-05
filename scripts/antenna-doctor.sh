@@ -27,6 +27,8 @@ source "$SKILL_DIR/lib/gateway-roster.sh"
 source "$SKILL_DIR/lib/relay-policy.sh"
 # shellcheck source=../lib/v163-staging-cleanup.sh
 source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
+# shellcheck source=../lib/change-plan.sh
+source "$SKILL_DIR/lib/change-plan.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -109,19 +111,16 @@ do_restore_policy() {
     return 0
   fi
 
-  # Confirm.
-  if [[ "$ASSUME_YES" != true ]]; then
-    if [[ -t 0 ]]; then
-      local ans
-      read -rp "  Proceed with restore? [y/N]: " ans
-      case "${ans,,}" in
-        y|yes) ;;
-        *) echo "  Aborted. No changes made."; return 1 ;;
-      esac
-    else
-      echo "  Refusing to restore without confirmation. Re-run with --yes to proceed non-interactively." >&2
-      return 1
+  # Confirm once after the complete preview.
+  if antenna_change_plan_confirm "$ASSUME_YES" "  Proceed with restore?"; then
+    :
+  else
+    local confirm_rc=$?
+    if [[ "$confirm_rc" -eq 2 ]]; then
+      return 2
     fi
+    echo "  Aborted. No changes made."
+    return 1
   fi
 
   local agent_dir; agent_dir="$(dirname "$live")"

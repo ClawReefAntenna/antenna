@@ -38,6 +38,8 @@ source "$SKILL_DIR/lib/relay-policy.sh"
 source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
 # shellcheck source=../lib/cli-link.sh
 source "$SKILL_DIR/lib/cli-link.sh"
+# shellcheck source=../lib/change-plan.sh
+source "$SKILL_DIR/lib/change-plan.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -81,6 +83,10 @@ NI_HOST_ID="" NI_DISPLAY="" NI_URL="" NI_AGENT="" NI_MODEL="" NI_TOKEN="" NI_FOR
 NI_INBOX="" NI_INBOX_AUTO="" NI_ALLOW_INSECURE=false
 CLI_REPLACE_PATH=""
 INTERACTIVE=true
+ASSUME_YES=false
+PENDING_TOKEN_MODE="none"
+PENDING_TOKEN_VALUE=""
+OVERWRITE_EXISTING=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -93,6 +99,7 @@ while [[ $# -gt 0 ]]; do
     --inbox)         NI_INBOX="$2"; shift 2 ;;
     --inbox-auto-approve) NI_INBOX_AUTO="$2"; shift 2 ;;
     --force)         NI_FORCE=true; shift ;;
+    --yes|-y)        ASSUME_YES=true; shift ;;
     --replace-cli-link)
       CLI_REPLACE_PATH="${2:-}"
       [[ -n "$CLI_REPLACE_PATH" ]] || { err "--replace-cli-link requires an absolute path"; exit 1; }
@@ -113,6 +120,7 @@ Non-interactive:
     --agent-id main \
     --model "openai/gpt-4o-mini" \
     --token-file /path/to/hooks_token \
+    --yes \
     [--force] \
     [--replace-cli-link /absolute/path/to/antenna]
 
@@ -122,6 +130,9 @@ Creates:
   - secrets/antenna-peer-<host-id>.secret (your identity secret)
   - Example/reference files remain available: antenna-config.example.json, antenna-peers.example.json
   - Prints gateway registration instructions
+
+Administrative changes are previewed before setup writes persistent state.
+Non-interactive setup requires --yes after all required values are supplied.
 EOF
       exit 0
       ;;
@@ -184,14 +195,14 @@ fi
 if [[ -f "$CONFIG_FILE" && "$NI_FORCE" != "true" ]]; then
   if [[ "$INTERACTIVE" == "true" ]]; then
     warn "Antenna is already configured ($CONFIG_FILE exists)."
-    if ! prompt_yn "Overwrite and start fresh?" "n"; then
-      info "Setup cancelled. Use 'antenna status' to check your current config."
-      exit 0
-    fi
+    info "The final change plan will ask once before replacing local runtime state."
+    OVERWRITE_EXISTING=true
   else
     err "Config already exists. Use --force to overwrite."
     exit 1
   fi
+elif [[ -f "$CONFIG_FILE" ]]; then
+  OVERWRITE_EXISTING=true
 fi
 
 # ── Banner ───────────────────────────────────────────────────────────────────
@@ -391,11 +402,10 @@ if [[ "$INTERACTIVE" == "true" ]]; then
         info "Found hooks token in gateway config ($gw_candidate)"
         suggested_path="$SECRETS_DIR/hooks_token_${HOST_ID}"
         if prompt_yn "Create token file at $suggested_path from gateway config?" "y"; then
-          install -d -m 700 "$SECRETS_DIR"
-          printf '%s' "$DISCOVERED_TOKEN" > "$suggested_path"
-          chmod 600 "$suggested_path"
-          ok "Created token file: $suggested_path"
           TOKEN_FILE="$suggested_path"
+          PENDING_TOKEN_MODE="copy"
+          PENDING_TOKEN_VALUE="$DISCOVERED_TOKEN"
+          info "Token file will be created after confirmation: $suggested_path"
         fi
         break
       fi
@@ -411,10 +421,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
       echo ""
       if prompt_yn "Generate a new hooks bearer token now?" "y"; then
         gen_path="$SECRETS_DIR/hooks_token_${HOST_ID}"
-        install -d -m 700 "$SECRETS_DIR"
-        openssl rand -hex 24 > "$gen_path"
-        chmod 600 "$gen_path"
-        ok "Generated token file: $gen_path"
+        PENDING_TOKEN_MODE="generate"
         info "You will need to add this token to your gateway hooks.token config."
         TOKEN_FILE="$gen_path"
       fi
@@ -424,7 +431,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
     fi
   fi
 
-  if [[ -n "$TOKEN_FILE" && ! -f "$TOKEN_FILE" ]]; then
+  if [[ -n "$TOKEN_FILE" && ! -f "$TOKEN_FILE" && "$PENDING_TOKEN_MODE" == "none" ]]; then
     warn "Token file not found at: $TOKEN_FILE"
     if prompt_yn "Continue anyway? (you can fix this later)" "y"; then
       true
@@ -576,19 +583,38 @@ else
         [[ -n "$ni_discovered" ]] && break
       fi
     done
-    install -d -m 700 "$SKILL_DIR/secrets"
     ni_path="$SKILL_DIR/secrets/hooks_token_${HOST_ID}"
     if [[ -n "$ni_discovered" ]]; then
-      printf '%s' "$ni_discovered" > "$ni_path"
-      chmod 600 "$ni_path"
-      info "Auto-discovered hooks token from gateway config"
+      PENDING_TOKEN_MODE="copy"
+      PENDING_TOKEN_VALUE="$ni_discovered"
+      info "Will create the protected token file from gateway configuration"
       TOKEN_FILE="$ni_path"
     else
-      openssl rand -hex 24 > "$ni_path"
-      chmod 600 "$ni_path"
-      info "Auto-generated hooks bearer token: $ni_path"
+      PENDING_TOKEN_MODE="generate"
+      info "Will generate a protected hooks bearer token: $ni_path"
       TOKEN_FILE="$ni_path"
     fi
+  fi
+fi
+
+# Resolve gateway registration intent before the single administrative
+# confirmation. This is a configuration choice, not a mutation.
+GATEWAY_CFG=""
+for candidate in "$HOME/.openclaw/openclaw.json" "/home/$USER/.openclaw/openclaw.json"; do
+  if [[ -f "$candidate" ]]; then
+    GATEWAY_CFG="$candidate"
+    break
+  fi
+done
+
+DO_AUTO_REGISTER=false
+if [[ -n "$GATEWAY_CFG" ]]; then
+  if [[ "$INTERACTIVE" == "true" ]]; then
+    if prompt_yn "Register Antenna and enable its gateway hooks during setup?" "y"; then
+      DO_AUTO_REGISTER=true
+    fi
+  else
+    DO_AUTO_REGISTER=true
   fi
 fi
 
@@ -616,12 +642,59 @@ echo -e "  Examples:     ${BOLD}$SKILL_DIR/antenna-config.example.json${NC}"
 echo -e "                ${BOLD}$SKILL_DIR/antenna-peers.example.json${NC}"
 echo ""
 
-if [[ "$INTERACTIVE" == "true" ]]; then
-  if ! prompt_yn "Create configuration with these settings?" "y"; then
-    info "Setup cancelled."
-    exit 0
-  fi
+antenna_change_plan_reset "Antenna setup change plan"
+if [[ "$OVERWRITE_EXISTING" == "true" ]]; then
+  antenna_change_plan_add "Replace existing Antenna runtime configuration in $SKILL_DIR"
+else
+  antenna_change_plan_add "Create Antenna runtime configuration in $SKILL_DIR"
 fi
+antenna_change_plan_add "Create protected hook-token and identity-secret files plus local peer state"
+if [[ -n "$GATEWAY_CFG" ]]; then
+  antenna_change_plan_add "Back up the gateway configuration at $GATEWAY_CFG"
+fi
+if [[ "$DO_AUTO_REGISTER" == "true" ]]; then
+  antenna_change_plan_add "Register or update the Antenna relay agent with sandbox mode off"
+  antenna_change_plan_add "Enable hooks; add Antenna hook/session allowlist entries; set session visibility to all"
+  antenna_change_plan_add "Register the hook token only when the gateway token is empty or already matches; preserve a different existing token"
+  antenna_change_plan_add "Configure the Antenna agent exec allowlist when the OpenClaw CLI is available"
+else
+  antenna_change_plan_add "Leave relay-agent, hook, allowlist, session-visibility, sandbox, and token registration for the operator to complete manually"
+fi
+if [[ -n "$CLI_REPLACE_PATH" ]]; then
+  antenna_change_plan_add "Install the Antenna command at $CLI_REPLACE_PATH; preserve any displaced foreign target in a private backup"
+else
+  antenna_change_plan_add "Install or retain the Antenna command in a standard PATH location; preserve foreign targets"
+fi
+antenna_change_plan_add "Require a gateway restart after registration; setup will not restart it automatically"
+antenna_change_plan_add "Contact no peers and send no messages"
+antenna_change_plan_show
+
+if antenna_change_plan_confirm "$ASSUME_YES" "Proceed with Antenna setup?"; then
+  :
+else
+  plan_rc=$?
+  if [[ "$plan_rc" -eq 2 ]]; then
+    exit 2
+  fi
+  info "Setup cancelled. No persistent changes were made."
+  exit 0
+fi
+
+# Materialize a discovered or generated hooks token only after authorization.
+case "$PENDING_TOKEN_MODE" in
+  copy)
+    install -d -m 700 "$SECRETS_DIR"
+    (umask 077; printf '%s' "$PENDING_TOKEN_VALUE" > "$TOKEN_FILE")
+    chmod 600 "$TOKEN_FILE"
+    ok "Created protected token file: $TOKEN_FILE"
+    ;;
+  generate)
+    install -d -m 700 "$SECRETS_DIR"
+    (umask 077; openssl rand -hex 24 > "$TOKEN_FILE")
+    chmod 600 "$TOKEN_FILE"
+    ok "Generated protected hooks bearer token: $TOKEN_FILE"
+    ;;
+esac
 
 # ── Create config ────────────────────────────────────────────────────────────
 
@@ -747,14 +820,6 @@ echo ""
 
 header "═══ Backing Up Your Gateway Config (Just in Case) ═══"
 echo ""
-GATEWAY_CFG=""
-for candidate in "$HOME/.openclaw/openclaw.json" "/home/$USER/.openclaw/openclaw.json"; do
-  if [[ -f "$candidate" ]]; then
-    GATEWAY_CFG="$candidate"
-    break
-  fi
-done
-
 if [[ -n "$GATEWAY_CFG" ]]; then
   BACKUP_PATH="${GATEWAY_CFG}.antenna-backup"
   cp "$GATEWAY_CFG" "$BACKUP_PATH"
@@ -785,18 +850,11 @@ if [[ -n "$GATEWAY_CFG" ]]; then
     fi
   done
 
-  do_auto_register=false
-  if [[ "$INTERACTIVE" == "true" ]]; then
-    if prompt_yn "Automatically register Antenna agent and enable hooks in gateway config?" "y"; then
-      do_auto_register=true
-    fi
-  else
-    # Non-interactive: always auto-register when gateway config is found
-    do_auto_register=true
+  if [[ "$INTERACTIVE" != "true" && "$DO_AUTO_REGISTER" == "true" ]]; then
     info "Auto-registering Antenna agent and hooks in gateway config..."
   fi
 
-  if [[ "$do_auto_register" == "true" ]]; then
+  if [[ "$DO_AUTO_REGISTER" == "true" ]]; then
       relay_policy_reason=""
       if ! relay_policy_require_canonical "$SKILL_DIR/agent/AGENTS.md" "agent/AGENTS.md" relay_policy_reason; then
         err "Packaged relay policy is not canonical: $relay_policy_reason"
@@ -1046,10 +1104,6 @@ if [[ -n "$SYMLINK_TARGET" ]]; then
       warn "Explicit CLI replacement requested: $SYMLINK_TARGET"
       info "Current target type: $CLI_LINK_STATE${CLI_LINK_TARGET:+ ($CLI_LINK_TARGET)}"
       info "The displaced command will be preserved in a private backup beside the link."
-      if [[ "$INTERACTIVE" == "true" ]] && ! prompt_yn "Replace this command target?" "n"; then
-        _replace_foreign=false
-        warn "Preserving existing command: $SYMLINK_TARGET"
-      fi
     fi
   fi
 

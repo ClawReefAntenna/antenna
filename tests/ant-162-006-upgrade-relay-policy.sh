@@ -33,6 +33,7 @@ make_case() {
 
   cp "$ROOT/scripts/antenna-upgrade.sh" "$new/scripts/"
   cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
+    "$ROOT/lib/change-plan.sh" \
     "$ROOT/lib/v163-staging-cleanup.sh" "$new/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/lib/relay-policy/agent/"
   cp "$ROOT/lib/relay-policy/manifest.sha256" "$new/lib/relay-policy/"
@@ -141,7 +142,7 @@ for generation in list entries; do
   root="$(make_case "valid-$generation" "$generation")"
   new="$root/new"; old="$root/old"; gateway="$root/home/.openclaw/openclaw.json"
   output="$(PATH="$root/home/bin:$PATH" HOME="$root/home" USER=fixture \
-    bash "$new/scripts/antenna-upgrade.sh" --from "$old" --gateway "$gateway" 2>&1)" || true
+    bash "$new/scripts/antenna-upgrade.sh" --from "$old" --gateway "$gateway" --yes 2>&1)" || true
   check "valid/$generation policy passes the relay-policy gate" \
     bash -c '! grep -Fq "is not a canonical Antenna relay contract" <<<"$1"' _ "$output"
 done

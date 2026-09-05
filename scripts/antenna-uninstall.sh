@@ -29,6 +29,8 @@ STATE_DIR="$SKILL_DIR/state"
 source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
 # shellcheck source=../lib/cli-link.sh
 source "$SKILL_DIR/lib/cli-link.sh"
+# shellcheck source=../lib/change-plan.sh
+source "$SKILL_DIR/lib/change-plan.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -42,14 +44,6 @@ ok()    { echo -e "${GREEN}✓${NC}  $*"; }
 warn()  { echo -e "${YELLOW}⚠${NC}  $*"; }
 err()   { echo -e "${RED}✗${NC}  $*" >&2; }
 header(){ echo -e "\n${BOLD}$*${NC}"; }
-
-prompt_yn() {
-  local prompt_text="$1" default="${2:-y}"
-  local yn
-  read -rp "$(echo -e "${CYAN}?${NC}  ${prompt_text} [${default}]: ")" yn
-  yn="${yn:-$default}"
-  [[ "${yn,,}" == "y" || "${yn,,}" == "yes" ]]
-}
 
 usage() {
   cat <<'EOF'
@@ -292,7 +286,7 @@ else
 fi
 
 echo ""
-echo "Runtime artifacts to remove:"
+echo "Planned changes:"
 echo "  - $CONFIG_FILE"
 echo "  - $PEERS_FILE"
 echo "  - $INBOX_FILE"
@@ -307,16 +301,28 @@ echo "  - $KEYS_DIR"
 if [[ "$PURGE_SKILL_DIR" == true ]]; then
   echo "  - entire skill directory: $SKILL_DIR"
 fi
+if [[ "$KEEP_GATEWAY" != true ]]; then
+  echo "  - back up the gateway config, then remove Antenna's agent, hook mapping, and allowlist entries"
+  echo "  - require a gateway restart after cleanup; uninstall will not restart it automatically"
+else
+  echo "  - leave gateway agent, hooks, allowlists, session visibility, and sandbox settings unchanged"
+fi
 echo ""
 warn "External token files referenced outside the Antenna skill directory will NOT be deleted automatically."
 warn "The rest of OpenClaw will NOT be touched."
 
-if [[ "$ASSUME_YES" != true ]]; then
+if [[ "$DRY_RUN" == true ]]; then
+  info "Dry run only; no confirmation is required and no changes will be made."
+elif antenna_change_plan_confirm "$ASSUME_YES" "Proceed with Antenna uninstall?"; then
+  :
+else
+  plan_rc=$?
   echo ""
-  if ! prompt_yn "Proceed with Antenna uninstall?" "n"; then
-    info "Uninstall cancelled."
-    exit 0
+  if [[ "$plan_rc" -eq 2 ]]; then
+    exit 2
   fi
+  info "Uninstall cancelled. No changes were made."
+  exit 0
 fi
 
 if [[ "$KEEP_GATEWAY" != true ]]; then

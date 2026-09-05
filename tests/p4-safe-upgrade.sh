@@ -22,7 +22,8 @@ mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/bin" "$OLD/agent/memory" 
   "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin" "$HOME_DIR/custom"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
 cp "$ROOT/bin/antenna.sh" "$NEW/bin/"
-cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" "$NEW/lib/"
+cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
+  "$ROOT/lib/change-plan.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
 cp "$ROOT/lib/v163-staging-cleanup.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"
@@ -88,7 +89,7 @@ chmod +x "$HOME_DIR/bin/openclaw"
 before="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 output="$(PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=tester \
   bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" \
-    --replace-cli-link "$HOME_DIR/custom/antenna")"
+    --replace-cli-link "$HOME_DIR/custom/antenna" --yes)"
 after="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 
 check "source tree remains byte-identical" test "$before" = "$after"

@@ -44,7 +44,8 @@ run_case() {
   mkdir -p "$skill/scripts" "$skill/lib" "$skill/bin" "$skill/secrets" "$skill/keys" \
     "$skill/state" "$skill/test-results" "$tmpdir/hooks/transforms" "$tmpdir/home/.local/bin"
   cp "$UNINSTALL_SCRIPT" "$skill/scripts/antenna-uninstall.sh"
-  cp "$SKILL_DIR/lib/v163-staging-cleanup.sh" "$SKILL_DIR/lib/cli-link.sh" "$skill/lib/"
+  cp "$SKILL_DIR/lib/v163-staging-cleanup.sh" "$SKILL_DIR/lib/cli-link.sh" \
+    "$SKILL_DIR/lib/change-plan.sh" "$skill/lib/"
   printf '#!/usr/bin/env bash\n' >"$skill/bin/antenna.sh"
   ln -s "$skill/bin/antenna.sh" "$tmpdir/home/.local/bin/antenna"
   printf '{}\n' > "$skill/antenna-config.json"

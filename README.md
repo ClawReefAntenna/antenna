@@ -83,6 +83,10 @@ bash skills/antenna/bin/antenna.sh setup
 ```
 
 That's both steps. The CLI auto-fixes file permissions on first run (ClawHub doesn't preserve them), then the setup wizard walks you through six questions — host ID, endpoint URL, agent ID, relay model, inbox preference, and hooks token — and handles gateway registration, CLI path, and everything else.
+Before writing persistent state, setup shows one concise plan covering local
+files, gateway registration, credentials, the CLI path, and the required
+restart. Interactive setup asks once; already-authorized automation must pass
+`--yes` with the required non-interactive values.
 
 Or clone directly:
 ```bash
@@ -121,6 +125,11 @@ old link is retained in the printed private rollback backup. Foreign symlinks
 and regular files are preserved by default; if replacement is intentional,
 name the exact command path with `--replace-cli-link /absolute/path/antenna`.
 Directories and ambiguous targets are always refused.
+
+Upgrade shows its complete change plan before copying state or changing the
+gateway. Interactive use asks once. Already-authorized non-interactive upgrade
+jobs must add `--yes`; this never weakens the existing preflight or
+foreign-target refusals.
 
 If the host is also moving from OpenClaw 2026.7.x to 2026.8.1 or later,
 complete the [stopped-writer OpenClaw upgrade checklist](references/OPENCLAW-2026.8.1-UPGRADE.md)

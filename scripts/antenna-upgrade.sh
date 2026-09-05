@@ -16,6 +16,8 @@ source "$SKILL_DIR/lib/relay-policy.sh"
 source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
 # shellcheck source=../lib/cli-link.sh
 source "$SKILL_DIR/lib/cli-link.sh"
+# shellcheck source=../lib/change-plan.sh
+source "$SKILL_DIR/lib/change-plan.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -34,7 +36,7 @@ antenna upgrade — Move an existing installation into this side-by-side release
 
 Usage:
   antenna upgrade --from /path/to/old/antenna [--gateway /path/to/openclaw.json]
-    [--replace-cli-link /absolute/path/to/antenna]
+    [--replace-cli-link /absolute/path/to/antenna] [--yes]
 
 The destination is the Antenna tree containing this command. The migration:
   - refuses to overwrite any destination runtime state;
@@ -54,6 +56,9 @@ and ambiguous targets are always refused.
 
 It does not silently convert legacy peer authentication. Re-pair every old
 plaintext peer with Ed25519 after migration.
+
+The upgrade displays its complete change plan before writing persistent state.
+Use --yes only for an already-authorized non-interactive upgrade.
 EOF
   exit 0
 }
@@ -61,6 +66,7 @@ EOF
 SOURCE_DIR=""
 GATEWAY_CONFIG=""
 CLI_REPLACE_PATH=""
+ASSUME_YES=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -71,6 +77,7 @@ while [[ $# -gt 0 ]]; do
       [[ -n "$CLI_REPLACE_PATH" ]] || die "--replace-cli-link requires an absolute path"
       shift 2
       ;;
+    --yes|-y) ASSUME_YES=true; shift ;;
     -h|--help) usage ;;
     *) die "Unknown option: $1" ;;
   esac
@@ -243,6 +250,33 @@ v163_transform_live="$v163_transform_dir/$V163_STAGING_MODULE"
 v163_transform_audit="$(v163_staging_transform_audit "$v163_transform_live")"
 [[ "$v163_transform_audit" != fail\|* ]] \
   || die "Refusing customized/unsafe v1.6.3 transform: ${v163_transform_audit#fail|}"
+
+antenna_change_plan_reset "Antenna upgrade change plan"
+antenna_change_plan_add "Copy runtime and agent state from $SOURCE_DIR to $SKILL_DIR without changing the source"
+antenna_change_plan_add "Update install_path in the copied Antenna configuration"
+antenna_change_plan_add "Back up and repoint the Antenna agent in $GATEWAY_CONFIG"
+if [[ "$v163_mapping_audit" == pass\|* || "$v163_transform_audit" == pass\|* ]]; then
+  antenna_change_plan_add "Remove only the exact canonical v1.6.3 staging residue"
+fi
+if [[ -n "$CLI_REPLACE_PATH" ]]; then
+  antenna_change_plan_add "Install the Antenna command at $CLI_REPLACE_PATH; preserve any displaced target in a private backup"
+else
+  antenna_change_plan_add "Repoint Antenna-owned standard CLI links; preserve foreign targets"
+fi
+antenna_change_plan_add "Preserve peer authentication exactly; no peer is contacted or silently converted"
+antenna_change_plan_add "Require a gateway restart after upgrade; upgrade will not restart it automatically"
+antenna_change_plan_show
+
+if antenna_change_plan_confirm "$ASSUME_YES" "Proceed with Antenna upgrade?"; then
+  :
+else
+  plan_rc=$?
+  if [[ "$plan_rc" -eq 2 ]]; then
+    exit 2
+  fi
+  info "Upgrade cancelled. No persistent changes were made."
+  exit 0
+fi
 
 stage="$(mktemp -d "$SKILL_DIR/.antenna-upgrade.XXXXXX")"
 cleanup() { rm -rf -- "$stage"; }

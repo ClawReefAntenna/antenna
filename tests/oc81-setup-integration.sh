@@ -23,6 +23,7 @@ make_case() {
     "$home/.openclaw" "$home/.local/bin" "$home/bin"
   cp "$ROOT/scripts/antenna-setup.sh" "$skill/scripts/"
   cp "$ROOT/lib/peers.sh" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
+    "$ROOT/lib/change-plan.sh" \
     "$ROOT/lib/v163-staging-cleanup.sh" "$skill/lib/"
   cp "$ROOT/lib/relay-policy/manifest.sha256" "$skill/lib/relay-policy/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$skill/lib/relay-policy/agent/"
@@ -60,7 +61,7 @@ run_setup() {
     bash "$skill/scripts/antenna-setup.sh" \
       --host-id fixture --display-name Fixture \
       --url https://fixture.example.com --agent-id betty \
-      --model fixture/relay --token-file "$home/hooks.token" --inbox false
+      --model fixture/relay --token-file "$home/hooks.token" --inbox false --yes
 }
 
 IFS=$'\t' read -r list_case list_skill list_home < <(

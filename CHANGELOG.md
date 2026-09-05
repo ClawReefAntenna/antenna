@@ -12,6 +12,14 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Raw model-test reports are private and opt-in (ANT-165-005).** Ordinary
+  `--report` runs now write only result summaries and capture no provider
+  request/response payloads. `--capture-raw-provider-data` requires
+  `--report`, emits a sensitivity and retention warning before the provider
+  call, redacts known credentials, secret-shaped fields, and local identifiers,
+  and stores diagnostic payloads in mode-0700 directories with mode-0600
+  files. Reports persist until the operator removes the timestamped run
+  directory; Antenna performs no silent retention cleanup.
 - **External model probes use synthetic, least-data fixtures (ANT-165-004).**
   Tier B no longer reads or sends the complete relay `agent/AGENTS.md`; its
   outbound request also excludes local host/peer/session identifiers, runtime

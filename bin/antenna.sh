@@ -169,12 +169,13 @@ Usage:
     --timeout <sec>                          Per-run relay timeout (default: 15s)
     --keep-model                             Leave candidate model active after test
 
-  antenna test-suite [options]               Three-tier model/script test suite
-    --model <model>                          Single provider/model ID for B/C tiers
+  antenna test-suite [options]               Two-tier model/script test suite
+    --model <model>                          Single provider/model ID for Tier B
     --models <m1,m2,...>                     Comma-separated models for comparison (max 6)
-    --tier A|B|C|all                         Run specific tier (default: all)
-    --verbose                                Show full request/response payloads inline
-    --report [dir]                           Save structured report (default: test-results/)
+    --tier A|B|all                           Run specific tier (default: all)
+    --verbose                                Show provider-call diagnostics inline
+    --report [dir]                           Save private summary report (default: test-results/)
+    --capture-raw-provider-data              Include redacted payloads; requires --report
     --format terminal|markdown|json          Output format (default: terminal)
     --compare                                Enable comparison table (implied by --models)
 

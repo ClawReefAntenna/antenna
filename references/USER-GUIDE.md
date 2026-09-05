@@ -482,7 +482,8 @@ groups are not supported for public use yet.
 | `antenna test-suite --tier A` | Run deterministic script validation only |
 | `antenna test-suite --model <model>` | Full two-tier test for one model |
 | `antenna test-suite --models "a,b,c"` | Side-by-side comparison (up to 6 models) |
-| `antenna test-suite --report` | Save structured report to `test-results/` |
+| `antenna test-suite --report` | Save private summary-only report to `test-results/` |
+| `antenna test-suite --model <model> --report --capture-raw-provider-data` | Explicitly save redacted provider payloads for diagnosis |
 
 Model tests generate a per-run `TEST_NONCE` and match both success and pre-delivery rejections by that nonce, so parallel or historical runs never contaminate each other's results and auth/rate-limit failures return a verdict promptly instead of waiting for the full timeout. Tests drive gateway config through the CLI/helper path with a single batched restart rather than restarting per operation.
 
@@ -527,6 +528,16 @@ identifiers, real message content, local-file content, or credentials in
 request content. API credentials are used only for provider authentication.
 Ollama remains local; all other listed
 providers are external services.
+
+Ordinary reports retain summaries only. Antenna creates each timestamped run
+directory with mode 0700 and its files with mode 0600; it does not save
+provider requests or responses. For a specific diagnostic run, add
+`--capture-raw-provider-data` alongside `--report`. Antenna warns before the
+provider call, then redacts known credentials, secret-shaped fields, and local
+identifiers before writing the payloads. Because arbitrary provider-generated
+text may still contain sensitive context, inspect it before sharing. Retention
+is operator-managed: delete the timestamped run directory when finished.
+Antenna never silently expires these reports.
 
 ### Multi-Model Comparison
 

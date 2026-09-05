@@ -6,7 +6,8 @@
 #
 # Usage:
 #   antenna-test-suite.sh [--model <model>] [--models <m1,m2,...>] [--tier A|B|all]
-#                         [--verbose] [--report [dir]] [--format terminal|markdown|json]
+#                         [--verbose] [--report [dir]] [--capture-raw-provider-data]
+#                         [--format terminal|markdown|json]
 #
 set -euo pipefail
 
@@ -29,6 +30,7 @@ MODELS=()
 TIER="all"
 VERBOSE=false
 REPORT_DIR=""
+CAPTURE_RAW_PROVIDER_DATA=false
 FORMAT="terminal"
 MAX_MODELS=6
 
@@ -74,6 +76,7 @@ while [[ $# -gt 0 ]]; do
         REPORT_DIR="$SKILL_DIR/test-results"; shift
       fi
       ;;
+    --capture-raw-provider-data) CAPTURE_RAW_PROVIDER_DATA=true; shift ;;
     --format)   FORMAT="$2"; shift 2 ;;
     --compare)  shift ;;  # implied by --models, accepted for clarity
     -h|--help)
@@ -83,8 +86,10 @@ Usage: antenna-test-suite.sh [options]
   --model <model>          Single model for Tier B (full provider/model ID)
   --models <m1,m2,...>     Comma-separated models for comparison (max 6)
   --tier A|B|all         Run specific tier (default: all)
-  --verbose                Show full request/response payloads inline
-  --report [dir]           Save structured report (default: test-results/)
+  --verbose                Show provider-call diagnostics inline
+  --report [dir]           Save private summary report (default: test-results/)
+  --capture-raw-provider-data
+                           With --report, save redacted provider payloads
   --format terminal|markdown|json   Output format (default: terminal)
   --compare                Enable comparison table (implied by --models)
 
@@ -104,6 +109,11 @@ EOF
   esac
 done
 
+if [[ "$CAPTURE_RAW_PROVIDER_DATA" == "true" && -z "$REPORT_DIR" ]]; then
+  echo "Error: --capture-raw-provider-data requires --report [dir]." >&2
+  exit 1
+fi
+
 # Validate model count
 if [[ ${#MODELS[@]} -gt $MAX_MODELS ]]; then
   echo "Error: Maximum $MAX_MODELS models allowed (got ${#MODELS[@]})" >&2
@@ -116,6 +126,66 @@ if [[ "$FORMAT" != "terminal" ]]; then
 fi
 
 RUN_TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
+
+# ── Report privacy helpers ──────────────────────────────────────────────────
+
+report_redaction_values_json() {
+  jq -cn \
+    --arg openai "${OPENAI_API_KEY:-}" \
+    --arg openrouter "${OPENROUTER_API_KEY:-${OR_API_KEY:-}}" \
+    --arg anthropic "${ANTHROPIC_API_KEY:-}" \
+    --arg google "${GOOGLE_API_KEY:-${GEMINI_API_KEY:-}}" \
+    --arg nvidia "${NVIDIA_API_KEY:-${NIM_API_KEY:-}}" \
+    --arg hostname "$(hostname 2>/dev/null || true)" \
+    --arg self_peer "${SELF_PEER:-}" \
+    --arg local_agent "${LOCAL_AGENT:-}" \
+    --arg skill_dir "$SKILL_DIR" \
+    --arg home "${HOME:-}" \
+    '[$openai, $openrouter, $anthropic, $google, $nvidia,
+      $hostname, $self_peer, $local_agent, $skill_dir, $home]
+     | map(select(length > 0)) | unique'
+}
+
+redact_report_text() {
+  local value="$1" redactions
+  redactions="$(report_redaction_values_json)"
+  jq -nr --arg value "$value" --argjson redactions "$redactions" '
+    reduce $redactions[] as $item ($value;
+      if ($item | length) > 0 then split($item) | join("[REDACTED]") else . end)'
+}
+
+redact_provider_json() {
+  local value="$1" redactions
+  redactions="$(report_redaction_values_json)"
+  jq -cn --arg value "$value" --argjson redactions "$redactions" '
+    def redact_text:
+      reduce $redactions[] as $item (.;
+        if ($item | length) > 0 then split($item) | join("[REDACTED]") else . end);
+    def sensitive_key:
+      ascii_downcase
+      | test("(^|[_-])(api[_-]?key|authorization|auth|credential|password|secret|token|cookie)([_-]|$)"; "i");
+    def sanitize:
+      if type == "object" then
+        with_entries(
+          if (.key | sensitive_key) then .value = "[REDACTED]"
+          else .value |= sanitize end)
+      elif type == "array" then map(sanitize)
+      elif type == "string" then redact_text
+      else . end;
+    ($value | redact_text | fromjson?) as $decoded
+    | if $decoded == null then
+        {format: "unparsed-provider-payload", content: ($value | redact_text)}
+      else $decoded | sanitize end'
+}
+
+emit_raw_capture_warning() {
+  {
+    echo "WARNING: raw provider diagnostic capture is enabled."
+    echo "  Redacted request/response payloads will be stored in an owner-only report directory."
+    echo "  Provider-generated text can still contain sensitive context; review before sharing."
+    echo "  Retention is operator-managed: remove the timestamped run directory when it is no longer needed."
+  } >&2
+}
 
 # ── Output helpers ───────────────────────────────────────────────────────────
 
@@ -1050,8 +1120,10 @@ This inert compatibility payload contains no live host, session, policy, credent
   raw_response=$(echo "$result" | jq -r '.raw')
   raw_request=$(echo "$result" | jq -r '.request')
 
-  RAW_REQUESTS["${model}:B"]="$raw_request"
-  RAW_RESPONSES["${model}:B"]="$raw_response"
+  if [[ "$CAPTURE_RAW_PROVIDER_DATA" == "true" ]]; then
+    RAW_REQUESTS["${model}:B"]="$raw_request"
+    RAW_RESPONSES["${model}:B"]="$raw_response"
+  fi
 
   verbose_out "HTTP $http_code (${elapsed}ms)"
   verbose_out "Tool: ${tool_name} | Args: $(echo "$tool_args" | head -c 200)"
@@ -1060,6 +1132,7 @@ This inert compatibility payload contains no live host, session, policy, credent
   if [[ "$http_code" != "200" ]]; then
     local err_msg
     err_msg=$(echo "$raw_response" | jq -r '.error.message // .error.type // "unknown"' 2>/dev/null || echo "HTTP $http_code")
+    err_msg="$(redact_report_text "$err_msg")"
     fail "B.1" "API call" "HTTP $http_code: $err_msg" "$model"
     skip "B.2" "First tool call is write" "Skipped (API failed)" "$model"
     skip "B.3" "Write path/content shape" "Skipped (API failed)" "$model"
@@ -1264,42 +1337,67 @@ write_report() {
   fi
 
   local run_dir="${REPORT_DIR}/${RUN_TIMESTAMP}"
-  mkdir -p "$run_dir"
+  local original_format="$FORMAT"
+
+  if [[ -e "$REPORT_DIR" && ( ! -d "$REPORT_DIR" || -L "$REPORT_DIR" ) ]]; then
+    echo "Error: report root must be a real directory, not a file or symlink: $REPORT_DIR" >&2
+    return 1
+  fi
+  if [[ ! -e "$REPORT_DIR" ]]; then
+    (umask 077; mkdir -p -- "$REPORT_DIR")
+  fi
+  if ! (umask 077; mkdir -- "$run_dir"); then
+    echo "Error: refusing to reuse existing report run directory: $run_dir" >&2
+    return 1
+  fi
+  chmod 700 "$run_dir"
 
   # Tier A results
-  echo '{}' | jq --argjson pass "$TIER_A_PASS" --argjson total "$TIER_A_TOTAL" \
-    '{tier: "A", pass: $pass, total: $total}' > "$run_dir/tier-a.json"
+  (umask 077; echo '{}' | jq --argjson pass "$TIER_A_PASS" --argjson total "$TIER_A_TOTAL" \
+    '{tier: "A", pass: $pass, total: $total}' > "$run_dir/tier-a.json")
 
-  # Per-model request/response dumps
-  for model in "${MODELS[@]}"; do
-    local safe_name="${model//\//__}"
-    local model_dir="$run_dir/models/${safe_name}"
-    mkdir -p "$model_dir"
+  (umask 077; jq -n \
+    --argjson raw_capture "$CAPTURE_RAW_PROVIDER_DATA" \
+    '{raw_provider_data: $raw_capture,
+      raw_payload_state: (if $raw_capture then "redacted-diagnostic-capture" else "not-captured" end),
+      retention: "operator-managed",
+      cleanup: "Remove this timestamped run directory when it is no longer needed."}' \
+    > "$run_dir/report-metadata.json")
 
-    # Dump raw requests/responses
-    if [[ -n "${RAW_REQUESTS["${model}:B"]:-}" ]]; then
-      echo "${RAW_REQUESTS["${model}:B"]}" | jq . > "$model_dir/tier-b-request.json" 2>/dev/null || true
-    fi
-    if [[ -n "${RAW_RESPONSES["${model}:B"]:-}" ]]; then
-      echo "${RAW_RESPONSES["${model}:B"]}" | jq . > "$model_dir/tier-b-response.json" 2>/dev/null || true
-    fi
-    if [[ -n "${RAW_REQUESTS["${model}:C"]:-}" ]]; then
-      echo "${RAW_REQUESTS["${model}:C"]}" | jq . > "$model_dir/tier-c-request.json" 2>/dev/null || true
-    fi
-    if [[ -n "${RAW_RESPONSES["${model}:C"]:-}" ]]; then
-      echo "${RAW_RESPONSES["${model}:C"]}" | jq . > "$model_dir/tier-c-response.json" 2>/dev/null || true
-    fi
-  done
+  if [[ "$CAPTURE_RAW_PROVIDER_DATA" == "true" ]]; then
+    (umask 077; mkdir -- "$run_dir/models")
+    chmod 700 "$run_dir/models"
+    for model in "${MODELS[@]}"; do
+      local safe_name model_dir
+      safe_name="$(printf '%s' "$model" | tr -c '[:alnum:]_.-' '_')"
+      [[ "$safe_name" == "." || "$safe_name" == ".." || -z "$safe_name" ]] && safe_name="unnamed-model"
+      model_dir="$run_dir/models/${safe_name}"
+      (umask 077; mkdir -- "$model_dir")
+      chmod 700 "$model_dir"
+
+      if [[ -n "${RAW_REQUESTS["${model}:B"]:-}" ]]; then
+        (umask 077; redact_provider_json "${RAW_REQUESTS["${model}:B"]}" > "$model_dir/tier-b-request.redacted.json")
+      fi
+      if [[ -n "${RAW_RESPONSES["${model}:B"]:-}" ]]; then
+        (umask 077; redact_provider_json "${RAW_RESPONSES["${model}:B"]}" > "$model_dir/tier-b-response.redacted.json")
+      fi
+    done
+  fi
 
   # Summary JSON
-  FORMAT="json" print_summary > "$run_dir/summary.json" 2>/dev/null
+  FORMAT="json"
+  (umask 077; print_summary > "$run_dir/summary.json" 2>/dev/null)
 
   # Summary markdown
-  FORMAT="markdown" print_comparison_table > "$run_dir/summary.md" 2>/dev/null
-  FORMAT="markdown" print_summary >> "$run_dir/summary.md" 2>/dev/null
+  FORMAT="markdown"
+  (umask 077; { print_comparison_table; print_summary; } > "$run_dir/summary.md" 2>/dev/null)
+
+  find "$run_dir" -type d -exec chmod 700 {} +
+  find "$run_dir" -type f -exec chmod 600 {} +
 
   # Restore format
-  if [[ "$FORMAT" == "terminal" ]]; then
+  FORMAT="$original_format"
+  if [[ "$original_format" == "terminal" ]]; then
     echo ""
     echo -e "  ${CYAN}Report saved: ${run_dir}/${NC}"
   fi
@@ -1318,6 +1416,10 @@ if [[ "$FORMAT" == "terminal" ]]; then
   if [[ -n "$REPORT_DIR" ]]; then
     echo "Report: $REPORT_DIR"
   fi
+fi
+
+if [[ "$CAPTURE_RAW_PROVIDER_DATA" == "true" ]]; then
+  emit_raw_capture_warning
 fi
 
 # Run Tier A (always, once — model-independent)

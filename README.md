@@ -280,6 +280,9 @@ antenna test-suite --models "openai/gpt-5.6-luna,anthropic/claude-haiku-4-5,goog
 
 # Save structured report
 antenna test-suite --report
+
+# Explicit diagnostic capture (redacted payloads; review before sharing)
+antenna test-suite --model openai/gpt-5.6-luna --report --capture-raw-provider-data
 ```
 
 Model availability and provider authentication vary by host. Qualify the exact
@@ -292,6 +295,15 @@ host/peer/session data, runtime messages, local-file content, or credentials
 in the request content. Provider credentials are used only by the API
 transport. Ollama stays local; the other
 supported providers are external services.
+
+Reports are private by default: `--report` writes result summaries only under
+a timestamped mode-0700 directory with mode-0600 files. Complete provider
+requests and responses are not retained unless you also pass
+`--capture-raw-provider-data`. That diagnostic flag warns before the provider
+call and writes redacted payloads, but provider-generated text may still carry
+sensitive context and should be reviewed before sharing. Raw diagnostic
+reports persist until you remove their timestamped run directory; Antenna does
+not silently expire or delete them.
 
 | Tier | Tests | What It Checks |
 |------|-------|----------------|

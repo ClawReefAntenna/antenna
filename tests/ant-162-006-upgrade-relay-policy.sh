@@ -36,7 +36,7 @@ make_case() {
     "$ROOT/lib/change-plan.sh" \
     "$ROOT/lib/v163-staging-cleanup.sh" "$new/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/lib/relay-policy/agent/"
-  cp "$ROOT/lib/relay-policy/manifest.sha256" "$new/lib/relay-policy/"
+  cp "$ROOT/lib/relay-policy/manifest.txt" "$new/lib/relay-policy/"
   cp "$ROOT/bin/antenna.sh" "$new/bin/"
   # Destination ships a valid relay policy by default; individual cases tamper it.
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/agent/AGENTS.md"

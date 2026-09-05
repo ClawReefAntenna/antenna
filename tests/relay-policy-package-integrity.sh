@@ -19,6 +19,10 @@ LIVE="$ROOT/agent/AGENTS.md"
 DEFAULT="$(relay_policy_default_file "agent/AGENTS.md")"
 MANIFEST_HASH="$(relay_policy_expected_hash "agent/AGENTS.md" || true)"
 
+check "canonical manifest uses the ClawHub-supported text filename" test \
+  "$(relay_policy_manifest_file)" = "$ROOT/lib/relay-policy/manifest.txt"
+check "legacy manifest is absent from the canonical package" test \
+  ! -e "$ROOT/lib/relay-policy/manifest.sha256"
 check "manifest lists agent/AGENTS.md" test -n "$MANIFEST_HASH"
 check "packaged default self-verifies against manifest" relay_policy_default_ok "agent/AGENTS.md"
 check "shipped agent/AGENTS.md matches manifest hash" test \

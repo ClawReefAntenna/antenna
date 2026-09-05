@@ -12,6 +12,15 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Relay-policy integrity manifest now survives ClawHub packaging
+  (ANT-165-010).** The canonical manifest is now
+  `lib/relay-policy/manifest.txt`, a supported ClawHub text file, instead of
+  the omitted `.sha256` filename. Integrity checks accept the canonical file
+  or a sole legacy `manifest.sha256` for bounded compatibility, but fail closed
+  when both names exist or when a manifest is missing, symlinked, malformed,
+  duplicated, unsafe, digest-mismatched, or paired with a tampered default.
+  The pinned relay-policy digest and backup-first restore semantics are
+  unchanged.
 - **Inbox guidance now matches Antenna's trust model (ANT-165-009).** Setup,
   CLI help, README, skill instructions, and User Guide now affirm immediate
   autonomous delivery from paired, authenticated, and allowlisted peers as the

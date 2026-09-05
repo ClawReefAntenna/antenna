@@ -25,7 +25,7 @@ cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.
 cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
 cp "$ROOT/lib/v163-staging-cleanup.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"
-cp "$ROOT/lib/relay-policy/manifest.sha256" "$NEW/lib/relay-policy/"
+cp "$ROOT/lib/relay-policy/manifest.txt" "$NEW/lib/relay-policy/"
 cp "$ROOT/agent/AGENTS.md" "$NEW/agent/"
 cp "$ROOT/bin/antenna.sh" "$NEW/bin/"
 printf '#!/usr/bin/env bash\n' > "$OLD/bin/antenna.sh"

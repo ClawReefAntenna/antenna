@@ -19,7 +19,7 @@ pass() { PASS=$((PASS + 1)); printf 'PASS %s\n' "$1"; }
 fail() { FAIL=$((FAIL + 1)); printf 'FAIL %s\n' "$1"; }
 check() { local label="$1"; shift; if "$@"; then pass "$label"; else fail "$label"; fi; }
 
-DEFAULT_HASH="$(awk '$2=="agent/AGENTS.md" {print $1}' "$ROOT/lib/relay-policy/manifest.sha256")"
+DEFAULT_HASH="$(awk '$2=="agent/AGENTS.md" {print $1}' "$ROOT/lib/relay-policy/manifest.txt")"
 
 # Build an isolated skill dir carrying only what doctor needs.
 new_skill() {
@@ -28,7 +28,7 @@ new_skill() {
   cp "$DOCTOR" "$sk/scripts/"
   cp "$ROOT"/lib/*.sh "$sk/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$sk/lib/relay-policy/agent/"
-  cp "$ROOT/lib/relay-policy/manifest.sha256" "$sk/lib/relay-policy/"
+  cp "$ROOT/lib/relay-policy/manifest.txt" "$sk/lib/relay-policy/"
   printf '%s\n' "$sk"
 }
 

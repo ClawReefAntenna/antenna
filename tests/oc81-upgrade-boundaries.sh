@@ -24,7 +24,7 @@ make_case() {
   cp "$ROOT/lib/relay-policy.sh" "$new/lib/"
   cp "$ROOT/lib/v163-staging-cleanup.sh" "$new/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/lib/relay-policy/agent/"
-  cp "$ROOT/lib/relay-policy/manifest.sha256" "$new/lib/relay-policy/"
+  cp "$ROOT/lib/relay-policy/manifest.txt" "$new/lib/relay-policy/"
   cp "$ROOT/bin/antenna.sh" "$new/bin/"
   cp "$ROOT/agent/AGENTS.md" "$new/agent/"
   chmod +x "$new/scripts/antenna-upgrade.sh" "$new/bin/antenna.sh"

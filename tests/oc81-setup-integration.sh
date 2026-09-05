@@ -25,7 +25,7 @@ make_case() {
   cp "$ROOT/lib/peers.sh" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
     "$ROOT/lib/change-plan.sh" \
     "$ROOT/lib/v163-staging-cleanup.sh" "$skill/lib/"
-  cp "$ROOT/lib/relay-policy/manifest.sha256" "$skill/lib/relay-policy/"
+  cp "$ROOT/lib/relay-policy/manifest.txt" "$skill/lib/relay-policy/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$skill/lib/relay-policy/agent/"
   cp "$ROOT/agent/AGENTS.md" "$skill/agent/"
   cp "$ROOT/bin/antenna.sh" "$skill/bin/"

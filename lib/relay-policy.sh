@@ -9,8 +9,10 @@
 #     the live agent workspace, under lib/relay-policy/, so OpenClaw-created
 #     workspace state is never confused with Antenna content and a clean local
 #     copy is always available for restore (never fetched over the network).
-#   * A SHA-256 manifest (lib/relay-policy/manifest.sha256) pins the expected
-#     hash of each owned file. File size is never used as an integrity signal.
+#   * A SHA-256 manifest (lib/relay-policy/manifest.txt) pins the expected hash
+#     of each owned file. The .txt name is included by ClawHub. A legacy
+#     manifest.sha256 is accepted only when it is the sole manifest present.
+#     File size is never used as an integrity signal.
 #   * Each Antenna policy file carries a stable identity marker so a missing,
 #     symlinked, OpenClaw-generic-template, or otherwise foreign file fails
 #     closed independently of the exact hash.
@@ -21,7 +23,8 @@
 # Resolve the packaged default location relative to this library's own path so
 # the helpers work regardless of the caller's working directory.
 RELAY_POLICY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/relay-policy"
-RELAY_POLICY_MANIFEST="$RELAY_POLICY_DIR/manifest.sha256"
+RELAY_POLICY_MANIFEST_CANONICAL="$RELAY_POLICY_DIR/manifest.txt"
+RELAY_POLICY_MANIFEST_LEGACY="$RELAY_POLICY_DIR/manifest.sha256"
 
 # The stable identity marker every Antenna-owned relay policy file must contain.
 # Unique to Antenna and absent from OpenClaw's generic workspace AGENTS.md
@@ -41,16 +44,60 @@ relay_policy_sha256() {
   fi
 }
 
+# relay_policy_manifest_file — print the sole usable manifest path.
+# Canonical v1.6.5 packages ship manifest.txt. The legacy name remains a
+# bounded compatibility fallback for older layouts. Both present is ambiguous
+# and fails closed; symlinks and non-regular files are never accepted.
+relay_policy_manifest_file() {
+  local canonical_present=false legacy_present=false
+  [[ -e "$RELAY_POLICY_MANIFEST_CANONICAL" || -L "$RELAY_POLICY_MANIFEST_CANONICAL" ]] && canonical_present=true
+  [[ -e "$RELAY_POLICY_MANIFEST_LEGACY" || -L "$RELAY_POLICY_MANIFEST_LEGACY" ]] && legacy_present=true
+
+  if [[ "$canonical_present" == true && "$legacy_present" == true ]]; then
+    return 1
+  fi
+  if [[ "$canonical_present" == true ]]; then
+    [[ -f "$RELAY_POLICY_MANIFEST_CANONICAL" && ! -L "$RELAY_POLICY_MANIFEST_CANONICAL" ]] || return 1
+    printf '%s\n' "$RELAY_POLICY_MANIFEST_CANONICAL"
+    return 0
+  fi
+  if [[ "$legacy_present" == true ]]; then
+    [[ -f "$RELAY_POLICY_MANIFEST_LEGACY" && ! -L "$RELAY_POLICY_MANIFEST_LEGACY" ]] || return 1
+    printf '%s\n' "$RELAY_POLICY_MANIFEST_LEGACY"
+    return 0
+  fi
+  return 1
+}
+
 # relay_policy_expected_hash <relname> — print the manifest's expected hash.
-# Manifest lines are sha256sum-compatible: "<sha256>  <relname>".
+# Every manifest line must be exactly sha256sum-compatible:
+# "<64 lowercase hex characters>  <relative path>". The requested path must
+# appear exactly once; malformed or duplicate records fail the whole manifest.
 relay_policy_expected_hash() {
-  local relname="$1"
-  [[ -f "$RELAY_POLICY_MANIFEST" ]] || return 1
+  local relname="$1" manifest
+  manifest="$(relay_policy_manifest_file)" || return 1
   awk -v want="$relname" '
-    { hash=$1; $1=""; sub(/^[ \t]+/,""); name=$0
-      if (name==want) { print hash; found=1; exit } }
-    END { if (!found) exit 1 }
-  ' "$RELAY_POLICY_MANIFEST"
+    {
+      hash=substr($0,1,64)
+      separator=substr($0,65,2)
+      name=substr($0,67)
+      if (length(hash) != 64 || hash !~ /^[0-9a-f]+$/ ||
+          separator != "  " || name == "" || name ~ /^[[:space:]]/ ||
+          name ~ /[[:space:]]$/ || name ~ /^\// ||
+          name ~ /(^|\/)\.\.(\/|$)/ || seen[name]++) {
+        invalid=1
+        next
+      }
+      if (name == want) {
+        expected=hash
+        found++
+      }
+    }
+    END {
+      if (invalid || found != 1) exit 1
+      print expected
+    }
+  ' "$manifest"
 }
 
 # relay_policy_default_file <relname> — absolute path to the packaged default.

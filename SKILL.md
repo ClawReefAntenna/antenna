@@ -1,20 +1,16 @@
 ---
 name: antenna
 description: >
-  Inter-host OpenClaw messaging and local gateway integration over reachable
-  HTTPS using built-in gateway webhook hooks. Use when: (1) sending a message
-  from this OpenClaw
-  instance to another host's session, (2) checking status/health of a remote
+  Authenticated messaging between OpenClaw instances over reachable HTTPS
+  using built-in gateway webhook hooks. Use when: (1) sending a message from
+  this OpenClaw instance to another host's session, (2) checking status/health of a remote
   peer, (3) managing the peer registry (adding/removing/listing known peers),
   (4) exchanging bootstrap trust material for new peers, (5) any cross-host
   agent communication that should NOT go through visible chat channels like
   Telegram/WhatsApp/Discord. Triggers: "send to PEER", "message the other
   host", "antenna send", "antenna status", "antenna peers exchange",
   "cross-host message", "inter-host relay", "ping PEER", "peer list",
-  "check antenna inbox", "approve message". Setup and administrative commands
-  may modify local OpenClaw gateway configuration, install or repoint the
-  Antenna CLI, persist peer credentials and routing state, and require a
-  gateway restart.
+  "check antenna inbox", "approve message".
 metadata:
   version: 1.6.4
   repository: "https://github.com/ClawReefAntenna/antenna"
@@ -27,37 +23,15 @@ postInstall: "bash skills/antenna/bin/antenna.sh setup"
 Send messages between OpenClaw instances over reachable HTTPS via Antenna's
 built-in `/hooks/agent` endpoint.
 
-## Effective Permissions and Trust Boundary
+## What Setup Changes
 
-Antenna is cross-host messaging **plus a privileged local OpenClaw gateway
-integration**. Installing its files alone does not make it operational. Review
-these effects before setup or administrative commands:
-
-- **Gateway configuration:** setup backs up and edits `openclaw.json` to enable
-  hooks, register the Antenna agent, permit hook session keys, and authorize
-  Antenna's agent/session prefixes. Model commands can update the registered
-  relay model and restart the gateway; setup, upgrade, and uninstall print when
-  a restart is required.
-- **Session and execution posture:** cross-session delivery requires
-  `tools.sessions.visibility = "all"`, `tools.agentToAgent.enabled = true`, and
-  `sandbox.mode = "off"` for the relay agent. The relay agent can execute the
-  fixed Antenna delivery wrapper; setup also manages its narrow executable
-  allowlist. These permissions are broader than ordinary file-only skills.
-- **Credentials and persistent state:** Antenna stores hook tokens, signing and
-  exchange keys, peer records, allowlists, routes, queues, replay/rate state,
-  and logs locally. Secret files are owner-only; the gateway hook token also
-  lives in the gateway configuration.
-- **Filesystem and CLI integration:** setup and upgrade write inside the skill
-  and OpenClaw state directories and may install or repoint an `antenna`
-  symlink in a PATH directory. Foreign command targets are refused unless the
-  operator explicitly names a recoverable replacement.
-- **Network access:** ordinary messages go to configured peer HTTPS endpoints;
-  optional pairing can use email or ClawReef. External-provider model tests run
-  only when explicitly invoked and show a disclosure preflight first.
-
-These capabilities are intrinsic to Antenna's relay design. Accurate disclosure
-is not a promise that ClawHub or another scanner will classify the package as
-low privilege or "clean."
+Antenna uses your local OpenClaw gateway to receive and route messages.
+`antenna setup` backs up and updates the gateway configuration, registers the
+Antenna relay agent, stores local credentials and peer settings, and may add
+the `antenna` command to your PATH. It tells you when a gateway restart is
+required. Optional model tests run only when requested and preview what will be
+sent. See [Security Notes](#security-notes) for the exact permissions and trust
+model.
 
 ## Prerequisites
 

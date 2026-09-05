@@ -12,17 +12,13 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
-- **Effective permissions and administrative scope are explicit (ANT-165-006).**
-  `SKILL.md`, the README, and Quick Start now identify Antenna as cross-host
-  messaging plus privileged local OpenClaw gateway integration. The disclosure
-  covers hook/config mutation and tokens, cross-session visibility,
-  agent-to-agent access, sandbox and fixed-wrapper execution posture,
-  persistent peer/security state, PATH symlink handling, gateway restarts, and
-  optional external-provider tests. ClawHub CLI 0.23.1 and the installed
-  OpenClaw skill contract expose no supported machine-readable permissions
-  field, so no decorative or misleading frontmatter key was added. The copy
-  does not claim these intrinsic capabilities will receive a clean scanner
-  classification.
+- **Setup effects are clear without obscuring the product (ANT-165-006).**
+  Antenna's description now leads with authenticated inter-host messaging.
+  README, User Guide, and skill instructions explain—in plain language and at
+  the point of installation—that setup updates the local gateway, registers
+  the relay agent, stores local credentials and peer settings, may add the CLI
+  to PATH, and reports when a restart is required. Detailed permissions remain
+  in the technical setup and security sections.
 - **Raw model-test reports are private and opt-in (ANT-165-005).** Ordinary
   `--report` runs now write only result summaries and capture no provider
   request/response payloads. `--capture-raw-provider-data` requires

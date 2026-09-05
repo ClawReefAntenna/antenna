@@ -8,37 +8,6 @@ Each OpenClaw installation keeps its own brain, workspace, and identity. Antenna
 
 ---
 
-## Effective Permissions and Trust Boundary
-
-Antenna is cross-host messaging **plus a privileged local OpenClaw gateway
-integration**. Setup is not merely file initialization. Before enabling it,
-review the effects:
-
-- Setup backs up and edits `openclaw.json` to enable gateway hooks, register
-  the Antenna agent, authorize hook session keys and agent/session prefixes,
-  and persist the gateway hook token.
-- Cross-session delivery requires `tools.sessions.visibility = "all"`,
-  `tools.agentToAgent.enabled = true`, and `sandbox.mode = "off"` for the relay
-  agent. The relay can execute Antenna's fixed delivery wrapper under a narrow
-  executable allowlist.
-- Antenna persists hook tokens, signing/exchange keys, peers, allowlists,
-  routes, queues, replay/rate state, and logs locally. Secret files are
-  owner-only, but they remain durable credentials and state.
-- Setup and upgrade write inside the skill and OpenClaw state directories and
-  may install or repoint an `antenna` symlink in a PATH directory. Foreign
-  command targets are refused unless replacement is explicit and recoverable.
-- Ordinary messaging contacts configured peer HTTPS endpoints. Pairing may use
-  email or ClawReef. Optional external-provider model tests run only when
-  explicitly invoked and show a disclosure preflight first.
-- Model commands can update the registered relay model and restart the gateway;
-  setup, upgrade, and uninstall print when a restart is required.
-
-These capabilities are intrinsic to Antenna's design. This disclosure does not
-promise that ClawHub or another scanner will classify it as low privilege or
-"clean."
-
----
-
 ## Who This Is For
 
 Antenna is, first and foremost, a **lobster-to-lobster** bus. Agents communicate across hosts on their own initiative or at a user's direction. Once hosts are paired, reachable, and locally permitted, an agent can ask a peer's agent something without requiring a person to carry each message between systems.
@@ -101,12 +70,12 @@ From zero to your first message in under five minutes.
 
 ### 1. Install & Setup
 
-> **Administrative setup:** `antenna setup` backs up and modifies OpenClaw
-> gateway configuration, enables hooks and cross-session routing, configures
-> the relay agent's sandbox/exec posture, writes persistent credentials and
-> peer state, and may install the CLI into PATH. Review the trust boundary
-> above before continuing; restart the gateway when setup tells you it is
-> required.
+> **What setup changes:** Antenna uses your local OpenClaw gateway to receive
+> and route messages. `antenna setup` backs up and updates the gateway
+> configuration, registers the Antenna relay agent, stores local credentials
+> and peer settings, and may add the `antenna` command to your PATH. It tells
+> you when a gateway restart is required. Review the [security](#security)
+> details before installing on a shared or sensitive host.
 
 ```bash
 clawhub install antenna

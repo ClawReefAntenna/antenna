@@ -12,6 +12,13 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Model testing is a focused compatibility checker again (ANT-165-004,
+  ANT-165-005, ANT-165-011).** `antenna test-suite` now performs one synthetic,
+  bounded `write`-tool exercise per model and reports only the verdict, reason,
+  and latency, with compact comparison and JSON output. Embedded product
+  regressions, persistent reports, raw provider capture, redaction/retention
+  machinery, Markdown reporting, and multi-line disclosure preflights were
+  removed. Repository regressions remain under `tests/`.
 - **Public and Private Group boundaries are explicit (ANT-165-007).** Public
   Groups are identified as public, with a send-time warning that ClawReef reads
   and relays their plaintext. Private Groups are identified as local,
@@ -24,23 +31,6 @@ For the complete version history prior to `1.3.0`, see:
   the relay agent, stores local credentials and peer settings, may add the CLI
   to PATH, and reports when a restart is required. Detailed permissions remain
   in the technical setup and security sections.
-- **Raw model-test reports are private and opt-in (ANT-165-005).** Ordinary
-  `--report` runs now write only result summaries and capture no provider
-  request/response payloads. `--capture-raw-provider-data` requires
-  `--report`, emits a sensitivity and retention warning before the provider
-  call, redacts known credentials, secret-shaped fields, and local identifiers,
-  and stores diagnostic payloads in mode-0700 directories with mode-0600
-  files. Reports persist until the operator removes the timestamped run
-  directory; Antenna performs no silent retention cleanup.
-- **External model probes use synthetic, least-data fixtures (ANT-165-004).**
-  Tier B no longer reads or sends the complete relay `agent/AGENTS.md`; its
-  outbound request also excludes local host/peer/session identifiers, runtime
-  messages, live timestamps, and the former broad
-  `write`/`exec`/`sessions_send` tool set. Every provider receives a short
-  synthetic policy and envelope plus one `write` schema constrained to a
-  probe-scoped path. A disclosure preflight names the provider, destination,
-  outbound data classes, excluded local classes, and authentication boundary
-  immediately before the call.
 - **Peer-secret generation is private by default (ANT-165-003).**
   `antenna peers generate-secret <id>` now writes the reusable credential
   directly to a protected mode-0600 file and prints only its pathname. Missing

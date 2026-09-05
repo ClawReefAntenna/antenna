@@ -500,13 +500,14 @@ groups are not supported for public use yet.
 | Command | What It Does |
 |---------|-------------|
 | `antenna test <model>` | Live smoke test with a specific relay model (nonce-scoped PASS and fast-fail) |
-| `antenna test-suite --tier A` | Run deterministic script validation only |
-| `antenna test-suite --model <model>` | Full two-tier test for one model |
-| `antenna test-suite --models "a,b,c"` | Side-by-side comparison (up to 6 models) |
-| `antenna test-suite --report` | Save private summary-only report to `test-results/` |
-| `antenna test-suite --model <model> --report --capture-raw-provider-data` | Explicitly save redacted provider payloads for diagnosis |
+| `antenna test-suite --model <model>` | Check whether one model follows Antenna's relay tool contract |
+| `antenna test-suite --models "a,b,c"` | Compare compatibility and latency for up to six models |
+| `antenna test-suite --models "a,b" --format json` | Return the same compact results as JSON |
 
-Model tests generate a per-run `TEST_NONCE` and match both success and pre-delivery rejections by that nonce, so parallel or historical runs never contaminate each other's results and auth/rate-limit failures return a verdict promptly instead of waiting for the full timeout. Tests drive gateway config through the CLI/helper path with a single batched restart rather than restarting per operation.
+`antenna test` generates a per-run `TEST_NONCE` and matches both success and
+pre-delivery rejections by that nonce, so parallel or historical runs never
+contaminate each other's results. It drives gateway config through the
+CLI/helper path with a single batched restart.
 
 ### Configuration
 
@@ -529,40 +530,13 @@ Groups whose plaintext messages traverse ClawReef.
 
 ---
 
-## The Test Suite
+## Model Compatibility Checker
 
-Not all models are created equal when it comes to relay work. Some are fast but sloppy. Some are precise but expensive. Antenna's two-tier test suite lets you find the right one for your budget and latency needs.
-
-### Tier A - Script Validation
-
-Twenty deterministic tests. No model involved. They check relay parsing and validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks. This is the foundation - if Tier A fails, nothing else matters.
-
-### Tier B - Tool Call Generation
-
-Can the model follow the restricted relay contract without interpreting the
-message? Tier B requires exactly one `write` call whose content equals the
-complete inbound envelope. The next relay-policy step invokes the deterministic
-delivery wrapper against that private file.
-
-Before each provider request, Antenna prints a disclosure preflight naming the
-provider and outbound data classes. The test sends a short synthetic policy,
-an inert synthetic envelope, the selected model ID, and one `write` tool whose
-schema permits only that probe's synthetic path. It does not read or send the
-installed relay policy, and it never places configured host/peer/session
-identifiers, real message content, local-file content, or credentials in
-request content. API credentials are used only for provider authentication.
-Ollama remains local; all other listed
-providers are external services.
-
-Ordinary reports retain summaries only. Antenna creates each timestamped run
-directory with mode 0700 and its files with mode 0600; it does not save
-provider requests or responses. For a specific diagnostic run, add
-`--capture-raw-provider-data` alongside `--report`. Antenna warns before the
-provider call, then redacts known credentials, secret-shaped fields, and local
-identifiers before writing the payloads. Because arbitrary provider-generated
-text may still contain sensitive context, inspect it before sharing. Retention
-is operator-managed: delete the timestamped run directory when finished.
-Antenna never silently expires these reports.
+`antenna test-suite` answers one question: can this model make Antenna's
+required relay tool call? It sends a synthetic envelope with one bounded mock
+`write` tool, then reports a compatible/incompatible verdict, failure reason,
+and latency. It writes no files and sends no local Antenna messages,
+configuration, policy, or credentials as content.
 
 ### Multi-Model Comparison
 
@@ -570,9 +544,11 @@ Antenna never silently expires these reports.
 antenna test-suite --models "openai/gpt-5.6-luna,anthropic/claude-haiku-4-5,google/gemini-3.5-flash"
 ```
 
-Side-by-side results with per-test pass/fail, scores, timing, and a recommendation. Structured JSON and Markdown reports included.
+The command prints a compact comparison table. Add `--format json` for
+machine-readable results.
 
-> **Use case:** You're choosing between three models for your relay agent. Run the test suite overnight, get a clean comparison table in the morning, and pick the winner based on your priorities - speed, cost, or reliability.
+> **Use case:** You're choosing between three relay models. Run the checker and
+> compare which ones satisfy the contract and how long each call takes.
 
 ### Supported Providers
 

@@ -408,33 +408,22 @@ antenna log --tail 50
 
 ```bash
 antenna test <model>
-antenna test-suite --tier A
 antenna test-suite --model <m>
 antenna test-suite --models "<m1>,<m2>"
-antenna test-suite --report
-antenna test-suite --model <m> --report --capture-raw-provider-data
+antenna test-suite --models "<m1>,<m2>" --format json
 ```
 
-Model tests emit a per-run `TEST_NONCE` and match both success and pre-delivery rejections by that nonce, so parallel or historical runs cannot contaminate each other's verdicts and auth / peer / rate-limit failures return promptly instead of waiting for the full timeout. Tests drive gateway config through the CLI/helper path with a single batched restart rather than restarting per operation.
+`antenna test` emits a per-run `TEST_NONCE` and matches both success and
+pre-delivery rejections by that nonce, so parallel or historical runs cannot
+contaminate each other's verdicts. It drives gateway config through the
+CLI/helper path with a single batched restart.
 
-Tier B shows a disclosure preflight before every provider call. The outbound
-probe contains only the selected model ID, a minimal synthetic relay policy, a
-synthetic envelope, and one probe-scoped `write` schema. It never reads or
-sends the live relay `agent/AGENTS.md`, and it never places configured
-host/peer/session values, runtime messages, local-file content, or credentials
-in request content. Provider credentials remain transport authentication
-only. Ollama is local; the other
-supported providers are external services.
-
-`--report` is summary-only by default and creates a timestamped mode-0700 run
-directory containing mode-0600 files. Provider requests and responses are not
-stored unless the operator explicitly adds `--capture-raw-provider-data`.
-That diagnostic flag requires `--report`, warns before the provider call, and
-redacts known credentials, secret-shaped fields, and local identifiers before
-writing payloads. Redaction is defense in depth, not a guarantee that arbitrary
-provider-generated text is safe to share. Reports have operator-managed
-retention: remove the timestamped run directory when it is no longer needed;
-Antenna does not delete it automatically.
+`antenna test-suite` is the smaller compatibility checker. It sends one
+synthetic envelope with one bounded mock `write` tool and reports each model's
+verdict, failure reason, and latency; multiple models produce a comparison.
+It writes no files and does not send local Antenna messages, configuration,
+policy, or credentials as content. `antenna test <model>` remains the live
+end-to-end self-loop test.
 
 ### Inbox (optional approval queue)
 

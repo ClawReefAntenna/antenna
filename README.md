@@ -271,51 +271,22 @@ Your agent can manage the inbox too — *"Betty, anything pending in the Antenna
 
 ---
 
-## Testing
+## Model Compatibility
 
-Two-tier test suite across 7 provider families (OpenAI, Codex, OpenRouter, Nvidia, Ollama, Anthropic, Google Gemini):
+Check whether a model can perform Antenna's required relay tool call:
 
 ```bash
-# Script-only validation (no model, no network)
-antenna test-suite --tier A
-
-# Full suite against a single model
 antenna test-suite --model openai/gpt-5.6-luna
-
-# Compare multiple models side-by-side (max 6)
 antenna test-suite --models "openai/gpt-5.6-luna,anthropic/claude-haiku-4-5,google/gemini-3.5-flash"
-
-# Save structured report
-antenna test-suite --report
-
-# Explicit diagnostic capture (redacted payloads; review before sharing)
-antenna test-suite --model openai/gpt-5.6-luna --report --capture-raw-provider-data
+antenna test-suite --models "openai/gpt-5.6-luna,google/gemini-3.5-flash" --format json
 ```
 
-Model availability and provider authentication vary by host. Qualify the exact
-model/runtime combination you intend to use before making it the relay model.
-Tier B prints a disclosure preflight immediately before each provider call. It
-sends only the selected model ID, a short synthetic relay policy, an inert
-synthetic envelope, and one probe-scoped `write` schema. It does not read or
-transmit the installed `agent/AGENTS.md`, and it never places configured
-host/peer/session data, runtime messages, local-file content, or credentials
-in the request content. Provider credentials are used only by the API
-transport. Ollama stays local; the other
-supported providers are external services.
-
-Reports are private by default: `--report` writes result summaries only under
-a timestamped mode-0700 directory with mode-0600 files. Complete provider
-requests and responses are not retained unless you also pass
-`--capture-raw-provider-data`. That diagnostic flag warns before the provider
-call and writes redacted payloads, but provider-generated text may still carry
-sensitive context and should be reviewed before sharing. Raw diagnostic
-reports persist until you remove their timestamped run directory; Antenna does
-not silently expire or delete them.
-
-| Tier | Tests | What It Checks |
-|------|-------|----------------|
-| A | 20 | Relay parsing, validation, full-session-key enforcement, inbox queue behavior, and locking-sensitive state checks |
-| B | 4 | Model writes the complete inbound envelope exactly once to a private relay file before invoking the delivery wrapper |
+The checker sends one synthetic envelope with one bounded mock `write` tool and
+returns a compatible/incompatible verdict, reason, and latency. Multiple models
+produce a comparison table. It writes no files and sends no local Antenna
+messages, configuration, policy, or credentials as content. Provider
+availability and authentication still vary by host. Use `antenna test <model>`
+when you need a live end-to-end self-loop test instead.
 
 ---
 

@@ -14,6 +14,8 @@ source "$SKILL_DIR/lib/gateway-roster.sh"
 source "$SKILL_DIR/lib/relay-policy.sh"
 # shellcheck source=../lib/v163-staging-cleanup.sh
 source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
+# shellcheck source=../lib/cli-link.sh
+source "$SKILL_DIR/lib/cli-link.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -32,6 +34,7 @@ antenna upgrade — Move an existing installation into this side-by-side release
 
 Usage:
   antenna upgrade --from /path/to/old/antenna [--gateway /path/to/openclaw.json]
+    [--replace-cli-link /absolute/path/to/antenna]
 
 The destination is the Antenna tree containing this command. The migration:
   - refuses to overwrite any destination runtime state;
@@ -41,7 +44,13 @@ The destination is the Antenna tree containing this command. The migration:
   - updates only install_path in the copied Antenna config;
   - backs up openclaw.json, repoints the existing Antenna workspace to this
     release, and keeps agentDir under OpenClaw's stable state root; and
-  - repoints an existing Antenna CLI symlink when it targets the old release.
+  - repoints an existing Antenna CLI symlink when it targets the old release,
+    preserving the displaced link as a private rollback backup.
+
+Foreign CLI symlinks and regular files are preserved by default. To replace
+one deliberately, pass its exact absolute path with --replace-cli-link; the
+displaced target is retained in a private backup beside the link. Directories
+and ambiguous targets are always refused.
 
 It does not silently convert legacy peer authentication. Re-pair every old
 plaintext peer with Ed25519 after migration.
@@ -51,15 +60,29 @@ EOF
 
 SOURCE_DIR=""
 GATEWAY_CONFIG=""
+CLI_REPLACE_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --from) SOURCE_DIR="${2:-}"; shift 2 ;;
     --gateway) GATEWAY_CONFIG="${2:-}"; shift 2 ;;
+    --replace-cli-link)
+      CLI_REPLACE_PATH="${2:-}"
+      [[ -n "$CLI_REPLACE_PATH" ]] || die "--replace-cli-link requires an absolute path"
+      shift 2
+      ;;
     -h|--help) usage ;;
     *) die "Unknown option: $1" ;;
   esac
 done
+
+if [[ -n "$CLI_REPLACE_PATH" ]]; then
+  [[ "$CLI_REPLACE_PATH" == /* ]] || die "--replace-cli-link must be an absolute path"
+  [[ "$(basename -- "$CLI_REPLACE_PATH")" == "antenna" ]] \
+    || die "--replace-cli-link must name an 'antenna' command path"
+  [[ -d "$(dirname -- "$CLI_REPLACE_PATH")" ]] \
+    || die "--replace-cli-link parent directory does not exist: $(dirname -- "$CLI_REPLACE_PATH")"
+fi
 
 command -v jq >/dev/null 2>&1 || die "jq is required for a safe upgrade"
 command -v realpath >/dev/null 2>&1 || die "realpath is required for a safe upgrade"
@@ -69,6 +92,25 @@ command -v realpath >/dev/null 2>&1 || die "realpath is required for a safe upgr
 SOURCE_DIR="$(realpath "$SOURCE_DIR")"
 SKILL_DIR="$(realpath "$SKILL_DIR")"
 [[ "$SOURCE_DIR" != "$SKILL_DIR" ]] || die "Source and destination are the same installation"
+
+# An explicit foreign-command replacement is an exact-path authorization, but
+# it still must be classifiable and writable before upgrade mutates runtime or
+# gateway state. Correct links require no directory write and remain valid.
+if [[ -n "$CLI_REPLACE_PATH" ]]; then
+  cli_link_classify "$CLI_REPLACE_PATH" "$SKILL_DIR/bin/antenna.sh" \
+    "$SOURCE_DIR/bin/antenna.sh" || die \
+    "Cannot safely classify explicit CLI target: $CLI_REPLACE_PATH"
+  case "$CLI_LINK_STATE" in
+    directory|other|ambiguous)
+      die "Refusing unsafe explicit CLI target: $CLI_REPLACE_PATH ($CLI_LINK_STATE)"
+      ;;
+    correct) : ;;
+    *)
+      [[ -w "$(dirname -- "$CLI_REPLACE_PATH")" ]] || die \
+        "Explicit CLI target directory is not writable: $(dirname -- "$CLI_REPLACE_PATH")"
+      ;;
+  esac
+fi
 
 # ANT-162-006: refuse before ANY mutation if this release package's relay policy
 # is missing, symlinked, the generic OpenClaw workspace template, or otherwise
@@ -312,18 +354,58 @@ if [[ "$v163_transform_audit" == pass\|* ]]; then
 fi
 
 repointed=0
+cli_ready=0
+cli_backups=()
 for cli_link in "$HOME/.local/bin/antenna" /usr/local/bin/antenna; do
-  [[ -L "$cli_link" ]] || continue
-  link_target="$(readlink -f "$cli_link" 2>/dev/null || true)"
-  if [[ "$link_target" == "$SOURCE_DIR/bin/antenna.sh" ]]; then
-    if [[ -w "$(dirname "$cli_link")" ]]; then
-      ln -sfn "$SKILL_DIR/bin/antenna.sh" "$cli_link"
-      repointed=$((repointed + 1))
-    else
-      warn "Could not repoint unwritable CLI symlink: $cli_link"
-    fi
+  [[ -e "$cli_link" || -L "$cli_link" || "$CLI_REPLACE_PATH" == "$cli_link" ]] || continue
+  replace_foreign=false
+  [[ "$CLI_REPLACE_PATH" == "$cli_link" ]] && replace_foreign=true
+  if [[ "$replace_foreign" == "true" ]]; then
+    warn "Explicit CLI replacement requested: $cli_link"
+    info "Any displaced target will be preserved in a private backup beside the link."
+  fi
+  if cli_link_apply "$cli_link" "$SKILL_DIR/bin/antenna.sh" \
+      "$SOURCE_DIR/bin/antenna.sh" "$replace_foreign"; then
+    case "$CLI_LINK_ACTION" in
+      repointed|replaced)
+        repointed=$((repointed + 1))
+        cli_ready=$((cli_ready + 1))
+        [[ -z "$CLI_LINK_BACKUP" ]] || cli_backups+=("$CLI_LINK_BACKUP")
+        ;;
+      unchanged) cli_ready=$((cli_ready + 1)) ;;
+    esac
+  else
+    case "$CLI_LINK_STATE" in
+      foreign_symlink|regular_file)
+        warn "Preserving foreign CLI target: $cli_link ($CLI_LINK_STATE)"
+        info "To replace this exact target with a recoverable backup, rerun with: --replace-cli-link $cli_link"
+        ;;
+      directory|other|ambiguous) warn "Refusing unsafe CLI target: $cli_link ($CLI_LINK_STATE)" ;;
+      *) warn "Could not safely repoint CLI link: $cli_link" ;;
+    esac
   fi
 done
+
+# An explicit path outside the standard locations is handled exactly once.
+if [[ -n "$CLI_REPLACE_PATH" \
+    && "$CLI_REPLACE_PATH" != "$HOME/.local/bin/antenna" \
+    && "$CLI_REPLACE_PATH" != "/usr/local/bin/antenna" ]]; then
+  warn "Explicit CLI replacement requested: $CLI_REPLACE_PATH"
+  info "The displaced target will be preserved in a private backup beside the link."
+  if cli_link_apply "$CLI_REPLACE_PATH" "$SKILL_DIR/bin/antenna.sh" \
+      "$SOURCE_DIR/bin/antenna.sh" true; then
+    case "$CLI_LINK_ACTION" in
+      repointed|replaced|installed)
+        repointed=$((repointed + 1))
+        cli_ready=$((cli_ready + 1))
+        ;;
+      unchanged) cli_ready=$((cli_ready + 1)) ;;
+    esac
+    [[ -z "$CLI_LINK_BACKUP" ]] || cli_backups+=("$CLI_LINK_BACKUP")
+  else
+    warn "Could not safely replace explicit CLI target: $CLI_REPLACE_PATH ($CLI_LINK_STATE)"
+  fi
+fi
 
 ok "Copied runtime state without modifying $SOURCE_DIR"
 ok "Updated install_path to $SKILL_DIR"
@@ -333,8 +415,16 @@ if [[ "$v163_mapping_audit" == pass\|* || "$v163_transform_audit" == pass\|* ]];
   ok "Removed exact canonical v1.6.3 deterministic-staging residue"
 fi
 ok "Gateway backup: $gateway_backup"
-[[ "$repointed" -gt 0 ]] && ok "Repointed $repointed Antenna CLI symlink(s)" \
-  || warn "No existing Antenna CLI symlink targeted the source; invoke $SKILL_DIR/bin/antenna.sh directly"
+if [[ "$repointed" -gt 0 ]]; then
+  ok "Updated $repointed Antenna CLI symlink(s)"
+elif [[ "$cli_ready" -gt 0 ]]; then
+  ok "Antenna CLI symlink already targets this release"
+else
+  warn "No existing Antenna CLI symlink targeted the source; invoke $SKILL_DIR/bin/antenna.sh directly"
+fi
+for cli_backup in "${cli_backups[@]}"; do
+  warn "Recoverable displaced CLI target: $cli_backup"
+done
 echo ""
 warn "Legacy peers were preserved exactly and are not silently upgraded."
 warn "Complete a fresh encrypted Ed25519 re-pair for each legacy peer before sending."

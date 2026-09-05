@@ -34,6 +34,8 @@ source "$SKILL_DIR/lib/gateway-roster.sh"
 source "$SKILL_DIR/lib/relay-policy.sh"
 # shellcheck source=../lib/v163-staging-cleanup.sh
 source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
+# shellcheck source=../lib/cli-link.sh
+source "$SKILL_DIR/lib/cli-link.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -75,6 +77,7 @@ prompt_yn() {
 
 NI_HOST_ID="" NI_DISPLAY="" NI_URL="" NI_AGENT="" NI_MODEL="" NI_TOKEN="" NI_FORCE=false
 NI_INBOX="" NI_INBOX_AUTO="" NI_ALLOW_INSECURE=false
+CLI_REPLACE_PATH=""
 INTERACTIVE=true
 
 while [[ $# -gt 0 ]]; do
@@ -88,6 +91,11 @@ while [[ $# -gt 0 ]]; do
     --inbox)         NI_INBOX="$2"; shift 2 ;;
     --inbox-auto-approve) NI_INBOX_AUTO="$2"; shift 2 ;;
     --force)         NI_FORCE=true; shift ;;
+    --replace-cli-link)
+      CLI_REPLACE_PATH="${2:-}"
+      [[ -n "$CLI_REPLACE_PATH" ]] || { err "--replace-cli-link requires an absolute path"; exit 1; }
+      shift 2
+      ;;
     --allow-insecure) NI_ALLOW_INSECURE=true; shift ;;
     -h|--help)
       cat <<'EOF'
@@ -103,7 +111,8 @@ Non-interactive:
     --agent-id main \
     --model "openai/gpt-4o-mini" \
     --token-file /path/to/hooks_token \
-    [--force]
+    [--force] \
+    [--replace-cli-link /absolute/path/to/antenna]
 
 Creates:
   - antenna-config.json (local runtime settings; gitignored)
@@ -117,6 +126,14 @@ EOF
     *) err "Unknown option: $1"; exit 1 ;;
   esac
 done
+
+if [[ -n "$CLI_REPLACE_PATH" ]]; then
+  [[ "$CLI_REPLACE_PATH" == /* ]] || { err "--replace-cli-link must be an absolute path"; exit 1; }
+  [[ "$(basename -- "$CLI_REPLACE_PATH")" == "antenna" ]] \
+    || { err "--replace-cli-link must name an 'antenna' command path"; exit 1; }
+  [[ -d "$(dirname -- "$CLI_REPLACE_PATH")" ]] \
+    || { err "--replace-cli-link parent directory does not exist: $(dirname -- "$CLI_REPLACE_PATH")"; exit 1; }
+fi
 
 # ── Pre-flight checks ───────────────────────────────────────────────────────
 
@@ -133,6 +150,26 @@ fi
 if ! command -v openssl &>/dev/null; then
   err "openssl not found — required for secret generation."
   exit 1
+fi
+
+if [[ -n "$CLI_REPLACE_PATH" ]]; then
+  cli_link_classify "$CLI_REPLACE_PATH" "$SKILL_DIR/bin/antenna.sh" "" || {
+    err "Cannot safely classify explicit CLI target: $CLI_REPLACE_PATH"
+    exit 1
+  }
+  case "$CLI_LINK_STATE" in
+    directory|other|ambiguous)
+      err "Refusing unsafe explicit CLI target: $CLI_REPLACE_PATH ($CLI_LINK_STATE)"
+      exit 1
+      ;;
+    correct) : ;;
+    *)
+      [[ -w "$(dirname -- "$CLI_REPLACE_PATH")" ]] || {
+        err "Explicit CLI target directory is not writable: $(dirname -- "$CLI_REPLACE_PATH")"
+        exit 1
+      }
+      ;;
+  esac
 fi
 
 if ! command -v age &>/dev/null; then
@@ -943,14 +980,37 @@ header "═══ Putting Antenna on Your PATH ═══"
 ANTENNA_BIN="$SKILL_DIR/bin/antenna.sh"
 SYMLINK_TARGET=""
 
-# Prefer a writable PATH directory. Merely being on PATH is insufficient:
-# selecting an unwritable /usr/local/bin prevented the user-local fallback.
-for candidate in /usr/local/bin "$HOME/.local/bin"; do
-  if [[ -d "$candidate" && -w "$candidate" ]] && echo "$PATH" | tr ':' '\n' | grep -qx "$candidate"; then
-    SYMLINK_TARGET="$candidate/antenna"
-    break
-  fi
-done
+# An explicit replacement names exactly one command path. Otherwise prefer an
+# existing standard command on PATH (even when its directory is not writable)
+# so a foreign command is reported rather than silently shadowed elsewhere.
+if [[ -n "$CLI_REPLACE_PATH" ]]; then
+  SYMLINK_TARGET="$CLI_REPLACE_PATH"
+else
+  while IFS= read -r candidate; do
+    if [[ "$candidate" != "/usr/local/bin" && "$candidate" != "$HOME/.local/bin" ]]; then
+      continue
+    fi
+    if [[ -e "$candidate/antenna" || -L "$candidate/antenna" ]]; then
+      SYMLINK_TARGET="$candidate/antenna"
+      break
+    fi
+  done < <(printf '%s' "$PATH" | tr ':' '\n')
+fi
+
+# With no existing command, prefer a writable PATH directory. Merely being on
+# PATH is insufficient: selecting unwritable /usr/local/bin previously blocked
+# the user-local fallback.
+if [[ -z "$SYMLINK_TARGET" ]]; then
+  while IFS= read -r candidate; do
+    if [[ "$candidate" != "/usr/local/bin" && "$candidate" != "$HOME/.local/bin" ]]; then
+      continue
+    fi
+    if [[ -d "$candidate" && -w "$candidate" ]]; then
+      SYMLINK_TARGET="$candidate/antenna"
+      break
+    fi
+  done < <(printf '%s' "$PATH" | tr ':' '\n')
+fi
 
 # If ~/.local/bin doesn't exist yet but /usr/local/bin isn't writable, create it
 if [[ -z "$SYMLINK_TARGET" ]]; then
@@ -975,19 +1035,44 @@ if [[ -z "$SYMLINK_TARGET" ]]; then
 fi
 
 if [[ -n "$SYMLINK_TARGET" ]]; then
-  if [[ -L "$SYMLINK_TARGET" ]] && [[ "$(readlink -f "$SYMLINK_TARGET")" == "$(readlink -f "$ANTENNA_BIN")" ]]; then
-    ok "antenna CLI already on PATH: $SYMLINK_TARGET"
-  else
-    # Remove stale symlink or file if it exists
-    rm -f "$SYMLINK_TARGET" 2>/dev/null || true
-    if ln -s "$ANTENNA_BIN" "$SYMLINK_TARGET" 2>/dev/null; then
-      ok "Symlinked antenna CLI → $SYMLINK_TARGET"
-    elif sudo ln -s "$ANTENNA_BIN" "$SYMLINK_TARGET" 2>/dev/null; then
-      ok "Symlinked antenna CLI → $SYMLINK_TARGET (with sudo)"
-    else
-      warn "Could not create symlink at $SYMLINK_TARGET"
-      echo "  Manual fix: ln -s $ANTENNA_BIN $SYMLINK_TARGET"
+  _replace_foreign=false
+  if [[ "$CLI_REPLACE_PATH" == "$SYMLINK_TARGET" ]]; then
+    _replace_foreign=true
+    cli_link_classify "$SYMLINK_TARGET" "$ANTENNA_BIN" "" || true
+    if [[ "$CLI_LINK_STATE" == "foreign_symlink" || "$CLI_LINK_STATE" == "regular_file" ]]; then
+      warn "Explicit CLI replacement requested: $SYMLINK_TARGET"
+      info "Current target type: $CLI_LINK_STATE${CLI_LINK_TARGET:+ ($CLI_LINK_TARGET)}"
+      info "The displaced command will be preserved in a private backup beside the link."
+      if [[ "$INTERACTIVE" == "true" ]] && ! prompt_yn "Replace this command target?" "n"; then
+        _replace_foreign=false
+        warn "Preserving existing command: $SYMLINK_TARGET"
+      fi
     fi
+  fi
+
+  if cli_link_apply "$SYMLINK_TARGET" "$ANTENNA_BIN" "" "$_replace_foreign"; then
+    case "$CLI_LINK_ACTION" in
+      unchanged) ok "antenna CLI already on PATH: $SYMLINK_TARGET" ;;
+      installed) ok "Symlinked antenna CLI → $SYMLINK_TARGET" ;;
+      replaced)
+        ok "Replaced command with Antenna CLI → $SYMLINK_TARGET"
+        warn "Recoverable displaced target: $CLI_LINK_BACKUP"
+        ;;
+    esac
+  else
+    _link_rc=$?
+    case "$CLI_LINK_STATE" in
+      foreign_symlink|regular_file)
+        warn "Refusing to overwrite existing $CLI_LINK_STATE: $SYMLINK_TARGET"
+        info "To replace it explicitly with a recoverable backup, rerun setup with:"
+        echo "  --replace-cli-link $SYMLINK_TARGET"
+        ;;
+      directory|other|ambiguous)
+        warn "Refusing unsafe or ambiguous CLI target: $SYMLINK_TARGET ($CLI_LINK_STATE)"
+        ;;
+      *) warn "Could not create symlink at $SYMLINK_TARGET (status $_link_rc)" ;;
+    esac
+    echo "  Antenna remains available at: $ANTENNA_BIN"
   fi
 else
   warn "Could not determine a suitable PATH directory for the antenna CLI."

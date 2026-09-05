@@ -118,7 +118,11 @@ Use `antenna setup` for normal installation; use the `*.example.json` files for 
 
 Use `antenna upgrade --from <old-skill-dir>` for a side-by-side migration from
 v1.5.2 through v1.6.3. The destination must have no runtime state. Never use
-`setup --force` as an upgrade mechanism.
+`setup --force` as an upgrade mechanism. Setup and upgrade preserve foreign
+CLI targets by default. An intentional replacement must name the exact
+absolute command path with `--replace-cli-link /absolute/path/antenna`; the
+displaced file or symlink is kept in a private rollback backup. Directories and
+ambiguous targets are always refused.
 
 ### `antenna-config.json`
 

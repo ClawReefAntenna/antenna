@@ -80,15 +80,20 @@ copies the old local state without modifying the source, rewrites only the
 copied `install_path`, backs up `openclaw.json`, repoints the Antenna
 `workspace` to the new package, keeps `agentDir` under OpenClaw's stable state
 root, preserves ignored workspace files, and repoints an existing CLI symlink
-when possible. OpenClaw auth/session databases must never be placed inside the
-replaceable Antenna workspace.
+when it targets the old installation. The old link is retained in a printed
+private rollback backup. Foreign symlinks and regular files are preserved by
+default; intentional replacement requires the exact command path through
+`--replace-cli-link /absolute/path/antenna`. Directories and ambiguous targets
+are always refused. OpenClaw auth/session databases must never be placed inside
+the replaceable Antenna workspace.
 
 Do not run `setup --force`; that is a fresh-setup operation. Unclassified
 legacy peer records, typically from pre-Ed25519 v1.5.x installations, remain
 unclassified and therefore fail closed. Re-pair those records as `ed25519-v1`
 before sending; already classified Ed25519 peers remain classified. Rollback
-remains local: restore the printed gateway backup, repoint the CLI to the
-untouched source tree, and restart OpenClaw.
+remains local: restore the printed gateway backup, restore the displaced CLI
+link from its printed private backup (or repoint it to the untouched source
+tree), and restart OpenClaw.
 
 If the host is also moving from OpenClaw 2026.7.x to 2026.8.1 or later,
 complete the [stopped-writer OpenClaw upgrade checklist](OPENCLAW-2026.8.1-UPGRADE.md)

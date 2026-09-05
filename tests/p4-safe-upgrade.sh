@@ -19,10 +19,10 @@ HOME_DIR="$TMP/home"
 GATEWAY="$HOME_DIR/.openclaw/openclaw.json"
 mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/bin" "$OLD/agent/memory" \
   "$NEW/scripts" "$NEW/bin" "$NEW/lib/relay-policy/agent" "$NEW/agent" \
-  "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin"
+  "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin" "$HOME_DIR/custom"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
 cp "$ROOT/bin/antenna.sh" "$NEW/bin/"
-cp "$ROOT/lib/gateway-roster.sh" "$NEW/lib/"
+cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
 cp "$ROOT/lib/v163-staging-cleanup.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"
@@ -71,6 +71,7 @@ cat > "$GATEWAY" <<JSON
 JSON
 chmod 600 "$GATEWAY"
 ln -s "$OLD/bin/antenna.sh" "$HOME_DIR/.local/bin/antenna"
+printf 'foreign-cli\n' >"$HOME_DIR/custom/antenna"
 cat > "$HOME_DIR/bin/openclaw" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -85,7 +86,9 @@ EOF
 chmod +x "$HOME_DIR/bin/openclaw"
 
 before="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
-output="$(PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY")"
+output="$(PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=tester \
+  bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" \
+    --replace-cli-link "$HOME_DIR/custom/antenna")"
 after="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 
 check "source tree remains byte-identical" test "$before" = "$after"
@@ -106,6 +109,16 @@ check "gateway custom agent tools and unrelated config survive" jq -e \
   '.hooks.token=="keep-me" and (.agents.list[] | select(.id=="antenna") | .tools.exec.security)=="allowlist" and (.agents.list[] | select(.id=="betty") | .workspace)=="/keep/betty"' "$GATEWAY"
 check "gateway backup is private and present" bash -c 'f=("$1".antenna-upgrade-backup-*); [[ -f "${f[0]}" && "$(stat -c %a "${f[0]}")" == 600 ]]' _ "$GATEWAY"
 check "existing CLI symlink is repointed" test "$(readlink -f "$HOME_DIR/.local/bin/antenna")" = "$NEW/bin/antenna.sh"
+cli_backup="$(find "$HOME_DIR/.local/bin" -mindepth 2 -maxdepth 2 \
+  -path '*/antenna.antenna-backup-*/displaced' -print -quit)"
+check "repointed CLI link keeps a private rollback backup" bash -c \
+  '[[ -L "$1" && "$(readlink -f "$1")" == "$2" && "$(stat -c %a "$(dirname "$1")")" == 700 ]]' \
+  _ "$cli_backup" "$OLD/bin/antenna.sh"
+check "explicit upgrade replacement installs the new dispatcher" test \
+  "$(readlink -f "$HOME_DIR/custom/antenna")" = "$NEW/bin/antenna.sh"
+custom_backup="$(find "$HOME_DIR/custom" -mindepth 2 -maxdepth 2 \
+  -path '*/antenna.antenna-backup-*/displaced' -print -quit)"
+check "explicit upgrade replacement preserves foreign command" grep -qx 'foreign-cli' "$custom_backup"
 check "operator receives explicit re-pair warning" grep -q "fresh encrypted Ed25519 re-pair" <<<"$output"
 
 if PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=tester bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" >/dev/null 2>&1; then

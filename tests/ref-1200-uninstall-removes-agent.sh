@@ -41,10 +41,12 @@ run_case() {
   tmpdir="$(mktemp -d /tmp/ref1200-XXXXXX)"
   skill="$tmpdir/skill"
   gateway="$tmpdir/openclaw.json"
-  mkdir -p "$skill/scripts" "$skill/lib" "$skill/secrets" "$skill/keys" \
-    "$skill/state" "$skill/test-results" "$tmpdir/hooks/transforms"
+  mkdir -p "$skill/scripts" "$skill/lib" "$skill/bin" "$skill/secrets" "$skill/keys" \
+    "$skill/state" "$skill/test-results" "$tmpdir/hooks/transforms" "$tmpdir/home/.local/bin"
   cp "$UNINSTALL_SCRIPT" "$skill/scripts/antenna-uninstall.sh"
-  cp "$SKILL_DIR/lib/v163-staging-cleanup.sh" "$skill/lib/"
+  cp "$SKILL_DIR/lib/v163-staging-cleanup.sh" "$SKILL_DIR/lib/cli-link.sh" "$skill/lib/"
+  printf '#!/usr/bin/env bash\n' >"$skill/bin/antenna.sh"
+  ln -s "$skill/bin/antenna.sh" "$tmpdir/home/.local/bin/antenna"
   printf '{}\n' > "$skill/antenna-config.json"
   printf '{}\n' > "$skill/antenna-peers.json"
   printf '[]\n' > "$skill/antenna-inbox.json"
@@ -66,6 +68,8 @@ run_case() {
   done
   assert_no_antenna "$gateway" "$name"
   assert_hooks_clean "$gateway" "$name"
+  [[ ! -e "$tmpdir/home/.local/bin/antenna" && ! -L "$tmpdir/home/.local/bin/antenna" ]] \
+    || fail "$name: owned CLI symlink still present"
   [[ ! -e "$tmpdir/hooks/transforms/antenna-stage.mjs" ]] || fail "$name: staging transform still present"
   rm -rf "$tmpdir"
   pass "$name"

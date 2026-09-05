@@ -19,7 +19,7 @@ make_case() {
   mkdir -p "$old/agent" "$old/bin" "$new/scripts" "$new/lib/relay-policy/agent" "$new/bin" "$new/agent" \
     "$home/.openclaw" "$home/bin"
   cp "$ROOT/scripts/antenna-upgrade.sh" "$new/scripts/"
-  cp "$ROOT/lib/gateway-roster.sh" "$new/lib/"
+  cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$new/lib/"
   cp "$ROOT/lib/relay-policy.sh" "$new/lib/"
   cp "$ROOT/lib/v163-staging-cleanup.sh" "$new/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/lib/relay-policy/agent/"

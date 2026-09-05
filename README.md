@@ -109,7 +109,11 @@ tree untouched, preserves local configuration, peers, lists, Public Group
 routes, keys, secrets, queues, replay/rate state, and logs, and backs up
 agent-local runtime/auth files plus `openclaw.json` before repointing the
 Antenna agent to the new release. An
-existing CLI symlink is repointed when it targets the old installation.
+existing CLI symlink is repointed when it targets the old installation. The
+old link is retained in the printed private rollback backup. Foreign symlinks
+and regular files are preserved by default; if replacement is intentional,
+name the exact command path with `--replace-cli-link /absolute/path/antenna`.
+Directories and ambiguous targets are always refused.
 
 If the host is also moving from OpenClaw 2026.7.x to 2026.8.1 or later,
 complete the [stopped-writer OpenClaw upgrade checklist](references/OPENCLAW-2026.8.1-UPGRADE.md)
@@ -122,7 +126,8 @@ Already classified Ed25519 peers remain classified. There is no automatic
 downgrade or mixed-mode window.
 
 To roll back, restore the printed `openclaw.json.antenna-upgrade-backup-*`,
-repoint the CLI symlink to the untouched source tree, and restart OpenClaw.
+restore the displaced CLI link from its printed private backup (or repoint it
+to the untouched source tree), and restart OpenClaw.
 
 ### 2. Pair with a Peer
 

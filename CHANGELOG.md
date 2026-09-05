@@ -8,6 +8,19 @@ For the complete version history prior to `1.3.0`, see:
 - GitHub releases: https://github.com/ClawReefAntenna/antenna/releases
 - Full historical changelog (in-repo): [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md)
 
+## [Unreleased]
+
+### Fixed
+
+- **CLI-link mutations now fail safe (ANT-165-002).** Setup no longer removes
+  an existing `antenna` command. Correct links are idempotent; foreign
+  symlinks and regular files are preserved unless the operator names the exact
+  absolute command path with `--replace-cli-link`; directories and ambiguous
+  targets are always refused. Explicit replacements and side-by-side upgrade
+  repoints preserve the displaced target in a private rollback backup.
+  Uninstall removes only a symlink proven to resolve to that installation's
+  exact dispatcher and preserves foreign or dangling links.
+
 ## [1.6.4] — 2026-09-03
 
 Corrective patch release. Restores the established `/hooks/agent` transport

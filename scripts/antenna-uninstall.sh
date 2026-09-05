@@ -27,6 +27,8 @@ TEST_RESULTS_DIR="$SKILL_DIR/test-results"
 STATE_DIR="$SKILL_DIR/state"
 # shellcheck source=../lib/v163-staging-cleanup.sh
 source "$SKILL_DIR/lib/v163-staging-cleanup.sh"
+# shellcheck source=../lib/cli-link.sh
+source "$SKILL_DIR/lib/cli-link.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -342,18 +344,16 @@ shopt -u nullglob
 
 # ── Remove CLI symlink ────────────────────────────────────────────────────────
 # Setup creates a symlink at /usr/local/bin/antenna or ~/.local/bin/antenna.
-# Clean it up if it points into our skill directory (or is dangling).
+# Clean it up only when it resolves to this installation's exact dispatcher.
+# A dangling or prefix-matching foreign link is not proof of ownership.
 for _symlink_candidate in /usr/local/bin/antenna "$HOME/.local/bin/antenna"; do
-  if [[ -L "$_symlink_candidate" ]]; then
-    _link_target="$(readlink -f "$_symlink_candidate" 2>/dev/null || true)"
-    # Remove if it points into the skill dir or is dangling (target gone)
-    if [[ -z "$_link_target" || "$_link_target" == "$SKILL_DIR"* ]]; then
-      if [[ "$DRY_RUN" == true ]]; then
-        info "Would remove symlink: $_symlink_candidate"
-      else
-        rm -f -- "$_symlink_candidate" 2>/dev/null && ok "Removed symlink: $_symlink_candidate" || warn "Could not remove symlink: $_symlink_candidate (may need sudo)"
-      fi
-    fi
+  if cli_link_remove_if_owned "$_symlink_candidate" "$SKILL_DIR/bin/antenna.sh" "$DRY_RUN"; then
+    case "$CLI_LINK_ACTION" in
+      would_remove) info "Would remove owned symlink: $_symlink_candidate" ;;
+      removed) ok "Removed owned symlink: $_symlink_candidate" ;;
+    esac
+  elif [[ -e "$_symlink_candidate" || -L "$_symlink_candidate" ]]; then
+    warn "Preserving CLI target not proven to belong to this install: $_symlink_candidate ($CLI_LINK_STATE)"
   fi
 done
 

@@ -24,6 +24,8 @@ SECRETS_DIR="$SKILL_DIR/secrets"
 
 # shellcheck source=../lib/peers.sh
 source "$SKILL_DIR/lib/peers.sh"
+# shellcheck source=../lib/secret-file.sh
+source "$SKILL_DIR/lib/secret-file.sh"
 # shellcheck source=../lib/config.sh
 source "$SKILL_DIR/lib/config.sh"
 # REF-2000: shape/freshness validators live in lib/bundles.sh so this script
@@ -309,10 +311,8 @@ ensure_self_identity_secret() {
   sid="$(self_id)"
   ref="$(self_identity_secret_ref)"
   abs="$(resolve_path "$ref")"
-  mkdir -p "$(dirname "$abs")"
   if [[ ! -f "$abs" ]]; then
-    openssl rand -hex 32 > "$abs"
-    chmod 600 "$abs"
+    antenna_secret_generate_hex_file "$abs" || die "Could not generate protected runtime identity secret"
     ok "Generated local runtime identity secret: $abs" >&2
   fi
   validate_runtime_secret "$(tr -d '[:space:]' < "$abs")"

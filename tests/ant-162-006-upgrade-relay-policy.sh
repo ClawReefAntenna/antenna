@@ -32,7 +32,7 @@ make_case() {
            "$home/.openclaw" "$home/bin"
 
   cp "$ROOT/scripts/antenna-upgrade.sh" "$new/scripts/"
-  cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" \
+  cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
     "$ROOT/lib/v163-staging-cleanup.sh" "$new/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$new/lib/relay-policy/agent/"
   cp "$ROOT/lib/relay-policy/manifest.sha256" "$new/lib/relay-policy/"

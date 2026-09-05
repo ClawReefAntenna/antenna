@@ -20,7 +20,7 @@ mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/agent/memory" "$OLD/bin" 
   "$NEW/scripts" "$NEW/lib/relay-policy/agent" "$NEW/bin" "$NEW/agent" "$NEW/hooks" \
   "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
-cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$NEW/lib/"
+cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
 cp "$ROOT/lib/v163-staging-cleanup.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"

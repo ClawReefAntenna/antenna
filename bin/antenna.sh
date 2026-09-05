@@ -40,6 +40,8 @@ source "$SKILL_DIR/lib/config.sh"
 # available to cmd_peers add/update mutation paths.
 # shellcheck source=../lib/peers.sh
 source "$SKILL_DIR/lib/peers.sh"
+# shellcheck source=../lib/secret-file.sh
+source "$SKILL_DIR/lib/secret-file.sh"
 # shellcheck source=../lib/antenna-signature.sh
 source "$SKILL_DIR/lib/antenna-signature.sh"
 
@@ -116,7 +118,8 @@ Usage:
   antenna peers add <id> --url <url> --token-file <path> [--auth-mode <mode>] [--signing-public-key-file <path>] [--peer-secret-file <path>] [--exchange-public-key <age-pub>] [--display-name <name>]
   antenna peers remove <id>
   antenna peers test <id>                    Test connectivity to a peer
-  antenna peers generate-secret <id>         Generate a per-peer auth secret
+  antenna peers generate-secret <id>         Generate a protected per-peer auth secret file
+    --show-secret                            Explicit interactive display for manual transfer
   antenna peers exchange keygen [--force]    Generate local age exchange keypair
   antenna peers exchange pubkey [--bare] [--email ...] Show/email local age exchange public key
   antenna peers exchange initiate <id> ...   Create encrypted bootstrap bundle
@@ -475,30 +478,58 @@ cmd_peers() {
       ;;
 
     generate-secret)
-      local target_id="${1:-}"
+      local target_id="" show_secret=false
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --show-secret) show_secret=true; shift ;;
+          -*) echo "Unknown option: $1" >&2; exit 1 ;;
+          *)
+            [[ -z "$target_id" ]] || {
+              echo "Usage: antenna peers generate-secret <peer-id> [--show-secret]" >&2
+              exit 1
+            }
+            target_id="$1"
+            shift
+            ;;
+        esac
+      done
+
+      [[ -n "$target_id" ]] || {
+        echo "Usage: antenna peers generate-secret <peer-id> [--show-secret]" >&2
+        exit 1
+      }
+      antenna_secret_peer_id_ok "$target_id" || {
+        echo "Error: peer ID must be 1-64 letters, numbers, dots, underscores, or hyphens, beginning with a letter or number" >&2
+        exit 1
+      }
+      if [[ "$show_secret" == "true" && ( ! -t 0 || ! -t 1 ) ]]; then
+        echo "Error: --show-secret requires an interactive terminal; refusing to expose a reusable credential to captured output." >&2
+        exit 1
+      fi
+
       local secret_dir="$SKILL_DIR/secrets"
-      mkdir -p "$secret_dir"
+      local secret_path="$secret_dir/antenna-peer-${target_id}.secret"
+      antenna_secret_generate_hex_file "$secret_path" || {
+        echo "Error: could not generate protected peer secret file" >&2
+        exit 1
+      }
 
-      local secret
-      secret=$(openssl rand -hex 32)
+      echo "Generated protected per-peer secret for: $target_id"
+      echo "  File: $secret_path (mode 600)"
+      echo "  Value: hidden"
+      echo ""
+      echo "Next steps:"
+      echo "  1. Transfer the protected file over a trusted channel"
+      echo "  2. On THIS host: ensure antenna-peers.json has peer_secret_file for $target_id"
+      echo "  3. On PEER host: add YOUR peer entry with peer_secret_file pointing to this secret"
 
-      if [[ -n "$target_id" ]]; then
-        local secret_path="$secret_dir/antenna-peer-${target_id}.secret"
-        echo -n "$secret" > "$secret_path"
-        chmod 600 "$secret_path"
-        echo "Generated per-peer secret for: $target_id"
-        echo "  File: $secret_path"
-        echo "  Secret: $secret"
-        echo ""
-        echo "Next steps:"
-        echo "  1. Copy this secret file to the peer host"
-        echo "  2. On THIS host: ensure antenna-peers.json has peer_secret_file for $target_id"
-        echo "  3. On PEER host: add YOUR peer entry with peer_secret_file pointing to this secret"
-      else
-        echo "Generated secret: $secret"
-        echo ""
-        echo "Usage: antenna peers generate-secret <peer-id>"
-        echo "  This creates secrets/antenna-peer-<id>.secret and prints setup instructions."
+      if [[ "$show_secret" == "true" ]]; then
+        echo "" >&2
+        echo "WARNING: displaying a reusable peer credential. Keep it out of chat, logs, screenshots, and shell history." >&2
+        echo "Prefer the encrypted 'antenna peers exchange initiate' flow whenever possible." >&2
+        echo "" >&2
+        tr -d '[:space:]' <"$secret_path"
+        echo
       fi
       ;;
 
@@ -609,7 +640,7 @@ cmd_peers() {
 
     *)
       echo "Unknown peers subcommand: $subcmd" >&2
-      echo "Usage: antenna peers list|add|remove|test|exchange|generate-secret" >&2
+      echo "Usage: antenna peers list|add|remove|test|exchange|generate-secret [<id> [--show-secret]]" >&2
       exit 1
       ;;
   esac

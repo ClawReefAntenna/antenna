@@ -327,6 +327,8 @@ Peer registry updates:
 ```bash
 antenna peers add <peer-id> --url <https-url> --token-file <path>   # first time only
 antenna peers add <peer-id> --url <new-url> --force                 # update existing: merges only the flags you pass
+antenna peers generate-secret <peer-id>                             # protected file; value hidden
+antenna peers generate-secret <peer-id> --show-secret               # explicit interactive display only
 ```
 
 Notes:
@@ -338,6 +340,10 @@ Notes:
 - Email is convenience transport only, not part of the trust model.
 - Import shows a preview and asks before allowlist changes unless `--yes` is used.
 - `antenna peers add` refuses to overwrite an existing peer without `--force`; `--force` does a field-level merge so unspecified peer fields (including `exchange_public_key`, `self`, and any future metadata) are preserved.
+- `antenna peers generate-secret` writes the reusable credential directly to a
+  mode-0600 file and reports only its pathname. `--show-secret` requires an
+  interactive terminal, warns before disclosure, and is refused for pipes,
+  redirects, and captured automation. Prefer encrypted Layer A exchange.
 - `antenna peers remove` prunes peer-scoped allowlist entries (`allowed_inbound_peers`, `allowed_outbound_peers`, peer-scoped inbound sessions) so removing a peer does not leave stale allowlist debris behind. Peer secret files are intentionally left in place; secret deletion is an explicit operator action (see `antenna doctor` section 6b for secrets-hygiene warnings about leftover files).
 
 ### Session allowlist management

@@ -346,7 +346,14 @@ antenna peers add <id> --url <url> --token-file <path>  # first-time manual add
 antenna peers add <id> --url <new-url> --force          # update existing peer (field-level merge)
 antenna peers remove <id>                               # remove a peer
 antenna peers test <id>                                 # test connectivity
+antenna peers generate-secret <id>                      # create a protected mode-600 secret file; value stays hidden
+antenna peers generate-secret <id> --show-secret        # explicit interactive display for manual transfer
 ```
+
+Prefer encrypted exchange below. `generate-secret` prints only the protected
+file path by default. `--show-secret` is intentionally terminal-only because
+the value is a reusable credential; Antenna refuses to send it into a pipe,
+redirect, or captured automation.
 
 ### Encrypted Exchange
 

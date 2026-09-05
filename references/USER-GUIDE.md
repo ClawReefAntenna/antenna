@@ -223,6 +223,13 @@ Then it offers to launch the pairing wizard.
 
 > **Legacy secret export refuses non-TTY output.** The legacy `antenna peers exchange <peer> --export` path won't print runtime identity secrets to a non-TTY stdout (pipes, redirections, captured output). Use the encrypted `antenna peers exchange initiate` flow for any automated or remote operator handoff.
 
+> **Manual peer-secret generation is private by default.** `antenna peers
+> generate-secret <peer>` creates a mode-0600 secret file and prints only the
+> protected pathname. If manual transfer truly requires seeing the reusable
+> value, add `--show-secret` in an interactive terminal. Antenna refuses that
+> flag for pipes, redirects, and captured automation. Encrypted peer exchange
+> remains the preferred handoff.
+
 ---
 
 ## Pairing Guide - Connecting to a Peer

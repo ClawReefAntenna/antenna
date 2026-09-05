@@ -28,6 +28,8 @@ SECRETS_DIR="$SKILL_DIR/secrets"
 # effects) and has a double-source guard.
 # shellcheck source=../lib/peers.sh
 source "$SKILL_DIR/lib/peers.sh"
+# shellcheck source=../lib/secret-file.sh
+source "$SKILL_DIR/lib/secret-file.sh"
 # shellcheck source=../lib/gateway-roster.sh
 source "$SKILL_DIR/lib/gateway-roster.sh"
 # shellcheck source=../lib/relay-policy.sh
@@ -707,9 +709,10 @@ ok "Created $PEERS_FILE (self-peer: $HOST_ID)"
 
 install -d -m 700 "$SECRETS_DIR"
 SECRET_PATH="$SECRETS_DIR/antenna-peer-${HOST_ID}.secret"
-SECRET=$(openssl rand -hex 32)
-echo -n "$SECRET" > "$SECRET_PATH"
-chmod 600 "$SECRET_PATH"
+antenna_secret_generate_hex_file "$SECRET_PATH" || {
+  err "Could not generate protected identity secret"
+  exit 1
+}
 ok "Generated identity secret: $SECRET_PATH"
 
 # ── Create .gitignore if missing ─────────────────────────────────────────────

@@ -12,6 +12,13 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Peer-secret generation is private by default (ANT-165-003).**
+  `antenna peers generate-secret <id>` now writes the reusable credential
+  directly to a protected mode-0600 file and prints only its pathname. Missing
+  or unsafe peer IDs are refused before generation. Operators who genuinely
+  need the raw value must add `--show-secret` from an interactive terminal;
+  captured/non-TTY output is refused before the file is created or rotated and
+  the interactive path carries an explicit credential-handling warning.
 - **CLI-link mutations now fail safe (ANT-165-002).** Setup no longer removes
   an existing `antenna` command. Correct links are idempotent; foreign
   symlinks and regular files are preserved unless the operator names the exact

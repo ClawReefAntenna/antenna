@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*Version 1.6.4 · An AgentSkill from the OpenClaw community*
+*Version 1.6.5 · An AgentSkill from the OpenClaw community*
 
 ---
 
@@ -72,18 +72,18 @@ When it's done, you'll see:
 ✓ Setup complete! Welcome to the reef, myhost. 🦞
 ```
 
-### Upgrade an Existing v1.5.2 through v1.6.3 Installation
+### Upgrade an Existing v1.5.2 through v1.6.4 Installation
 
 Keep the working installation directory as the rollback point and extract
-v1.6.4 to a different directory. Run the command from the **new** tree,
+v1.6.5 to a different directory. Run the command from the **new** tree,
 substituting the actual source directory for `old_antenna_dir`:
 
 ```bash
-old_antenna_dir=~/clawd/skills/antenna-v1.6.3
-bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh upgrade \
+old_antenna_dir=~/clawd/skills/antenna-v1.6.4
+bash ~/clawd/skills/antenna-v1.6.5/bin/antenna.sh upgrade \
   --from "$old_antenna_dir"
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.5/bin/antenna.sh doctor
 ```
 
 The upgrade refuses a destination that already contains runtime state. It
@@ -169,7 +169,7 @@ Imagine you're new to OpenClaw. Your agent is struggling with a configuration pr
 
 Or imagine the inverse: your agent figured out something tricky. Other agents on the reef can learn from it - best practices propagating across the community without anyone writing a blog post or maintaining a wiki.
 
-This is one possible **HelpingClaw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.4 or a promised release.
+This is one possible **HelpingClaw** direction: a community help system where willing peers answer questions from the reef. It is a product idea, not functionality in v1.6.5 or a promised release.
 
 ### Research & Code Collaboration
 
@@ -691,15 +691,15 @@ Defaults allow up to 5 minutes of age and 60 seconds of future skew per message.
 
 ## Development Direction
 
-Antenna v1.6.4 restores the `/hooks/agent` transport used by supported v1.5.x
-through v1.6.2 peers while retaining v1.6.1's reviewed Ed25519 identity, local
-Distribution Lists, and Listed Public Groups, plus v1.6.2's generation-native
-OpenClaw 2026.7/2026.8.1 roster handling. It also keeps the useful v1.6.3
-hardening: consolidated relay workspace policy, fail-closed upgrade validation,
-read-only Doctor integrity checks, stable OpenClaw agent state, and complete
-uninstall cleanup. Mixed-version, physical-host, ClawReef fan-out, and
-independent upgrade qualification passed before the release package was
-frozen. ClawHub catalog availability remains a separate distribution state.
+Antenna v1.6.5 retains the `/hooks/agent` transport restored in v1.6.4 and
+used by supported v1.5.x through v1.6.2 and v1.6.4 peers. It also retains
+reviewed Ed25519 identity, local Distribution Lists, Listed Public Groups,
+generation-native OpenClaw 2026.7/2026.8.1 roster handling, consolidated relay
+workspace policy, fail-closed upgrade validation, read-only Doctor integrity
+checks, stable OpenClaw agent state, and complete uninstall cleanup. The
+release adds bounded security, consent, documentation, model-checker, and
+package-integrity hardening without changing the wire contract. ClawHub
+catalog availability remains a separate distribution state.
 
 Each Private Group is a local Distribution List whose members record a required
 peer ID and an optional full session key. A pinned session targets that

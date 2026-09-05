@@ -10,8 +10,13 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+## [1.6.5] — 2026-09-05
+
 ### Fixed
 
+- **Skill frontmatter now matches the supported schema.** Removed the inert
+  top-level `postInstall` hint. Setup remains an explicit, documented command;
+  no automatic setup hook or install-time execution behavior changed.
 - **Relay-policy integrity manifest now survives ClawHub packaging
   (ANT-165-010).** The canonical manifest is now
   `lib/relay-policy/manifest.txt`, a supported ClawHub text file, instead of

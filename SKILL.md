@@ -1,24 +1,13 @@
 ---
 name: antenna
-description: >
-  Authenticated messaging between OpenClaw instances over reachable HTTPS
-  using built-in gateway webhook hooks. Use when: (1) sending a message from
-  this OpenClaw instance to another host's session, (2) checking status/health of a remote
-  peer, (3) managing the peer registry (adding/removing/listing known peers),
-  (4) exchanging bootstrap trust material for new peers, (5) any cross-host
-  agent communication that should NOT go through visible chat channels like
-  Telegram/WhatsApp/Discord. Triggers: "send to PEER", "message the other
-  host", "antenna send", "antenna status", "antenna peers exchange",
-  "cross-host message", "inter-host relay", "ping PEER", "peer list",
-  "check antenna inbox", "approve message".
+description: "Authenticated messaging between OpenClaw instances over reachable HTTPS using built-in gateway webhook hooks. Use when: (1) sending a message from this OpenClaw instance to another host's session, (2) checking status/health of a remote peer, (3) managing the peer registry (adding/removing/listing known peers), (4) exchanging bootstrap trust material for new peers, (5) any cross-host agent communication that should NOT go through visible chat channels like Telegram/WhatsApp/Discord. Triggers: \"send to PEER\", \"message the other host\", \"antenna send\", \"antenna status\", \"antenna peers exchange\", \"cross-host message\", \"inter-host relay\", \"ping PEER\", \"peer list\", \"check antenna inbox\", \"approve message\"."
 metadata:
-  version: 1.6.4
+  version: 1.6.5
   repository: "https://github.com/ClawReefAntenna/antenna"
   homepage: "https://github.com/ClawReefAntenna/antenna"
-postInstall: "bash skills/antenna/bin/antenna.sh setup"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.6.4)
+# Antenna — Inter-Host OpenClaw Messaging (v1.6.5)
 
 Send messages between OpenClaw instances over reachable HTTPS via Antenna's
 built-in `/hooks/agent` endpoint.
@@ -56,8 +45,8 @@ Normal path:
   Already-authorized non-interactive setup must pass `--yes`.
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
-Existing v1.5.2 through v1.6.3 installation:
-- Extract v1.6.4 side by side; do not run `setup --force` in the new tree.
+Existing v1.5.2 through v1.6.4 installation:
+- Extract v1.6.5 side by side; do not run `setup --force` in the new tree.
 - Run the new tree's `bin/antenna.sh upgrade --from <old-skill-dir>`.
 - Upgrade previews the source, destination, gateway, CLI, authentication, and
   restart effects before mutation. Already-authorized non-interactive jobs add
@@ -529,11 +518,11 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - Message freshness window rejects stale or future-dated envelopes (defaults: 300s age, 60s future skew)
 - Sender refuses to run without configured `self_id` (no `$(hostname)` fallback)
 - Legacy raw-secret export refuses non-TTY output
-- v1.6.4 restores the established `/hooks/agent` transport after the v1.6.3
-  deterministic-staging experiment proved incompatible with unchanged peers.
-  It preserves the v1.6.3 relay-policy hardening while restoring supported
-  mixed-version interoperability. ClawHub availability is a separate catalog
-  state and should be verified there.
+- v1.6.5 retains the established `/hooks/agent` transport restored in v1.6.4
+  after the v1.6.3 deterministic-staging experiment proved incompatible with
+  unchanged peers. It adds bounded security and packaging hardening without
+  changing the supported wire contract. ClawHub availability is a separate
+  catalog state and should be verified there.
 - Encrypted bundle export never writes plaintext; encrypted bundle import cleans up plaintext on every exit path (return / fail / SIGINT / SIGTERM)
 - Expired encrypted bundles are refused at import (`--force-expired` is the disaster-recovery override)
 - Email send for bootstrap/pubkey resolves sender address from Himalaya TOML config; no `antenna@localhost` fallback, no free-text `From:` override

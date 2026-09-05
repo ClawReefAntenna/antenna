@@ -22,19 +22,21 @@ This policy covers the Antenna skill itself — scripts, relay protocol, trust m
 
 | Version | Supported |
 |---------|-----------|
-| 1.6.4 | ✅ Current supported release |
+| 1.6.5 | ✅ Current supported release |
+| 1.6.4 | ⚠️ Compatible previous release; upgrade recommended |
 | 1.6.3 | ⚠️ Superseded; do not install on mixed-version peer networks |
 | 1.6.2 | ⚠️ Compatible previous release; upgrade recommended |
-| 1.6.0 – 1.6.1 | ⚠️ Superseded; install 1.6.4 |
+| 1.6.0 – 1.6.1 | ⚠️ Superseded; install 1.6.5 |
 | 1.5.2 | ⚠️ Upgrade recommended |
 | 1.5.0 – 1.5.1 | ⚠️ Upgrade recommended |
 | 1.3.0 – 1.4.x | ⚠️ Upgrade strongly recommended |
 | < 1.3.0 | ❌ Unsupported |
 
-The v1.6.4 corrective release restores the established `/hooks/agent`
-transport and request shape used by supported v1.5.x-through-v1.6.2 peers. It
-retains checksum-backed relay-policy installation, upgrade preflight, and
-Doctor audit/restore, Ed25519 sender signatures, exact message-ID
+The v1.6.5 security and packaging release retains the established
+`/hooks/agent` transport and request shape restored in v1.6.4 and used by
+supported v1.5.x-through-v1.6.2 and v1.6.4 peers. It retains checksum-backed
+relay-policy installation, upgrade preflight, and Doctor audit/restore,
+Ed25519 sender signatures, exact message-ID
 replay rejection, the envelope-marker guard (REF-400),
 message freshness window (REF-402), relay temp-file hygiene (REF-403), self-ID
 fallback removal (REF-404), constant-time plaintext identity-secret comparison
@@ -42,7 +44,9 @@ fallback removal (REF-404), constant-time plaintext identity-secret comparison
 (REF-603), Himalaya `From:`-address resolution (REF-616), legacy raw-secret
 export non-TTY refusal (REF-605), gateway `hooks.token` preservation on setup
 rerun (REF-901), and operator `tools.exec` preservation on setup rerun
-(REF-903).
+(REF-903). It also hardens temporary-file capture, CLI-link ownership,
+peer-secret output, administrative change consent, model compatibility checks,
+and ClawHub relay-policy manifest packaging without changing the wire protocol.
 
 The release also includes explicit warned `plaintext-legacy` migration,
 local Distribution Lists, and ClawReef-attested Listed Public Groups. For a
@@ -73,7 +77,7 @@ load-bearing and in scope for vulnerability reports:
 - **Private runtime secrets —** Setup creates the Antenna `secrets/` directory
   as mode 0700 before writing bearer tokens or peer identity material. Doctor
   audits directory and file permissions without repairing them implicitly.
-- **Layered trust in v1.6.4 —** HTTPS transport, hook bearer token, locally
+- **Layered trust in v1.6.5 —** HTTPS transport, hook bearer token, locally
   pinned Ed25519 sender public keys, exact message-ID replay rejection, peer
   allowlists (inbound and outbound), session allowlist (full keys only),
   envelope-marker guard, message-freshness window, rate limiting, and log

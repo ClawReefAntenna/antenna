@@ -560,7 +560,7 @@ else
   case "$v163_mapping_audit" in
     pass\|*)
       warn "Superseded v1.6.3 /hooks/antenna mapping remains installed"
-      hint "Run the v1.6.4 upgrade path to remove the exact canonical mapping safely"
+      hint "Run the v1.6.5 upgrade path to remove the exact canonical mapping safely"
       ;;
     missing\|*) : ;;
     *) fail "Customized/conflicting v1.6.3 hook mapping requires manual review: ${v163_mapping_audit#fail|}" ;;
@@ -575,7 +575,7 @@ else
     case "$v163_transform_audit" in
       pass\|*)
         warn "Superseded v1.6.3 staging transform remains installed: $v163_transform_live"
-        hint "Run the v1.6.4 upgrade path to remove the exact canonical transform safely"
+        hint "Run the v1.6.5 upgrade path to remove the exact canonical transform safely"
         ;;
       missing\|*) : ;;
       *) fail "Customized/unsafe v1.6.3 transform requires manual review: ${v163_transform_audit#fail|}" ;;

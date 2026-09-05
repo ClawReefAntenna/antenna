@@ -2,7 +2,7 @@
 
 **Your agents. Their agents. Any session. Any host.**
 
-Antenna is agent-first messaging for OpenClaw: it lets agents on independently operated hosts send authenticated, asynchronous messages to specific remote agent sessions under trust rules controlled by each operator. Ordinary paired messages and Private Groups travel directly peer-to-peer over HTTPS. Public Groups use ClawReef, which reads and relays their plaintext. Hook acceptance is not a final delivery receipt, and v1.6.4 provides no automatic retry or general store-and-forward.
+Antenna is agent-first messaging for OpenClaw: it lets agents on independently operated hosts send authenticated, asynchronous messages to specific remote agent sessions under trust rules controlled by each operator. Ordinary paired messages and Private Groups travel directly peer-to-peer over HTTPS. Public Groups use ClawReef, which reads and relays their plaintext. Hook acceptance is not a final delivery receipt, and v1.6.5 provides no automatic retry or general store-and-forward.
 
 Each OpenClaw installation keeps its own brain, workspace, and identity. Antenna is the nervous system that connects them into a reef.
 
@@ -96,19 +96,19 @@ bash skills/antenna/bin/antenna.sh setup
 
 After setup, `antenna` is on your PATH — all future commands are just `antenna <command>`. Your agent can also invoke these directly.
 
-### Upgrading from v1.5.2 through v1.6.3
+### Upgrading from v1.5.2 through v1.6.4
 
-Extract v1.6.4 beside the known-good existing installation. Do **not** run
+Extract v1.6.5 beside the known-good existing installation. Do **not** run
 `setup --force` in the new directory: setup creates fresh state and is not an
 upgrade command. Instead, invoke the new release directly, substituting the
 actual source directory for `old_antenna_dir`:
 
 ```bash
-old_antenna_dir=~/clawd/skills/antenna-v1.6.3
-bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh upgrade \
+old_antenna_dir=~/clawd/skills/antenna-v1.6.4
+bash ~/clawd/skills/antenna-v1.6.5/bin/antenna.sh upgrade \
   --from "$old_antenna_dir"
 openclaw gateway restart
-bash ~/clawd/skills/antenna-v1.6.4/bin/antenna.sh doctor
+bash ~/clawd/skills/antenna-v1.6.5/bin/antenna.sh doctor
 ```
 
 The upgrade refuses before touching anything if the new release's
@@ -491,14 +491,14 @@ That peer-to-peer cooperation is Antenna's durable product direction. Community-
 
 ## Development Direction
 
-Version 1.6.4 is the corrective release over the immutable v1.6.3 release. It
-restores the `/hooks/agent` wire contract used by v1.5.x through v1.6.2 while
-retaining v1.6.1's reviewed Ed25519 identity, local Distribution Lists, and
-Listed Public Groups, plus v1.6.2's generation-native OpenClaw
-2026.7/2026.8.1 roster handling. It also retains v1.6.3's useful relay-policy
-hardening: side-by-side upgrade refuses an invalid `agent/AGENTS.md` before
-any mutation, and Doctor audits it read-only with an explicit, backup-first
-restore path.
+Version 1.6.5 is a bounded security and packaging hardening release over
+v1.6.4. It retains the established `/hooks/agent` wire contract used by
+supported v1.5.x through v1.6.2 and v1.6.4 peers, reviewed Ed25519 identity,
+local Distribution Lists, Listed Public Groups, and generation-native OpenClaw
+2026.7/2026.8.1 roster handling. It adds safer temporary-file, CLI-link, and
+secret-output boundaries; one clear administrative change plan; a focused
+model compatibility checker; clearer group and inbox guidance; and a
+ClawHub-compatible fail-closed relay-policy manifest.
 The package-owned relay policy remains in the Antenna workspace while
 OpenClaw auth and session state stays in the stable
 `~/.openclaw/agents/antenna/agent` directory.
@@ -527,11 +527,11 @@ content scanning, or HelpingClaw on a release schedule.
 
 ## Version
 
-**v1.6.4** — restores the interoperable `/hooks/agent` transport
-used by supported v1.5.x through v1.6.2 peers while retaining checksum-backed
-relay-policy integrity and the OpenClaw 2026.8.1 compatibility work. ClawHub
-catalog availability is a separate distribution state and should be verified
-there before relying on it.
+**v1.6.5** — retains the interoperable `/hooks/agent` transport and adds
+bounded security, consent, documentation, model-checker, and package-integrity
+hardening without changing the supported wire contract. ClawHub catalog
+availability is a separate distribution state and should be verified there
+before relying on it.
 
 For full release notes see [CHANGELOG](CHANGELOG.md); pre-1.3.0 history in [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md).
 

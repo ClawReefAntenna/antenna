@@ -12,6 +12,13 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Inbox guidance now matches Antenna's trust model (ANT-165-009).** Setup,
+  CLI help, README, skill instructions, and User Guide now affirm immediate
+  autonomous delivery from paired, authenticated, and allowlisted peers as the
+  normal posture. Inbox is described as optional supervision or quarantine.
+  The documentation also makes clear that inbox review is global when enabled
+  and that auto-approval grants a durable bypass from review; it does not
+  establish the underlying peer trust. No delivery logic or default changed.
 - **Administrative mutations now have one clear consent boundary
   (ANT-165-008).** Setup defers token-file creation until it has shown one
   concise plan covering runtime state, gateway registration, credentials, CLI

@@ -215,7 +215,11 @@ before committing to a relay model.
 
 ### Step 5: Inbox Mode
 
-Optional. When enabled, inbound messages from non-trusted peers are queued for your review instead of relaying immediately. Trusted peers still bypass the queue. More on this in [Inbox & Deferred Delivery](#inbox--deferred-delivery).
+Optional supervision. Antenna normally delivers messages immediately after the
+sender passes pairing, authentication, and allowlist checks. When inbox is
+enabled, review applies globally and every paired peer queues unless explicitly
+listed to bypass review. More on this in
+[Inbox & Deferred Delivery](#inbox--deferred-delivery).
 
 ### Step 6: Hooks Token
 
@@ -325,13 +329,20 @@ Encrypted bootstrap bundles travel through `age` so nothing sensitive hits disk 
 
 ## Inbox & Deferred Delivery
 
-By default, Antenna relays messages immediately - fire and forget. But sometimes you want a checkpoint. Maybe you're connecting with a new peer and want to review their messages before they land in your session. Maybe you're running a shared host and want approval before external messages get delivered.
+By default, Antenna relays messages immediately after the sender passes its
+pairing, authentication, and allowlist checks. Autonomous delivery is the
+normal posture. Sometimes you may want an additional checkpoint—for example,
+on a shared host or while supervising newly paired or experimental peers.
 
 That's what the inbox is for.
 
 ### How It Works
 
-When `inbox_enabled` is `true`, inbound messages from peers **not** in your `inbox_auto_approve_peers` list are queued for review instead of relaying immediately. Trusted peers bypass the queue and relay instantly - you get progressive trust without all-or-nothing.
+When `inbox_enabled` is `true`, review applies globally. Messages from every
+paired peer are queued unless that peer appears in
+`inbox_auto_approve_peers`. Adding a peer to that list does not pair or
+authenticate it; it grants an already paired peer a durable bypass from inbox
+review until removed.
 
 ### Working with the Queue
 
@@ -375,7 +386,11 @@ Your assistant runs `antenna inbox list`, shows you the queue, and you say:
 
 Done. The approved messages get delivered to their target sessions; denied ones are discarded.
 
-> **Use case:** You're collaborating with a new peer for the first time. You enable inbox mode and add your existing trusted peers to the auto-approve list. Messages from your laptop relay instantly as before. Messages from the new peer queue up for a quick review until you're comfortable, then you add them to auto-approve too. Trust builds naturally.
+> **Use case:** You're collaborating with a newly paired peer and want temporary
+> human review. Because inbox currently applies globally, you enable it and
+> explicitly add established peers that should continue delivering
+> autonomously to the auto-approve list. Selective per-peer quarantine without
+> globally enabling inbox is not currently available.
 
 > **Use case:** A security bulletin arrives from a peer on the reef - a CVE affecting a dependency you use. Because that peer isn't in your auto-approve list yet, the bulletin queues up in your inbox. You review it, approve it, and the alert lands in your main session with full details and mitigation steps. Your agent starts patching before you've finished your coffee.
 
@@ -384,7 +399,7 @@ Done. The approved messages get delivered to their target sessions; denied ones 
 ```json
 {
   "inbox_enabled": false,
-  "inbox_auto_approve_peers": ["trusted-peer"],
+  "inbox_auto_approve_peers": ["peer-that-bypasses-review"],
   "inbox_queue_path": "antenna-inbox.json"
 }
 ```

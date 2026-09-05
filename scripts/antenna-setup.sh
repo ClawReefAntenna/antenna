@@ -221,7 +221,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
   echo "    2. Your reachable HTTPS hook URL"
   echo "    3. Your primary agent ID (e.g., 'main', 'betty', 'lobster')"
   echo "    4. A relay model (lightweight is best — the relay doesn't think, it dispatches)"
-  echo "    5. Whether to enable inbox mode (optional, more secure)"
+  echo "    5. Whether to enable optional inbox review"
   echo "    6. Your OpenClaw hooks bearer token (setup can auto-detect or generate one)"
   echo ""
 fi
@@ -369,10 +369,10 @@ if [[ "$INTERACTIVE" == "true" ]]; then
   echo "      Straight to your session, no delay. Like a walkie-talkie."
   echo "      Requires sandbox-off on the relay agent."
   echo ""
-  echo -e "    ${BOLD}Inbox queue${NC} (more secure)"
-  echo "      Messages wait in a queue for your review first."
+  echo -e "    ${BOLD}Inbox queue${NC} (optional supervision)"
+  echo "      Review applies globally; messages wait in a queue first."
   echo "      You approve or deny via 'antenna inbox' commands."
-  echo "      Trusted peers can skip the line."
+  echo "      Explicitly auto-approved paired peers bypass review until removed."
   echo ""
 
   INBOX_ENABLED=false
@@ -381,7 +381,8 @@ if [[ "$INTERACTIVE" == "true" ]]; then
     INBOX_ENABLED=true
     ok "Inbox mode enabled"
     echo ""
-    info "You can designate trusted peers whose messages skip the queue."
+    info "You can designate paired peers whose messages bypass inbox review."
+    info "This bypass remains in effect until you remove the peer from the list."
     info "Enter peer host IDs separated by commas, or leave empty for none."
     prompt INBOX_AUTO_APPROVE "Auto-approve peers (comma-separated, or empty)" ""
   else
@@ -1238,11 +1239,11 @@ if [[ "$INBOX_ENABLED" == "true" ]]; then
     echo "  Auto-approved peers: $INBOX_AUTO_APPROVE"
   else
     echo "  No auto-approved peers. All inbound messages will be queued."
-    echo "  Add trusted peers later: antenna config set inbox_auto_approve_peers \"peer1,peer2\""
+    echo "  Grant inbox bypass later: antenna config set inbox_auto_approve_peers \"peer1,peer2\""
   fi
   echo ""
 else
-  echo -e "  ${YELLOW}ℹ${NC}  Inbox is disabled — messages relay instantly (requires sandbox-off)."
+  echo -e "  ${YELLOW}ℹ${NC}  Inbox is disabled — paired, authenticated, allowlisted messages relay instantly."
   echo "    To enable later: antenna config set inbox_enabled true"
   echo ""
 fi

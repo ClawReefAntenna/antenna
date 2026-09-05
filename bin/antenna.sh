@@ -134,6 +134,7 @@ Usage:
     --force-expired                           Don't fail on expired bundles
     --no-decrypt                              Treat <file> as already-decrypted JSON
 
+  Inbox is an optional global review queue; autonomous delivery is the default.
   antenna inbox list                         Show pending queued messages
   antenna inbox count                        Count pending messages
   antenna inbox show <ref>                   Show full message for a ref

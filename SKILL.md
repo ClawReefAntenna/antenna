@@ -432,7 +432,15 @@ end-to-end self-loop test.
 
 ### Inbox (optional approval queue)
 
-When `inbox_enabled` is `true` in config, inbound messages from peers not in `inbox_auto_approve_peers` are queued for review instead of being relayed immediately. Auto-approved peers bypass the queue and relay instantly (current behavior).
+Immediate autonomous delivery from paired, authenticated, and allowlisted
+peers is the normal Antenna posture. Inbox is an optional supervision or
+quarantine boundary. When `inbox_enabled` is `true`, review applies globally:
+messages from every paired peer are queued unless that peer appears in
+`inbox_auto_approve_peers`.
+
+Auto-approval does not create the underlying peer trust—that happened during
+pairing. It grants a durable bypass from inbox review until the peer is removed
+from the list.
 
 ```bash
 antenna inbox                        # list pending messages (table view)
@@ -458,8 +466,11 @@ antenna inbox clear                  # purge all processed items
 ```
 
 Notes:
-- Disabled by default — existing behavior is unchanged
-- Auto-approve list lets trusted peers bypass the queue (progressive trust)
+- Disabled by default — authenticated messages from paired and allowlisted
+  peers relay immediately
+- The auto-approve list is empty unless the operator explicitly configures it
+- Selective per-peer quarantine without globally enabling inbox is not
+  currently supported
 - Queue file is local runtime state (gitignored)
 - Ref numbers auto-increment and support range selection
 - The relay agent uses exactly one shell-tool call and never receives or writes

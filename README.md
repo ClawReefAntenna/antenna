@@ -264,7 +264,14 @@ All three paths land in the same place: `antenna peers exchange import <file>`, 
 
 ## Inbox & Deferred Delivery
 
-Optional. When enabled, inbound messages from peers **not** in your `inbox_auto_approve_peers` list queue for review instead of relaying immediately. Auto-approved peers bypass the queue and relay instantly.
+Immediate autonomous delivery from paired, authenticated, and allowlisted
+peers is Antenna's normal posture. Inbox is an optional supervision or
+quarantine boundary for installations that want human review before delivery.
+
+Inbox currently applies globally when enabled: messages from every paired peer
+queue unless that peer is listed in `inbox_auto_approve_peers`. Auto-approval
+does not establish peer trust—that happened during pairing—but it grants a
+durable bypass from inbox review until the peer is removed from the list.
 
 ```bash
 antenna inbox                    # list pending
@@ -274,7 +281,9 @@ antenna inbox approve 1,3,5-7    # approve selectively
 antenna inbox drain              # deliver all approved (gateway sessions.send), remove denied
 ```
 
-Progressive trust: messages from your laptop relay instantly; messages from a new peer queue until you're comfortable. Queue mutations are protected by `flock` transaction locking so parallel approvals, denials, and drains can't corrupt state.
+The auto-approval list starts empty unless you explicitly configure it. Queue
+mutations are protected by `flock` transaction locking so parallel approvals,
+denials, and drains cannot corrupt state.
 
 Your agent can manage the inbox too — *"Betty, anything pending in the Antenna inbox?"* works exactly as well as `antenna inbox`.
 

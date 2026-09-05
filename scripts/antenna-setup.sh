@@ -199,12 +199,11 @@ if [[ "$INTERACTIVE" == "true" ]]; then
   while :; do
     prompt HOST_URL "Your hook URL" ""
     HOST_URL="${HOST_URL%/}"
-    if validate_peer_url "$HOST_URL" "${NI_ALLOW_INSECURE:-false}" 2>/tmp/antenna-urlcheck.$$; then
-      rm -f /tmp/antenna-urlcheck.$$
+    _url_reason=""
+    if _url_reason="$(validate_peer_url_capture "$HOST_URL" "${NI_ALLOW_INSECURE:-false}")"; then
       break
     fi
-    err "$(cat /tmp/antenna-urlcheck.$$ 2>/dev/null || echo 'invalid URL')"
-    rm -f /tmp/antenna-urlcheck.$$
+    err "${_url_reason:-invalid URL}"
     info "Please enter a real https:// URL peers can reach (examples above)."
   done
 

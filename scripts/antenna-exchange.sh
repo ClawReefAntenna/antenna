@@ -834,17 +834,14 @@ build_plaintext_bundle_stdout() {
   # REF-1313: refuse to emit a bundle whose self endpoint is not a real URL.
   # Defense against a locally-corrupted self-peer propagating to every peer
   # that imports bundles from us (the "url: main" incident, 2026-04-21).
-  if ! validate_peer_url "$endpoint" false 2>/tmp/antenna-urlcheck.$$; then
-    local _reason
-    _reason="$(cat /tmp/antenna-urlcheck.$$ 2>/dev/null || true)"
-    rm -f /tmp/antenna-urlcheck.$$
+  local _reason=""
+  if ! _reason="$(validate_peer_url_capture "$endpoint" false)"; then
     die "Self peer URL is not valid: ${_reason:-unknown}
 
 Refusing to emit a bootstrap bundle with a malformed endpoint. Fix your self
 peer in antenna-peers.json (or re-run 'antenna setup') so .url is a real
 https:// URL that peers can reach, then try again."
   fi
-  rm -f /tmp/antenna-urlcheck.$$
   [[ -n "$agent_id" ]] || agent_id="$(config_relay_agent_id)"
 
   token_file="$(self_hooks_token_file)"

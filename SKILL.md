@@ -115,8 +115,10 @@ For peer onboarding, Antenna now prefers **Layer A encrypted bootstrap exchange*
 Live runtime files are local installation state:
 - `antenna-config.json`
 - `antenna-peers.json`
-- `antenna-lists.json` (optional local Distribution Lists)
-- `antenna-public-groups.json` (optional installed ClawReef route aliases)
+- `antenna-lists.json` (optional Private Groups implemented as local
+  Distribution Lists)
+- `antenna-public-groups.json` (optional Public Group aliases routed through
+  ClawReef)
 
 Tracked reference files live beside them:
 - `antenna-config.example.json`
@@ -125,6 +127,11 @@ Tracked reference files live beside them:
 - `antenna-public-groups.example.json`
 
 Use `antenna setup` for normal installation; use the `*.example.json` files for schema reference or manual recovery.
+
+The two group files represent different privacy boundaries. Private Groups
+send a separate ordinary Antenna message directly to each configured peer;
+ClawReef is not in that delivery path. Public Group messages traverse ClawReef,
+which reads and relays their plaintext.
 
 Use `antenna upgrade --from <old-skill-dir>` for a side-by-side migration from
 v1.5.2 through v1.6.3. The destination must have no runtime state. Never use
@@ -207,10 +214,13 @@ Key fields:
 - `exchange_public_key` — peer's `age` public key for Layer A exchange
 - `self` — marks the local host entry
 
-### `antenna-lists.json`
+### Private Groups (`antenna-lists.json`)
 
-Distribution Lists use one canonical object-entry schema. Each entry requires
-the peer ID and may pin a full remote session key:
+Private Groups are local Distribution Lists, not centrally hosted ClawReef
+groups. Antenna sends a separate message directly to each peer. “Private”
+describes that peer-to-peer route; it does not mean payload end-to-end
+encryption. Each entry requires the peer ID and may pin a full remote session
+key:
 
 ```json
 {
@@ -238,6 +248,10 @@ the peer ID and may pin a full remote session key:
 ## Usage
 
 ### Manage Public Group routes
+
+> **Public means public.** ClawReef reads each Public Group message in
+> plaintext to verify and relay it. Do not send passwords, private keys,
+> credentials, regulated data, or other sensitive plaintext.
 
 Download a route JSON file from the authenticated ClawReef group page, then
 manage it locally without storing a ClawReef browser credential:

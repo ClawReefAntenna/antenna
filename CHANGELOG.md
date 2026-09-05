@@ -12,6 +12,11 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Public and Private Group boundaries are explicit (ANT-165-007).** Public
+  Groups are identified as public, with a send-time warning that ClawReef reads
+  and relays their plaintext. Private Groups are identified as local,
+  peer-to-peer Distribution List fan-out: ClawReef is not in the delivery
+  path, but payloads are not described as end-to-end encrypted.
 - **Setup effects are clear without obscuring the product (ANT-165-006).**
   Antenna's description now leads with authenticated inter-host messaging.
   README, User Guide, and skill instructions explain—in plain language and at

@@ -171,6 +171,8 @@ send_group() {
   group_id=$(jq -r '.group_id' <<<"$route")
   relay=$(jq -r '.relay_peer' <<<"$route")
   require_relay_peer "$relay"
+  printf '%s\n' \
+    'PUBLIC GROUP: ClawReef reads and relays this plaintext message. Do not send passwords, private keys, credentials, regulated data, or other sensitive plaintext.' >&2
   body=$(mktemp "${TMPDIR:-/tmp}/antenna-public-group.XXXXXX")
   chmod 0600 "$body"
   trap "rm -f -- $(printf '%q' "$body")" EXIT
@@ -212,6 +214,7 @@ case "${1:-}" in
     echo "       antenna groups refresh <downloaded-route.json>" >&2
     echo "       antenna groups remove <alias>" >&2
     echo "       antenna groups send <alias> <message> [--subject <text>]" >&2
+    echo "Public Groups are public: ClawReef reads and relays their plaintext." >&2
     exit 1
     ;;
 esac

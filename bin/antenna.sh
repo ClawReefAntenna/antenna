@@ -110,7 +110,7 @@ Usage:
 
   antenna send <peer> [options] <message>    Send a message to a peer
   antenna send <peer> [options] --stdin      Send message from stdin
-  antenna send @alias [options] <message>    Fan out with per-recipient routing
+  antenna send @alias [options] <message>    Send to a Private Group (direct peer fan-out)
   antenna send @alias --show-recipients ... Add signed visible-list metadata
   antenna msg <peer> [message]               Quick send (plain host mode by default)
 
@@ -147,7 +147,7 @@ Usage:
     --alias <name>                           Choose a stable local alias
   antenna groups refresh <file>              Refresh installed routes by group ID
   antenna groups remove <alias>              Remove one local Public Group route
-  antenna groups send <alias> <message>      Send through the group's ClawReef relay peer
+  antenna groups send <alias> <message>      Send to a Public Group through ClawReef
 
   antenna sessions list                      Show allowed inbound session targets
   antenna sessions add <name> [<name>...]    Add session target(s) to the allowlist

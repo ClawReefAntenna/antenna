@@ -392,6 +392,15 @@ antenna test-suite --report
 
 Model tests emit a per-run `TEST_NONCE` and match both success and pre-delivery rejections by that nonce, so parallel or historical runs cannot contaminate each other's verdicts and auth / peer / rate-limit failures return promptly instead of waiting for the full timeout. Tests drive gateway config through the CLI/helper path with a single batched restart rather than restarting per operation.
 
+Tier B shows a disclosure preflight before every provider call. The outbound
+probe contains only the selected model ID, a minimal synthetic relay policy, a
+synthetic envelope, and one probe-scoped `write` schema. It never reads or
+sends the live relay `agent/AGENTS.md`, and it never places configured
+host/peer/session values, runtime messages, local-file content, or credentials
+in request content. Provider credentials remain transport authentication
+only. Ollama is local; the other
+supported providers are external services.
+
 ### Inbox (optional approval queue)
 
 When `inbox_enabled` is `true` in config, inbound messages from peers not in `inbox_auto_approve_peers` are queued for review instead of being relayed immediately. Auto-approved peers bypass the queue and relay instantly (current behavior).

@@ -284,6 +284,14 @@ antenna test-suite --report
 
 Model availability and provider authentication vary by host. Qualify the exact
 model/runtime combination you intend to use before making it the relay model.
+Tier B prints a disclosure preflight immediately before each provider call. It
+sends only the selected model ID, a short synthetic relay policy, an inert
+synthetic envelope, and one probe-scoped `write` schema. It does not read or
+transmit the installed `agent/AGENTS.md`, and it never places configured
+host/peer/session data, runtime messages, local-file content, or credentials
+in the request content. Provider credentials are used only by the API
+transport. Ollama stays local; the other
+supported providers are external services.
 
 | Tier | Tests | What It Checks |
 |------|-------|----------------|

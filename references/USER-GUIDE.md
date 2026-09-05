@@ -518,6 +518,16 @@ message? Tier B requires exactly one `write` call whose content equals the
 complete inbound envelope. The next relay-policy step invokes the deterministic
 delivery wrapper against that private file.
 
+Before each provider request, Antenna prints a disclosure preflight naming the
+provider and outbound data classes. The test sends a short synthetic policy,
+an inert synthetic envelope, the selected model ID, and one `write` tool whose
+schema permits only that probe's synthetic path. It does not read or send the
+installed relay policy, and it never places configured host/peer/session
+identifiers, real message content, local-file content, or credentials in
+request content. API credentials are used only for provider authentication.
+Ollama remains local; all other listed
+providers are external services.
+
 ### Multi-Model Comparison
 
 ```bash

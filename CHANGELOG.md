@@ -10,6 +10,20 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+### Fixed
+
+- **Queued delivery respects current permissions (R5).** Inbox drain rechecks
+  the sender's peer registration and inbound permission plus the exact saved
+  destination before each send. Disallowed items remain available as `failed`
+  with `last_error`; drain reports failure and does not send them. This check
+  does not cancel an in-flight send or synchronize concurrent policy edits.
+- **Explicit logging opt-out works (R6).** Configuration reads preserve
+  `false` instead of treating it as absent and enabling logging by default.
+- **Security-policy setup guidance is accurate (R7).** Setup is fresh
+  configuration, Doctor handles diagnosis/explicit repair, and version changes
+  use the side-by-side upgrade workflow. Preserving selected gateway fields
+  is not a guarantee of preserving Antenna peer and identity state.
+
 ## [1.6.5] — 2026-09-05
 
 ### Fixed

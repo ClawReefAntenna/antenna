@@ -90,7 +90,15 @@ load-bearing and in scope for vulnerability reports:
 - **Concurrency safety —** unique 0600 relay temp files under a
   gateway-user-owned 0700 directory and `flock`-based transaction locking
   around inbox and rate-limit state.
-- **Setup is idempotent and conservative —** `antenna setup` reruns preserve an existing gateway `hooks.token` and preserve any operator-customized `tools.exec` overrides on the Antenna agent. Operators will not silently lose trust material by rerunning setup after a `clawhub update`.
+- **Setup is fresh configuration, not maintenance or upgrade —** use
+  `antenna doctor` for diagnosis and its explicit repair options where needed.
+  For version transitions, extract the new package side by side and run its
+  `antenna upgrade --from <old-skill-dir>` command. Do not rerun setup after
+  `clawhub update` as an upgrade procedure. Setup refuses existing configuration
+  unless forced; proceeding with `setup --force` can replace Antenna
+  configuration, peer records, and identity material. Setup preserves an
+  existing gateway `hooks.token` and operator-customized relay `tools.exec`
+  overrides, but that does not preserve all Antenna runtime state.
 
 ## Known Security Considerations
 

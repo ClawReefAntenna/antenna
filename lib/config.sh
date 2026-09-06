@@ -29,7 +29,7 @@ _config_read() {
   fi
 
   local v rc
-  v=$(jq -r "${jq_path} // empty" "$CONFIG_FILE" 2>/dev/null)
+  v=$(jq -r "${jq_path} | select(. != null)" "$CONFIG_FILE" 2>/dev/null)
   rc=$?
 
   if (( rc != 0 )); then

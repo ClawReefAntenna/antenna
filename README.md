@@ -246,7 +246,7 @@ Trust is layered, earned per-peer, and never assumed.
 | **Rate limiting** | Per-peer and global throttles; inbox and rate-limit state are protected by transaction locking under concurrent load |
 | **Untrusted-input framing** | Relayed messages include a security notice for receiving agents |
 | **Log sanitization** | Peer-supplied values stripped of control characters |
-| **Permission audit** | `antenna status` checks token/secret file permissions; relay temp files are `umask 077` and shredded before unlink |
+| **Permission audit** | `antenna status` checks token/secret file permissions; normal relay staging is private; cleanup unlinks staging entries without overwriting them and preserves outside input files |
 
 ### Encrypted Bootstrap Exchange
 

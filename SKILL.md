@@ -41,7 +41,9 @@ Each participating host needs:
 
 Normal path:
 - Run `antenna setup` to generate the live runtime files.
-- Setup shows one administrative change plan before writing persistent state.
+- On first use, the CLI may restore execute permissions that package installation
+  does not preserve. Setup then shows one administrative change plan before it
+  creates runtime state, credentials, gateway configuration, or a CLI target.
   Already-authorized non-interactive setup must pass `--yes`.
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
@@ -128,7 +130,7 @@ ClawReef is not in that delivery path. Public Group messages traverse ClawReef,
 which reads and relays their plaintext.
 
 Use `antenna upgrade --from <old-skill-dir>` for a side-by-side migration from
-v1.5.2 through v1.6.3. The destination must have no runtime state. Never use
+v1.5.2 through v1.6.4. The destination must have no runtime state. Never use
 `setup --force` as an upgrade mechanism. Setup and upgrade preserve foreign
 CLI targets by default. An intentional replacement must name the exact
 absolute command path with `--replace-cli-link /absolute/path/antenna`; the
@@ -546,7 +548,7 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - **`Bundle expired - refusing import`**: request a fresh bundle from the peer, or pass `--force-expired` only for disaster recovery. To inspect an expired bundle without importing, use `antenna bundle verify <file> --force-expired`.
 - **`antenna bundle verify: decrypt failed`**: the bundle was encrypted for a different `age` public key than yours. Ask the peer to re-initiate against your current `antenna peers exchange pubkey`.
 - **`antenna bundle verify: endpoint URL rejected`**: the bundle's `from_endpoint_url` is not a valid HTTPS URL (e.g. `main`, bare host). Refuse to import; ask the peer to regenerate after fixing their self-peer URL.
-- **`antenna doctor: self-peer URL is not a valid URL`**: your own `self` peer entry has a malformed `url`. Fix it in `antenna-peers.json` or rerun `antenna setup` with a valid `--url <https://host>`. REF-1313 now rejects malformed URLs at input time, but stale pre-fix entries still need to be corrected.
+- **`antenna doctor: self-peer URL is not a valid URL`**: your own `self` peer entry has a malformed `url`. Correct that field directly in `antenna-peers.json`, preserving the rest of the peer registry. REF-1313 now rejects malformed URLs at input time, but stale pre-fix entries still need to be corrected.
 - **`antenna doctor: orphan peer references in config allowlists`** (warning, section 1b): allowlists in `antenna-config.json` reference peer IDs that no longer exist in `antenna-peers.json`. Remove the stale IDs with `antenna peers remove <id>` on any current peer (which also prunes its allowlist entries), or edit `antenna-config.json` directly.
 - **`antenna doctor: orphan secret file`** / **`stale backup file`** / **`secrets/ dir is not 700`** (warnings, section 6b): hygiene findings on the `secrets/` directory. None of these can authenticate a peer that isn't in the registry, but they are real leak-surface / drift signals. Move orphan files to `secrets.retired/` (or delete), rotate or remove `.bak*` leftovers, and run `chmod 700 secrets/` / `chmod 600 secrets/<file>` to tighten permissions.
 - **`Email send fails: could not resolve email for account`**: add `email = "..."` under `[accounts.<name>]` in your Himalaya TOML config, or pass `--account <other>` to pick a configured account that has an `email` set
@@ -554,7 +556,7 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - **`Legacy export refused - not a TTY`**: `antenna peers exchange <peer> --export` must run in an interactive terminal; switch to `antenna peers exchange initiate` for automated or remote operator handoff
 - **Message sent but not visible**: ensure `tools.sessions.visibility = "all"` and `tools.agentToAgent.enabled = true` on the receiver; the relay delivery wrapper uses gateway session delivery, which still depends on those settings. Also ensure `sandbox: { mode: "off" }` on the Antenna agent — sandboxed sessions silently clamp visibility to `tree`, blocking cross-agent delivery
 - **Exec denied / allowlist miss**: ensure relay agent instructions use only simple commands (no `$(...)`, heredocs, or chaining); the `antenna-relay-deliver.sh` wrapper accepts a file path only
-- **Repeated approval prompts**: ensure Antenna agent has `sandbox: { mode: "off" }` in registration. Default advice is **not** to set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (fixed in v1.2.14). If you've intentionally customized `tools.exec` on the agent, setup reruns now preserve your overrides instead of wiping them.
+- **Repeated approval prompts**: ensure Antenna agent has `sandbox: { mode: "off" }` in registration. Default advice is **not** to set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (fixed in v1.2.14). If you deliberately perform a fresh setup reconfiguration, it preserves intentional `tools.exec` overrides instead of wiping them.
 - **`antenna peers add` refuses to update an existing peer**: by design — pass `--force` to update fields on a paired peer; without it, the command refuses to clobber trust material
 
 ## File Inventory
@@ -582,7 +584,16 @@ Notes:
 
 ## Gateway / Agent Registration
 
-`antenna setup` handles all of this automatically and is safe to rerun (e.g., after a `clawhub update`). Setup forces `sandbox.mode = "off"` and seeds a default `tools.deny` list only when absent. It preserves an existing gateway `hooks.token` and, on rerun, preserves any `tools.exec` overrides the operator has intentionally set on the Antenna agent.
+`antenna setup` handles initial registration automatically, but it is a fresh
+configuration operation—not routine maintenance. Do not rerun it on a working
+installation merely to repair permissions or after installing a newer release:
+it can replace local runtime configuration, peer state, and credentials. Use
+`antenna doctor` for diagnosis and the side-by-side
+`antenna upgrade --from <old-skill-dir>` workflow for version upgrades. During
+an intentional reconfiguration, setup preserves an existing gateway
+`hooks.token`, forces `sandbox.mode = "off"`, seeds a default `tools.deny` list
+only when absent, and preserves any `tools.exec` overrides the operator has set
+on the Antenna agent.
 
 On each host:
 - agent `antenna` registered in OpenClaw config under `agents` with:
@@ -592,7 +603,7 @@ On each host:
     never enters the replaceable skill tree
   - `sandbox: { mode: "off" }` (required — sandbox silently clamps session visibility, breaking cross-agent relay)
   - restrictive `tools.deny` (block web, browser, image, cron, memory tools)
-  - **Default advice:** do not set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (see v1.2.14 changelog). If you've intentionally customized these, setup reruns now preserve your overrides rather than wiping them.
+  - **Default advice:** do not set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (see v1.2.14 changelog). If you deliberately perform a fresh setup reconfiguration, it preserves intentional overrides rather than wiping them.
 - `hooks.allowedAgentIds` includes `"antenna"`
 - `hooks.allowedSessionKeyPrefixes` permits OpenClaw's required `"hook:"`
   namespace when the prefix allowlist is configured and no default hook session

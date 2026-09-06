@@ -37,8 +37,9 @@ For the complete version history prior to `1.3.0`, see:
   (ANT-165-008).** Setup defers token-file creation until it has shown one
   concise plan covering runtime state, gateway registration, credentials, CLI
   installation, and restart requirements. Upgrade shows its source,
-  destination, gateway, CLI, authentication, and restart effects before its
-  first persistent write. Setup and upgrade require `--yes` for authorized
+  destination, gateway, CLI, authentication, and restart effects before
+  changing runtime state, gateway configuration, or the CLI target. Setup and
+  upgrade require `--yes` for authorized
   non-interactive use; uninstall and relay-policy restore use the same consent
   semantics while preserving dry-run, backup, rollback, and foreign-target
   safeguards. Routine messaging is unchanged.

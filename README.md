@@ -83,8 +83,8 @@ bash skills/antenna/bin/antenna.sh setup
 ```
 
 That's both steps. The CLI auto-fixes file permissions on first run (ClawHub doesn't preserve them), then the setup wizard walks you through six questions — host ID, endpoint URL, agent ID, relay model, inbox preference, and hooks token — and handles gateway registration, CLI path, and everything else.
-Before writing persistent state, setup shows one concise plan covering local
-files, gateway registration, credentials, the CLI path, and the required
+Before setup creates runtime state, credentials, gateway configuration, or a
+CLI target, it shows one concise plan covering the work and the required
 restart. Interactive setup asks once; already-authorized automation must pass
 `--yes` with the required non-interactive values.
 
@@ -437,7 +437,7 @@ antenna uninstall [--dry-run] [--purge-skill-dir]   # clean removal
 | `Legacy export refused - not a TTY` | `antenna peers exchange <peer> --export` was piped/redirected | Run it in an interactive terminal, or use `antenna peers exchange initiate` for automation |
 | `peers add` refuses to update existing peer | By design | Pass `--force` to merge the fields you supplied; other fields are preserved |
 | `exec denied: allowlist miss` | Shell metacharacters in command | Use only simple commands; `antenna-relay-deliver.sh` accepts a file path only |
-| Repeated approval prompts | Stale exec overrides (default advice) | Default is **not** to set `tools.exec.security`/`tools.exec.ask` on the Antenna agent (v1.2.14+). Setup reruns now preserve your overrides if you've intentionally customized them. |
+| Repeated approval prompts | Stale exec overrides (default advice) | Default is **not** to set `tools.exec.security`/`tools.exec.ask` on the Antenna agent (v1.2.14+). A deliberate fresh setup reconfiguration preserves intentional overrides. |
 | Unknown sender rejected | Peer not in inbound allowlist | Add to `allowed_inbound_peers` |
 | Exchange fails | `age` not installed | `apt install age` |
 | Gateway won't start | Config syntax error | Run `antenna doctor` |

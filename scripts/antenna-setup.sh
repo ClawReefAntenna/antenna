@@ -131,7 +131,8 @@ Creates:
   - Example/reference files remain available: antenna-config.example.json, antenna-peers.example.json
   - Prints gateway registration instructions
 
-Administrative changes are previewed before setup writes persistent state.
+Administrative changes are previewed before setup creates runtime state,
+credentials, gateway configuration, or a CLI target.
 Non-interactive setup requires --yes after all required values are supplied.
 EOF
       exit 0
@@ -677,7 +678,7 @@ else
   if [[ "$plan_rc" -eq 2 ]]; then
     exit 2
   fi
-  info "Setup cancelled. No persistent changes were made."
+  info "Setup cancelled. No runtime state, credentials, gateway configuration, CLI target, or peer state was changed."
   exit 0
 fi
 
@@ -924,7 +925,7 @@ if [[ -n "$GATEWAY_CFG" ]]; then
       for _db_path in "$SKILL_DIR/agent/openclaw-agent.sqlite" "$SKILL_DIR/agent/openclaw-agent.sqlite-wal" "$SKILL_DIR/agent/openclaw-agent.sqlite-shm"; do
         if [[ -e "$_db_path" || -L "$_db_path" ]]; then
           err "OpenClaw state is present inside the Antenna workspace: $_db_path"
-          err "Move it through OpenClaw's supported state/Doctor workflow before rerunning setup; Antenna will not place agent state inside a replaceable skill tree."
+          err "Move it through OpenClaw's supported state/Doctor workflow before starting a fresh setup; Antenna will not place agent state inside a replaceable skill tree."
           exit 1
         fi
       done

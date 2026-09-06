@@ -61,8 +61,8 @@ bash skills/antenna/bin/antenna.sh setup
 ```
 
 After setup, `antenna` is on your PATH - all future commands are just `antenna <command>`.
-Before setup writes persistent state, it shows one concise plan covering local
-files, gateway registration, credentials, the CLI path, and the required
+Before setup creates runtime state, credentials, gateway configuration, or a
+CLI target, it shows one concise plan covering the work and the required
 restart. Interactive setup asks once. Already-authorized automation supplies
 all non-interactive values and adds `--yes`.
 
@@ -101,7 +101,8 @@ the replaceable Antenna workspace.
 Upgrade shows its complete change plan before copying state or changing the
 gateway. Interactive use asks once; already-authorized non-interactive jobs
 add `--yes`. Declining or omitting that authorization in a non-interactive
-session leaves persistent state unchanged.
+session leaves runtime state, credentials, gateway configuration, CLI targets,
+and peer state unchanged.
 
 Do not run `setup --force`; that is a fresh-setup operation. Unclassified
 legacy peer records, typically from pre-Ed25519 v1.5.x installations, remain
@@ -208,10 +209,10 @@ Your primary agent's ID (e.g., `lobster`, `betty`). This is used in full session
 
 Setup inherits the host's configured primary model. Antenna gives the relay a
 small, mechanical dispatch job, so smaller models are generally the best fit.
-GPT-5.6 Luna, Gemini Flash, and Haiku have shown reliable physical results.
-Provider availability and authentication vary by host, so use a full
-`provider/model` ID and run `antenna test <model>` or `antenna test-suite`
-before committing to a relay model.
+The relay is a courier, not a philosopher. Use a full `provider/model` ID, run
+`antenna test <model>` for a live smoke test, or run
+`antenna test-suite --model <provider/model>` to check the one relay tool call
+and compare its verdict and latency.
 
 ### Step 5: Inbox Mode
 
@@ -225,7 +226,9 @@ listed to bypass review. More on this in
 
 The bearer token that protects your webhook endpoint. Setup will try to auto-detect it from your gateway config. If it's not there, it'll offer to generate one for you. Either way, you won't need to hunt for it.
 
-> **Safe to rerun.** If you already have a gateway `hooks.token` set for other consumers, setup preserves it instead of overwriting. Antenna only writes a new token when one isn't already present.
+> **Existing gateway token is preserved.** If you already have a gateway
+> `hooks.token` set for other consumers, setup preserves it instead of
+> overwriting. Antenna only writes a new token when one isn't already present.
 
 ### After the Questions
 
@@ -239,7 +242,17 @@ Setup automatically:
 
 Then it offers to launch the pairing wizard.
 
-> **Expert operators - rerunning `antenna setup`.** Setup is idempotent and safe to rerun (e.g., after a `clawhub update`). It forces `sandbox.mode = "off"` on the Antenna agent and seeds a default `tools.deny` list only when one isn't already present. If you've customized `tools.exec` on the Antenna agent for your own reasons, setup now preserves those overrides on rerun instead of silently wiping them. The default advice is still to leave `tools.exec` alone - explicit overrides can cause silent relay failure - but the choice is yours to keep.
+> **Expert operators - intentional reconfiguration.** `antenna setup` is a
+> fresh configuration operation, not a maintenance or upgrade command. Do not
+> rerun it on a working installation merely to repair permissions or after an
+> update: it can replace local runtime configuration, peer state, and
+> credentials. Use `antenna doctor` for diagnosis and the side-by-side
+> `antenna upgrade --from <old-skill-dir>` workflow for version upgrades. If
+> you deliberately reconfigure a host, setup preserves existing Antenna-agent
+> `tools.exec` overrides, forces `sandbox.mode = "off"`, and seeds a default
+> `tools.deny` list only when one is absent. The default advice is still to
+> leave `tools.exec` alone because explicit overrides can cause silent relay
+> failure.
 
 > **Legacy secret export refuses non-TTY output.** The legacy `antenna peers exchange <peer> --export` path won't print runtime identity secrets to a non-TTY stdout (pipes, redirections, captured output). Use the encrypted `antenna peers exchange initiate` flow for any automated or remote operator handoff.
 
@@ -603,7 +616,7 @@ OpenAI, Codex, OpenRouter, Nvidia, Ollama, Anthropic, and Google Gemini. Seven p
 | `self-id not configured - run antenna setup` | `antenna-config.json` is missing the host identity | Run `antenna setup`. The sender no longer falls back to `$(hostname)` - it fails fast so you can't accidentally impersonate another host from an unconfigured clone |
 | `Legacy export refused - not a TTY` | `antenna peers exchange <peer> --export` was piped or redirected | Run it directly in an interactive terminal, or switch to `antenna peers exchange initiate` for any automated/remote handoff |
 | `Gateway hooks.token changed unexpectedly after antenna setup` | Should not happen on current versions | Setup now preserves an existing `hooks.token` used by other consumers. If you see it get overwritten, file a bug |
-| Repeated approval prompts | Stale exec overrides on Antenna agent | **Default advice:** remove any `tools.exec.security` or `tools.exec.ask` from the Antenna agent registration - explicit exec overrides cause silent relay failure (fixed in v1.2.14). `antenna setup` reruns preserve your `tools.exec` overrides if you've intentionally set them, so the default advice is a starting point, not a forced wipe |
+| Repeated approval prompts | Stale exec overrides on Antenna agent | **Default advice:** remove any `tools.exec.security` or `tools.exec.ask` from the Antenna agent registration - explicit exec overrides cause silent relay failure (fixed in v1.2.14). A deliberate fresh setup reconfiguration preserves intentional `tools.exec` overrides, so the default advice is a starting point, not a forced wipe |
 | Gateway won't start after setup | Config syntax error | Run `antenna doctor` to validate |
 | `antenna doctor` warns *orphan peer references in config allowlists* | Peer was removed before REF-1312, or allowlist edited by hand | Run `antenna peers remove <stale-id>` on any listed orphan (REF-1312 prunes its allowlist entries), or remove the IDs from `antenna-config.json` directly. Section 1b is warn-only; it will not block operations |
 | `antenna doctor` warns *orphan secret file* / *stale backup file* / *secrets/ dir is not 700* | Files in `secrets/` no longer match any registered peer, or permissions drifted | Move orphan files to `secrets.retired/` or delete, rotate/remove `.bak*` leftovers, and `chmod 700 secrets/` / `chmod 600 secrets/<file>`. Section 6b is warn-only - these files cannot authenticate unregistered peers, but they are real drift/leak-surface signals |
@@ -662,15 +675,20 @@ The send fails immediately with a clear error. Inbox mode on the receiving side 
 Yes. Point `relay_agent_model` at any model your OpenClaw gateway can reach - including local Ollama models. Run `antenna test <model>` to verify it handles the relay protocol correctly before going live.
 
 **Q: How do I update Antenna?**
-```bash
-# From git:
-cd ~/clawd/skills/antenna && git pull origin main
 
-# From ClawHub:
-clawhub update antenna
-bash skills/antenna/bin/antenna.sh setup   # re-fix permissions + verify config
+Keep the working installation as your rollback point and place the new release
+beside it. Run the upgrade from the new tree:
+
+```bash
+old_antenna_dir=/path/to/current/antenna
+new_antenna_dir=/path/to/new/antenna
+bash "$new_antenna_dir/bin/antenna.sh" upgrade --from "$old_antenna_dir"
+openclaw gateway restart
+bash "$new_antenna_dir/bin/antenna.sh" doctor
 ```
-Check the [CHANGELOG](../CHANGELOG.md) for what's new.
+
+Do not use `setup --force` as an upgrade path. Check the
+[CHANGELOG](../CHANGELOG.md) for what's new.
 
 **Q: Is there a message size limit?**
 Default is 10,000 characters, configurable via `max_message_length` in `antenna-config.json`. Messages over the limit are rejected before sending.

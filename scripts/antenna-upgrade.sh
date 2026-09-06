@@ -57,7 +57,8 @@ and ambiguous targets are always refused.
 It does not silently convert legacy peer authentication. Re-pair every old
 plaintext peer with Ed25519 after migration.
 
-The upgrade displays its complete change plan before writing persistent state.
+The upgrade displays its complete change plan before changing runtime state,
+gateway configuration, or the CLI target.
 Use --yes only for an already-authorized non-interactive upgrade.
 EOF
   exit 0
@@ -274,7 +275,7 @@ else
   if [[ "$plan_rc" -eq 2 ]]; then
     exit 2
   fi
-  info "Upgrade cancelled. No persistent changes were made."
+  info "Upgrade cancelled. No runtime state, credentials, gateway configuration, CLI target, or peer state was changed."
   exit 0
 fi
 

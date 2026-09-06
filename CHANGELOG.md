@@ -12,6 +12,11 @@ For the complete version history prior to `1.3.0`, see:
 
 ### Fixed
 
+- **Relay input cleanup preserves outside files (ANT-165-012).** Caller-supplied
+  files outside Antenna staging are read without changing their permissions or
+  deleting them. Only the delivery wrapper cleans staging entries, using unlink
+  rather than shredding/truncation; the inner file reader is read-only.
+
 - **Queued delivery respects current permissions (R5).** Inbox drain rechecks
   the sender's peer registration and inbound permission plus the exact saved
   destination before each send. Disallowed items remain available as `failed`

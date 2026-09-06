@@ -50,29 +50,44 @@ log_msg() {
 
 TMPDIR="${TMPDIR:-/tmp}"
 ANTENNA_TMPDIR="$TMPDIR/antenna-relay"
-mkdir -p "$ANTENNA_TMPDIR"
-chmod 0700 "$ANTENNA_TMPDIR" 2>/dev/null || true
-
+# Caller-supplied files are read-only unless they are direct staging entries.
+# This is a cleanup convention, not a sandbox against same-user mutation.
 TMPFILE=""
+CLEANUP_PATH=""
 cleanup() {
-  if [[ -n "$TMPFILE" && -f "$TMPFILE" ]]; then
-    # shred if available, else truncate + unlink
-    if command -v shred >/dev/null 2>&1; then
-      shred -u "$TMPFILE" 2>/dev/null || true
-    else
-      : > "$TMPFILE" 2>/dev/null || true
-      rm -f "$TMPFILE" 2>/dev/null || true
-    fi
+  if [[ -n "$CLEANUP_PATH" ]]; then
+    # Unlink only: never overwrite a symlink/hard-link target or promise erasure.
+    rm -f -- "$CLEANUP_PATH" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
 
 if [[ "$INPUT_MODE" == "stdin" ]]; then
+  if [[ -L "$ANTENNA_TMPDIR" ]]; then
+    echo "Error: staging directory must not be a symlink"
+    exit 1
+  fi
+  mkdir -p -- "$ANTENNA_TMPDIR"
+  chmod 0700 -- "$ANTENNA_TMPDIR"
   TMPFILE=$(mktemp "$ANTENNA_TMPDIR/msg.XXXXXX")
+  CLEANUP_PATH="$TMPFILE"
   chmod 0600 "$TMPFILE"
   cat > "$TMPFILE"
 else
   TMPFILE="$INPUT_PATH"
+  if [[ ! -L "$INPUT_PATH" ]]; then
+    INPUT_CANONICAL=$(realpath -e -- "$INPUT_PATH")
+    # The model policy uses /tmp even when a caller sets another TMPDIR.
+    for STAGING_DIR in /tmp/antenna-relay "$ANTENNA_TMPDIR"; do
+      [[ -d "$STAGING_DIR" && ! -L "$STAGING_DIR" && -O "$STAGING_DIR" ]] || continue
+      STAGING_CANONICAL=$(realpath -e -- "$STAGING_DIR")
+      if [[ "$(dirname -- "$INPUT_CANONICAL")" == "$STAGING_CANONICAL" ]]; then
+        chmod 0700 -- "$STAGING_CANONICAL"
+        CLEANUP_PATH="$INPUT_CANONICAL"
+        break
+      fi
+    done
+  fi
 fi
 
 # ── Relay via existing scripts ─────────────────────────────────────────────

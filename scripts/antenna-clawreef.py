@@ -65,14 +65,14 @@ def discover(service):
                       data={'http_status': error.code}, retryable=error.code in (429, 502, 503, 504)) from None
     except (urllib.error.URLError, TimeoutError, OSError):
         raise Failure('network_error', 'Unable to read discovery; no mutation performed.', 5, retryable=True) from None
-    except (ValueError, UnicodeError):
+    except (ValueError, UnicodeError, RecursionError):
         raise Failure('invalid_discovery', 'Expected a supported JSON discovery object.', 4) from None
     fail(isinstance(data, dict) and data.get('service') == 'clawreef' and
          type(data.get('schema_version')) is int and data['schema_version'] == 1 and
          type(data.get('api_version')) is int and data['api_version'] == 1,
          'unsupported_version', 'Server does not advertise the supported ClawReef API version.', 4)
     def version(value):
-        fail(isinstance(value, str) and re.fullmatch(r'\d+\.\d+\.\d+', value),
+        fail(isinstance(value, str) and re.fullmatch(r'\d{1,6}\.\d{1,6}\.\d{1,6}', value),
              'invalid_discovery', 'Invalid server compatibility metadata.', 4)
         return tuple(map(int, value.split('.')))
     fail(version(data.get('minimum_client_version')) <= version(CONTRACT['client_version']) and

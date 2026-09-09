@@ -71,7 +71,7 @@ class DiscoveryTests(unittest.TestCase):
         for field,value in [('api_version',2),('api_version',True),('minimum_client_version','1.6.7'),('maximum_client_major',0),('api_base','https://evil.invalid')]:
             self.body=copy.deepcopy(CONTRACT);self.body[field]=value
             self.assertEqual(self.call('discover','--service',self.service)[0],4)
-        for raw in [b'<html>SECRET-CANARY</html>',b'[]',b'x'*65537]:
+        for raw in [b'<html>SECRET-CANARY</html>',b'[]',b'['*2000+b']'*2000,b'x'*65537]:
             self.raw=raw;self.assertEqual(self.call('discover','--service',self.service)[0],4)
     def test_redirect_access_gate_and_old_server(self):
         for http,exit_code in [(302,5),(401,5),(403,5),(404,4),(503,5)]:

@@ -16,6 +16,13 @@ SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 SCRIPTS_DIR="$SKILL_DIR/scripts"
 
+# Discovery/preparation must also work before setup and must not heal permissions,
+# emit ANSI, load credentials, or mutate installed state.
+if [[ "${1:-}" == "clawreef" ]]; then
+  shift
+  exec python3 "$SKILL_DIR/scripts/antenna-clawreef.py" "$@"
+fi
+
 # ── Self-healing permissions ─────────────────────────────────────────────────
 # ClawHub doesn't preserve execute bits. Fix them on first run so install.sh
 # is optional and everything Just Works after `clawhub install antenna`.
@@ -96,6 +103,8 @@ usage() {
 Antenna — Inter-Host OpenClaw Messaging
 
 Usage:
+  antenna clawreef --help                    Discover ClawReef and prepare onboarding
+
   antenna setup                              First-run setup wizard
   antenna setup --host-id <id> ... --yes     Authorized non-interactive setup
   antenna upgrade --from <old-skill-dir>     Preview and preserve state into this side-by-side release

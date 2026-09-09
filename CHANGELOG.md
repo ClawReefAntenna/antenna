@@ -10,6 +10,12 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+### ANT-166-004 — discovery/onboarding candidate
+
+- Add read-only ClawReef discovery, local-only onboarding request preparation and honest local status.
+- Share a versioned command/feature contract with the Registry Agents’ Page; unsupported operations are not advertised as available.
+- Resolve selected conversations canonically; request capabilities explicitly without enrollment, outreach or installed-state mutation.
+
 ### Added — v1.6.6 candidate (not published)
 
 - ANT-166-001: receiver-owned, agent-scoped session aliases, supported key-UUID

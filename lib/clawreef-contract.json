@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "service": "clawreef",
+  "api_version": 1,
+  "client_version": "1.6.6",
+  "minimum_client_version": "1.6.6",
+  "maximum_client_major": 1,
+  "api_base": "/registry/api/cli/v1",
+  "agents_page": "/registry/agents",
+  "discovery_path": "/registry/api/cli/v1/discovery",
+  "commands": [
+    {
+      "name": "discover",
+      "summary": "Read public service compatibility and available commands.",
+      "network": "GET discovery",
+      "enrollment_required": false
+    },
+    {
+      "name": "onboard",
+      "summary": "Prepare a local-only human authorization request; no enrollment or outreach.",
+      "network": "none",
+      "enrollment_required": false
+    },
+    {
+      "name": "status",
+      "summary": "Inspect local preparation state; does not attest remote enrollment or grants.",
+      "network": "none",
+      "enrollment_required": false
+    }
+  ],
+  "features": {
+    "discovery": true,
+    "onboarding_preparation": true,
+    "signed_host_api": false,
+    "enrollment": false,
+    "group_operations": false,
+    "removal_requests": false
+  },
+  "requestable_capabilities": [
+    "groups.create",
+    "groups.join",
+    "groups.post"
+  ],
+  "exit_codes": {
+    "success": 0,
+    "invalid_arguments": 2,
+    "local_state_or_enrollment_required": 3,
+    "unsupported_version_or_feature": 4,
+    "network_or_service_error": 5,
+    "invalid_session_context": 6
+  }
+}

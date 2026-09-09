@@ -248,6 +248,24 @@ Trust is layered, earned per-peer, and never assumed.
 | **Log sanitization** | Peer-supplied values stripped of control characters |
 | **Permission audit** | `antenna status` checks token/secret file permissions; normal relay staging is private; cleanup unlinks staging entries without overwriting them and preserves outside input files |
 
+### Relay permissions and diagnostic output
+
+The intended relay workflow delegates verification and routing to deterministic
+scripts. The raw envelope still reaches the relay model before verification.
+Instructions prescribing a limited tool sequence are not enforced capability
+confinement: the sandbox-off relay may have broader shell/session authority
+under host policy. The Q1 boundary redesign remains deferred.
+
+Send `--dry-run` makes no network request and redacts the reusable legacy
+authentication secret from both envelope and JSON previews. Message content
+(and modern Ed25519 signatures) remains visible; previews are not sanitized
+for public sharing. Actual transport and legacy interoperability are unchanged.
+
+`antenna doctor` is not offline: connectivity checks contact configured non-self
+peer endpoints, exposing source address and request timing. Those checks do not
+send the hook bearer or the full peer inventory. This disclosure does not add
+an approval prompt or change diagnostic behavior.
+
 ### Encrypted Bootstrap Exchange
 
 Pairing uses `age` encryption. Public keys are safe to share — they're locks, not keys. Bootstrap bundles carry everything the other host needs (endpoint, tokens, secrets, metadata), encrypted so only the intended recipient can open them. Raw secrets never touch chat, email bodies, or log files.
@@ -319,7 +337,7 @@ antenna msg <peer> "text"                           # send a message
 antenna msg <peer> --session "agent:x:channel" "…"  # target specific session
 antenna msg <peer> --subject "Re: Config" "…"       # with subject line
 antenna send <peer> --stdin                         # from stdin
-antenna send <peer> --dry-run "text"                # preview envelope
+antenna send <peer> --dry-run "text"                # preview envelope; legacy auth redacted
 antenna send @lab-monitors "check in"               # per-recipient list routing
 antenna send @lab-monitors --show-recipients "…"    # signed alias + peer context
 ```

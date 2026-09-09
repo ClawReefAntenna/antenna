@@ -386,8 +386,20 @@ printf '%s' "$legacy" >"$TMP/receiver/secrets/legacy.secret"
 chmod 0600 "$TMP/sender/secrets/legacy.secret" "$TMP/receiver/secrets/legacy.secret"
 jq '.sender.peer_secret_file="secrets/legacy.secret" | .receiver.auth_mode="plaintext-legacy"' "$TMP/sender/antenna-peers.json" >"$TMP/p" && mv "$TMP/p" "$TMP/sender/antenna-peers.json"
 jq '.sender.auth_mode="plaintext-legacy" | .sender.peer_secret_file="secrets/legacy.secret"' "$TMP/receiver/antenna-peers.json" >"$TMP/p" && mv "$TMP/p" "$TMP/receiver/antenna-peers.json"
-(cd "$TMP/sender" && bash scripts/antenna-send.sh receiver --dry-run 'legacy body') >"$TMP/legacy-dry" 2>"$TMP/legacy-warning"
-awk '/^=== ENVELOPE ===$/{on=1;next}/^=== POST PAYLOAD ===$/{on=0}on' "$TMP/legacy-dry" >"$TMP/legacy-envelope"
+# A redacted dry-run is deliberately not a sendable legacy envelope. Capture
+# the real send path offline instead of depending on credential disclosure.
+mkdir -p "$TMP/capture-bin"
+cat >"$TMP/capture-bin/curl" <<'STUB'
+#!/usr/bin/env python3
+import os, sys
+from pathlib import Path
+Path(os.environ['LEGACY_CAPTURE']).write_text(sys.argv[sys.argv.index('-d') + 1])
+print('{"runId":"fixture"}\n__HTTP_CODE__200')
+STUB
+chmod 0700 "$TMP/capture-bin/curl"
+(cd "$TMP/sender" && PATH="$TMP/capture-bin:$PATH" LEGACY_CAPTURE="$TMP/legacy-post" \
+  bash scripts/antenna-send.sh receiver 'legacy body') >"$TMP/legacy-send" 2>"$TMP/legacy-warning"
+jq -r '.message' "$TMP/legacy-post" >"$TMP/legacy-envelope"
 response=$(relay_file "$TMP/legacy-envelope")
 jq -e '.status == "ok"' <<<"$response" >/dev/null && grep -q 'plaintext-legacy sends' "$TMP/legacy-warning" \
   && ok "explicit legacy mode warns and relays" || no "explicit legacy mode warns and relays"

@@ -185,7 +185,7 @@ Send options:
   --subject <text>    Optional subject line
   --user <name>       Optional human sender name (plain host mode is default)
   --reply-to <url>    Override reply URL
-  --dry-run           Print envelope without sending
+  --dry-run           Preview envelope with legacy auth redacted; no send
 
 Examples:
   antenna msg <peer> "What's the weather like over there?"

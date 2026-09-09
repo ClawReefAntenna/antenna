@@ -21,6 +21,17 @@ For the complete version history prior to `1.3.0`, see:
 - Focused signed-delivery, queue, collision, stale-binding and writer-race fixtures.
   Live/mixed-host and downloaded-release qualification remains a release gate.
 
+### Audit hardening — v1.6.6 candidate (owner-approved addition)
+
+- Redact reusable plaintext-legacy authentication material in both send dry-run
+  previews, including repeated occurrences in message text. Actual transport
+  bytes and Ed25519 behavior are unchanged; preview bodies remain visible.
+- Clarify intended relay procedure versus actual tool authority and Doctor's
+  network side effects in README/User Guide. Q1 remains deferred.
+- Antenna-specific invocation wording and matching SKILL.md disclosures are
+  prepared in Skill Workshop; candidate-file integration remains pending because
+  Workshop cannot target the isolated Git worktree. Do not count these as shipped.
+
 ### Fixed
 
 - **Relay input cleanup preserves outside files (ANT-165-012).** Caller-supplied

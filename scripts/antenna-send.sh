@@ -11,7 +11,7 @@
 #   --subject <text>    Optional subject line
 #   --reply-to <url>    Override reply URL
 #   --include-response  Include a JSON relay response in successful output
-#   --dry-run           Print envelope and POST payload without sending
+#   --dry-run           Preview envelope and POST payload with legacy auth redacted; no send
 #   --json              Output result as JSON (default)
 #
 # Exit codes:
@@ -287,12 +287,23 @@ PAYLOAD=$(jq -n \
 # ── Dry run ──────────────────────────────────────────────────────────────────
 
 if [[ "$DRY_RUN" == "true" ]]; then
+  # Redact only the presentation copy, including any repeated credential in
+  # message text. Keep the actual envelope/payload unchanged for transport.
+  # Read auth from the already-built header (not the file again, which might
+  # rotate concurrently); never pass the credential value in argv.
+  PREVIEW_PAYLOAD="$PAYLOAD"
+  if [[ "$AUTH_MODE" == "plaintext-legacy" ]]; then
+    PREVIEW_PAYLOAD=$(jq -e '
+      (.message | split("\n\n")[0] |
+        capture("(?m)^auth: (?<value>[0-9a-f]{64})$").value) as $value |
+      .message |= (split($value) | join("[REDACTED]"))
+    ' <<< "$PAYLOAD")
+  fi
   echo "=== ENVELOPE ==="
-  cat "$ENVELOPE_FILE"
-  echo
+  jq -r '.message' <<< "$PREVIEW_PAYLOAD"
   echo ""
   echo "=== POST PAYLOAD ==="
-  echo "$PAYLOAD" | jq .
+  jq . <<< "$PREVIEW_PAYLOAD"
   echo ""
   echo "=== TARGET ==="
   echo "URL: ${PEER_URL}/hooks/agent"

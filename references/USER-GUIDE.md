@@ -340,6 +340,24 @@ Encrypted bootstrap bundles travel through `age` so nothing sensitive hits disk 
 
 ---
 
+### Relay permissions and diagnostic output
+
+The intended relay workflow delegates verification and routing to deterministic
+scripts. The raw envelope still reaches the relay model before verification.
+Instructions prescribing a limited tool sequence are not enforced capability
+confinement: the sandbox-off relay may have broader shell/session authority
+under host policy. The Q1 boundary redesign remains deferred.
+
+Send `--dry-run` makes no network request and redacts the reusable legacy
+authentication secret from both envelope and JSON previews. Message content
+(and modern Ed25519 signatures) remains visible; previews are not sanitized
+for public sharing. Actual transport and legacy interoperability are unchanged.
+
+`antenna doctor` is not offline: connectivity checks contact configured non-self
+peer endpoints, exposing source address and request timing. Those checks do not
+send the hook bearer or the full peer inventory. This disclosure does not add
+an approval prompt or change diagnostic behavior.
+
 ## Inbox & Deferred Delivery
 
 By default, Antenna relays messages immediately after the sender passes its
@@ -522,7 +540,7 @@ the gateway stopped so it can migrate the file safely.
 | `antenna msg <peer> --subject "Re: Config" "text"` | Send with a subject line |
 | `antenna msg <peer> --session "agent:bot:channel" "text"` | Target a specific session |
 | `antenna send <peer> --stdin` | Send from stdin (for long messages or pipes) |
-| `antenna send <peer> --dry-run "text"` | Preview the envelope without sending |
+| `antenna send <peer> --dry-run "text"` | Preview without sending; legacy auth redacted, message still visible |
 
 ### Private Groups (Distribution Lists)
 
@@ -607,7 +625,7 @@ groups are not supported for public use yet.
 | Command | What It Does |
 |---------|-------------|
 | `antenna status` | Overview: host, model, peers, security audit |
-| `antenna doctor` | Health check (config, gateway, permissions, drift) |
+| `antenna doctor` | Health check (config, gateway, permissions, drift; contacts peers) |
 | `antenna log [--tail N]` | View the transaction log |
 
 ### Testing

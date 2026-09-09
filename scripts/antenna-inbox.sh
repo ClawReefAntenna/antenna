@@ -197,6 +197,7 @@ cmd_show() {
   echo "Status: $(echo "$item" | jq -r '.status')"
   echo "From: $(echo "$item" | jq -r '.from') ($(echo "$item" | jq -r '.display_name'))"
   echo "To: $(echo "$item" | jq -r '.target_session')"
+  echo "Reference: $(echo "$item" | jq -r '.binding.resolved_reference // .target_session')"
   echo "Queued: $(echo "$item" | jq -r '.queued_at')"
   echo "Size: $(echo "$item" | jq -r '.body_chars') chars"
 }
@@ -288,18 +289,7 @@ cmd_deny() {
 # Recheck current delivery permission, not admission-time authentication or
 # freshness. This is not atomic with concurrent policy edits or an in-flight RPC.
 queued_delivery_allowed() {
-  local sender="$1" session="$2"
-  [[ -n "$sender" && -n "$session" ]] || return 1
-  jq -e --arg sender "$sender" --arg session "$session" \
-    --slurpfile peers "$SKILL_DIR/antenna-peers.json" '
-    (.allowed_inbound_peers | type == "array" and all(.[]; type == "string")) and
-    (.allowed_inbound_sessions | type == "array" and all(.[]; type == "string")) and
-    (.allowed_inbound_peers | index($sender) != null) and
-    (.allowed_inbound_sessions | index($session) != null) and
-    ($peers | length == 1) and
-    ($peers[0] | type == "object" and has($sender)) and
-    ($peers[0][$sender] | type == "object")
-  ' "$CONFIG_FILE" >/dev/null 2>&1
+  printf '%s' "$1" | config_policy delivery >/dev/null
 }
 
 cmd_drain_locked() {
@@ -339,8 +329,9 @@ cmd_drain_locked() {
       message=$(echo "$item" | jq -r '.full_message')
       sender=$(echo "$item" | jq -r '.from // empty')
 
-      if ! queued_delivery_allowed "$sender" "$session_key"; then
-        local policy_error="Delivery permission unavailable: sender or destination removed, disallowed, or policy invalid"
+      local policy_detail
+      if ! policy_detail=$(queued_delivery_allowed "$item" 2>&1); then
+        local policy_error="Delivery permission unavailable: ${policy_detail:-sender or destination removed, disallowed, or policy invalid}"
         queue=$(echo "$queue" | jq --argjson r "$ref" --arg error "$policy_error" \
           '[.[] | if .ref == $r then .status = "failed" | .last_error = $error else . end]')
         failed_count=$((failed_count + 1))

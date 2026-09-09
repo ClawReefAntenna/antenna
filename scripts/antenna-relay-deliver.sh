@@ -130,6 +130,13 @@ if [[ -z "$SESSION_KEY" || -z "$MESSAGE" ]]; then
   exit 1
 fi
 
+# Recheck current policy and the pinned alias generation immediately before RPC.
+# Never reroute or auto-queue on a policy change after admission.
+if ! printf '%s' "$RELAY_JSON" | config_policy delivery >/dev/null 2>&1; then
+  printf '%s\n' '{"action":"reject","status":"rejected","reason":"Delivery permission or session binding changed"}'
+  exit 0
+fi
+
 RPC_PARAMS=$(python3 - "$SESSION_KEY" "$MESSAGE" << 'PY'
 import json, sys
 key, msg = sys.argv[1], sys.argv[2]

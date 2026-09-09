@@ -22,7 +22,7 @@ def check(condition, label):
 with tempfile.TemporaryDirectory(prefix='antenna-review-r5-r6-') as temp:
     base = Path(temp)
     skill = base / 'skill'
-    for relative in ('scripts/antenna-inbox.sh', 'lib/config.sh'):
+    for relative in ('scripts/antenna-inbox.sh', 'lib/config.sh', 'lib/session-policy.py'):
         target = skill / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(root / relative, target)
@@ -38,6 +38,9 @@ with tempfile.TemporaryDirectory(prefix='antenna-review-r5-r6-') as temp:
 import json, os, sys
 from pathlib import Path
 args = sys.argv[1:]
+if args[:3] == ['gateway', 'call', 'sessions.resolve']:
+    params = json.loads(args[args.index('--params') + 1])
+    print(json.dumps({'ok': True, 'key': params['key']})); sys.exit(0)
 assert args[:3] == ['gateway', 'call', 'sessions.send'], args
 with open(os.environ['REVIEW_RPC_CAPTURE'], 'a') as f:
     f.write(json.dumps(json.loads(args[args.index('--params') + 1])) + '\\n')

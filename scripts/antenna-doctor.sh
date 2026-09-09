@@ -272,6 +272,11 @@ echo -e "${BOLD}1. Antenna Configuration${NC}"
 if [[ -f "$CONFIG_FILE" ]]; then
   if jq empty "$CONFIG_FILE" 2>/dev/null; then
     pass "antenna-config.json exists and is valid JSON"
+    if policy_mode=$(config_policy validate 2>/dev/null); then
+      pass "Session policy valid; inbox mode: $policy_mode"
+    else
+      fail "Invalid session alias/inbox policy (run antenna sessions list for details)"
+    fi
   else
     fail "antenna-config.json exists but is INVALID JSON"
     hint "Fix syntax errors in: $CONFIG_FILE"

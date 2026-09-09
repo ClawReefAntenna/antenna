@@ -15,7 +15,7 @@ cp "$REPO/scripts/antenna-list-send.sh" "$SKILL/scripts/"
 cp "$REPO/lib/peers.sh" "$SKILL/lib/"
 cp "$REPO/lib/secret-file.sh" "$SKILL/lib/"
 cp "$REPO/lib/antenna-signature.sh" "$SKILL/lib/"
-cp "$REPO/lib/config.sh" "$SKILL/lib/"
+cp "$REPO/lib/config.sh" "$REPO/lib/session-policy.py" "$SKILL/lib/"
 cp "$REPO/bin/antenna.sh" "$SKILL/bin/"
 cat >"$SKILL/antenna-peers.json" <<'JSON'
 {

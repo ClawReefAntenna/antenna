@@ -114,11 +114,26 @@ wait
   && ok "concurrent replay reservation admits once" || no "concurrent replay reservation admits once"
 
 # Hermetic sender/receiver integration fixtures.
+mkdir -p "$TMP/gateway-bin"
+cat > "$TMP/gateway-bin/openclaw" <<'STUB'
+#!/usr/bin/env python3
+import json, sys
+args=sys.argv[1:]
+assert args[:3] == ['gateway','call','sessions.resolve']
+p=json.loads(args[args.index('--params')+1])
+if p.get('key') == 'agent:receiver:main':
+ print(json.dumps({'ok':True,'key':p['key']}))
+else:
+ print('No session found',file=sys.stderr); sys.exit(1)
+STUB
+chmod +x "$TMP/gateway-bin/openclaw"
+export PATH="$TMP/gateway-bin:$PATH"
+
 for host in sender receiver; do
   mkdir -p "$TMP/$host/lib" "$TMP/$host/scripts" "$TMP/$host/secrets" "$TMP/$host/keys"
   chmod 0700 "$TMP/$host/secrets" "$TMP/$host/keys"
   cp -R "$ROOT/scripts/." "$TMP/$host/scripts/"
-  cp "$ROOT/lib/peers.sh" "$ROOT/lib/config.sh" "$ROOT/lib/antenna-signature.sh" \
+  cp "$ROOT/lib/peers.sh" "$ROOT/lib/config.sh" "$ROOT/lib/session-policy.py" "$ROOT/lib/antenna-signature.sh" \
     "$ROOT/lib/antenna-replay.sh" "$ROOT/lib/antenna-envelope-parse.py" "$TMP/$host/lib/"
   printf token >"$TMP/$host/secrets/token"
 done

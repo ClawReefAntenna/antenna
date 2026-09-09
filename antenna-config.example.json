@@ -27,5 +27,8 @@
   ],
   "allowed_outbound_peers": [
     "<your-host-id>"
-  ]
+  ],
+  "session_policy_version": 1,
+  "session_policies": {},
+  "inbox_mode": "off"
 }

@@ -32,7 +32,8 @@ json_ok() {
     --arg from "$3" \
     --arg timestamp "$4" \
     --argjson chars "$5" \
-    '{action:"relay", status:"ok", sessionKey:$sessionKey, message:$message, from:$from, timestamp:$timestamp, chars:$chars}'
+    --argjson binding "$POLICY_BINDING" \
+    '{action:"relay", status:"ok", sessionKey:$sessionKey, message:$message, from:$from, timestamp:$timestamp, chars:$chars, binding:$binding}'
 }
 
 json_reject() {
@@ -385,30 +386,15 @@ if [[ "$BODY_LEN" -gt "$MAX_LEN" ]]; then
   exit 0
 fi
 
-# ── Validate target session against allowlist (REF-500, pre-inbox gate) ────
-# Full session keys only. Exact match. No expansion — senders must use full keys.
-# Enforced BEFORE the inbox branch so queued messages can never target a
-# session outside allowed_inbound_sessions. The inbox is for human approval of
-# *content/peer*, not for laundering session-target policy around the allowlist.
-
-ALLOWED_SESSIONS=$(jq -r '
-  .allowed_inbound_sessions // [] | .[]
-' "$CONFIG_FILE" 2>/dev/null)
-
-session_allowed() {
-  local target="$1"
-  while IFS= read -r pattern; do
-    [[ -z "$pattern" ]] && continue
-    [[ "$target" == "$pattern" ]] && return 0
-  done <<< "$ALLOWED_SESSIONS"
-  return 1
-}
-
-if ! session_allowed "$TARGET_SESSION"; then
-  json_reject "Session target '$TARGET_SESSION' not in allowed_inbound_sessions" "$FROM"
-  log_entry "INBOUND  | from:$FROM | session:$TARGET_SESSION | nonce:$NONCE | status:REJECTED (session not allowed)"
+# Resolve only after authentication of the original signed target. One atomic
+# config snapshot owns default selection, canonical authorization and inbox mode.
+if ! POLICY_RESULT=$(config_policy admit "$FROM" "$SIGNED_TARGET_SESSION" 2>&1); then
+  json_reject "Session resolution or receive policy rejected: $POLICY_RESULT" "$FROM"
+  log_entry "INBOUND | from:$FROM | nonce:$NONCE | status:REJECTED (session not allowed) | detail:resolution-or-policy"
   exit 0
 fi
+TARGET_SESSION=$(jq -r '.sessionKey' <<< "$POLICY_RESULT")
+POLICY_BINDING=$(jq -c '.binding' <<< "$POLICY_RESULT")
 
 # Reserve only policy-admissible, authenticated messages. Persist before
 # queue/delivery so a retry cannot bypass exact replay rejection.
@@ -435,15 +421,7 @@ fi
 
 # ── Inbox queue check ────────────────────────────────────────────────────────
 
-INBOX_ENABLED=$(config_inbox_enabled)
-
-if [[ "$INBOX_ENABLED" == "true" ]]; then
-  # Check auto-approve list
-  AUTO_APPROVED=$(jq -r --arg from "$FROM" '
-    .inbox_auto_approve_peers // [] | if (index($from)) then "yes" else "no" end
-  ' "$CONFIG_FILE" 2>/dev/null || echo "no")
-  
-  if [[ "$AUTO_APPROVED" != "yes" ]]; then
+if [[ "$(jq -r '.queue' <<< "$POLICY_RESULT")" == "true" ]]; then
     # Session target already validated above against allowed_inbound_sessions
     # (REF-500). Queued messages cannot target disallowed sessions.
     RESOLVED_SESSION="$TARGET_SESSION"
@@ -475,6 +453,7 @@ ${BODY}"
     
     # Create queue item
     QUEUE_ITEM=$(jq -n \
+      --argjson binding "$POLICY_BINDING" \
       --arg from "$FROM" \
       --arg display "$DISPLAY_NAME" \
       --arg session "$RESOLVED_SESSION" \
@@ -483,6 +462,7 @@ ${BODY}"
       --argjson chars "$BODY_LEN" \
       --arg msg "$DELIVERY_MSG" \
       '{
+        binding: $binding,
         from: $from,
         display_name: $display,
         target_session: $session,
@@ -500,8 +480,6 @@ ${BODY}"
     echo "$QUEUE_RESULT"
     log_entry "INBOUND  | from:$FROM | session:$RESOLVED_SESSION | nonce:$NONCE | status:queued | chars:$BODY_LEN"
     exit 0
-  fi
-  # Auto-approved peers fall through to normal relay
 fi
 
 # Session allowlist already enforced above (REF-500) before the inbox branch.

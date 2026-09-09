@@ -61,7 +61,7 @@ mkdir -p "$SETUP_SKILL/scripts" "$SETUP_SKILL/bin" \
   "$SETUP_SKILL/lib/relay-policy/agent" "$SETUP_SKILL/agent" \
   "$SETUP_HOME/.openclaw" "$SETUP_HOME/.local/bin" "$SETUP_HOME/bin"
 cp "$ROOT/scripts/antenna-setup.sh" "$SETUP_SKILL/scripts/"
-cp "$ROOT"/lib/*.sh "$SETUP_SKILL/lib/"
+cp "$ROOT"/lib/*.sh "$ROOT/lib/session-policy.py" "$SETUP_SKILL/lib/"
 cp "$ROOT/lib/relay-policy/manifest.txt" "$SETUP_SKILL/lib/relay-policy/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$SETUP_SKILL/lib/relay-policy/agent/"
 cp "$ROOT/agent/AGENTS.md" "$SETUP_SKILL/agent/"
@@ -160,7 +160,7 @@ mkdir -p "$OLD/bin" "$OLD/agent" "$NEW/scripts" "$NEW/bin" \
   "$NEW/lib/relay-policy/agent" "$NEW/agent" \
   "$UPGRADE_HOME/.openclaw" "$UPGRADE_HOME/.local/bin" "$UPGRADE_HOME/bin"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
-cp "$ROOT"/lib/*.sh "$NEW/lib/"
+cp "$ROOT"/lib/*.sh "$ROOT/lib/session-policy.py" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy/manifest.txt" "$NEW/lib/relay-policy/"
 cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$NEW/lib/relay-policy/agent/"
 cp "$ROOT/agent/AGENTS.md" "$NEW/agent/"

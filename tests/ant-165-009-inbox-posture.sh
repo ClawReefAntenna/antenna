@@ -79,10 +79,10 @@ else
   fail "example config retains inbox-off and empty auto-approval defaults"
 fi
 
-assert_fixed "$RELAY" 'if [[ "$INBOX_ENABLED" == "true" ]]; then' \
-  "relay gates review behind global inbox enablement"
-assert_fixed "$RELAY" '.inbox_auto_approve_peers // [] | if (index($from)) then "yes" else "no" end' \
-  "relay uses auto-approval only as inbox bypass"
+assert_fixed "$RELAY" 'config_policy admit "$FROM" "$SIGNED_TARGET_SESSION"' \
+  "relay delegates canonical review selection to shared policy"
+assert_fixed "$(dirname "$RELAY")/../lib/session-policy.py" "mode == 'on' and sender not in" \
+  "trusted-peer bypass remains confined to On mode"
 assert_absent "$EXAMPLE" 'inbox_(peers|quarantine_peers)' \
   "v1.6.5 adds no selective quarantine field"
 

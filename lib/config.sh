@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/config.sh — read-only helpers for antenna-config.json.
+# lib/config.sh — config helpers and locked, policy-validated mutations.
 #
 # Contract:
 #   - Every helper prints a string to stdout (no trailing newline beyond one).
@@ -87,32 +87,12 @@ config_get() {
 #   Runs `jq <args> '<filter>' $CONFIG_FILE` and atomically swaps the result
 #   in place. Returns non-zero (and preserves the original file) if jq fails
 #   or $CONFIG_FILE is missing.
+# Shared Python writer locks, validates the prospective policy, and swaps atomically.
+_ANTENNA_POLICY_HELPER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/session-policy.py"
+config_policy() { python3 "$_ANTENNA_POLICY_HELPER" "$CONFIG_FILE" "$@"; }
 config_mutate() {
-  if [[ -z "${CONFIG_FILE:-}" || ! -f "$CONFIG_FILE" ]]; then
-    printf 'antenna: config_mutate: CONFIG_FILE unset or missing\n' >&2
-    return 1
-  fi
-
   local filter="$1"; shift
-  local dir; dir=$(dirname -- "$CONFIG_FILE")
-  local tmp; tmp=$(mktemp "$dir/.antenna-config.XXXXXX") || return 1
-
-  if ! jq "$@" "$filter" "$CONFIG_FILE" > "$tmp" 2>/dev/null; then
-    rm -f "$tmp"
-    printf 'antenna: config_mutate: jq filter failed\n' >&2
-    return 1
-  fi
-
-  # Preserve perms across the swap.
-  local perms
-  perms=$(stat -c '%a' "$CONFIG_FILE" 2>/dev/null \
-          || stat -f '%Lp' "$CONFIG_FILE" 2>/dev/null \
-          || echo '')
-  if [[ -n "$perms" ]]; then
-    chmod "$perms" "$tmp" 2>/dev/null || true
-  fi
-
-  mv -- "$tmp" "$CONFIG_FILE"
+  config_policy mutate "$@" "$filter"
 }
 
 # config_set_field <key> <value>
@@ -121,11 +101,12 @@ config_mutate() {
 #   `antenna config set` so both paths agree.
 config_set_field() {
   local key="$1" value="$2"
-
-  if echo "$value" | jq -e '.' >/dev/null 2>&1; then
-    config_mutate '.[$k] = $v' --arg k "$key" --argjson v "$value" && return 0
-    # Fallback if argjson rejected e.g. a bare word that happened to parse.
-    config_mutate '.[$k] = $v' --arg k "$key" --arg v "$value"
+  if [[ "$key" == "inbox_enabled" && ( "$value" == "true" || "$value" == "false" ) ]]; then
+    config_mutate '.inbox_enabled = $v | if has("inbox_mode") then .inbox_mode = (if $v then "on" else "off" end) else . end' --argjson v "$value"
+    return $?
+  fi
+  if printf '%s' "$value" | jq empty >/dev/null 2>&1; then
+    config_mutate '.[$k] = $v' --arg k "$key" --argjson v "$value"
   else
     config_mutate '.[$k] = $v' --arg k "$key" --arg v "$value"
   fi

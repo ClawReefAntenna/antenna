@@ -17,7 +17,7 @@ run_case() {
   local skill="$case_dir/skill" home="$case_dir/home"
   mkdir -p "$skill/bin" "$skill/lib" "$skill/scripts" "$home/.openclaw" "$home/bin"
   cp "$ROOT/bin/antenna.sh" "$skill/bin/"
-  cp "$ROOT/lib/config.sh" "$ROOT/lib/peers.sh" "$ROOT/lib/antenna-signature.sh" "$ROOT/lib/secret-file.sh" \
+  cp "$ROOT/lib/config.sh" "$ROOT/lib/session-policy.py" "$ROOT/lib/peers.sh" "$ROOT/lib/antenna-signature.sh" "$ROOT/lib/secret-file.sh" \
     "$ROOT/lib/gateway-roster.sh" "$skill/lib/"
   printf '%s\n' '{"relay_agent_model":"fixture/old","log_enabled":false}' > "$skill/antenna-config.json"
   printf '{}\n' > "$skill/antenna-peers.json"

@@ -104,7 +104,7 @@ hello from test
 
 mkdir -p "$TMP/skill/scripts" "$TMP/skill/lib"
 cp "$RELAY" "$TMP/skill/scripts/"
-cp "$SKILL_DIR/lib/peers.sh" "$SKILL_DIR/lib/config.sh" \
+cp "$SKILL_DIR/lib/peers.sh" "$SKILL_DIR/lib/config.sh" "$SKILL_DIR/lib/session-policy.py" \
   "$SKILL_DIR/lib/antenna-signature.sh" "$SKILL_DIR/lib/antenna-replay.sh" \
   "$SKILL_DIR/lib/antenna-envelope-parse.py" "$TMP/skill/lib/"
 SCRATCH_LOG="$TMP/skill/relay.log"

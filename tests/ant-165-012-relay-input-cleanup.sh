@@ -42,6 +42,9 @@ with tempfile.TemporaryDirectory(prefix='antenna-cleanup-') as temp:
     stub.write_text('''#!/usr/bin/env python3
 import json, os, sys
 args=sys.argv[1:]
+if args[:3] == ['gateway','call','sessions.resolve']:
+    params=json.loads(args[args.index('--params')+1])
+    print(json.dumps({'ok':True,'key':params['key']})); sys.exit(0)
 assert args[:3] == ['gateway','call','sessions.send']
 with open(os.environ['CLEANUP_RPC_CAPTURE'],'a') as f:
     f.write(args[args.index('--params')+1]+'\\n')

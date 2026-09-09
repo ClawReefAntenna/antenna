@@ -10,6 +10,17 @@ For the complete version history prior to `1.3.0`, see:
 
 ## [Unreleased]
 
+### Added — v1.6.6 candidate (not published)
+
+- ANT-166-001: receiver-owned, agent-scoped session aliases, supported key-UUID
+  resolution, collision rejection, atomic management, and pinned inbox bindings.
+- ANT-166-010: Off/On/Allowlist inbox modes with canonical-session review flags;
+  Allowlist review overrides trusted-peer bypass. Legacy defaults retained.
+- Shared strict policy validation, per-dispatch permission checks, setup/upgrade
+  preservation, Doctor diagnostics and non-activating conservative rollback export.
+- Focused signed-delivery, queue, collision, stale-binding and writer-race fixtures.
+  Live/mixed-host and downloaded-release qualification remains a release gate.
+
 ### Fixed
 
 - **Relay input cleanup preserves outside files (ANT-165-012).** Caller-supplied

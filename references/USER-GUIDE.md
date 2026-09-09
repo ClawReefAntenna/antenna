@@ -351,11 +351,88 @@ That's what the inbox is for.
 
 ### How It Works
 
-When `inbox_enabled` is `true`, review applies globally. Messages from every
-paired peer are queued unless that peer appears in
-`inbox_auto_approve_peers`. Adding a peer to that list does not pair or
-authenticate it; it grants an already paired peer a durable bypass from inbox
-review until removed.
+The v1.6.6 candidate adds `inbox_mode` with three choices. All modes still
+require an authenticated, allowed peer and an allowed canonical destination.
+
+| Mode | Authorized arrivals |
+| --- | --- |
+| `off` | Deliver directly. This remains the default. |
+| `on` | Review applies globally, except `inbox_auto_approve_peers`. |
+| `allowlist` | Queue sessions marked inbox=yes, even for auto-approved peers; deliver other sessions directly. |
+
+Adding a peer to `inbox_auto_approve_peers` does not pair or authenticate it;
+it grants an already paired peer a durable bypass from inbox review **in On
+mode only**, until removed. Missing per-session flags mean no. Allowlist mode
+selects review within the existing session admission allowlist; it grants no
+new permission and creates no separate inboxes.
+
+Existing boolean `inbox_enabled` installations retain On/Off behavior. Use
+`antenna config set inbox_mode off|on|allowlist` for the new policy; the writer
+maintains the legacy boolean mirror. Changing that boolean through the CLI
+also selects On/Off. Invalid or conflicting policy fails closed, never Off.
+
+### Session aliases and review flags (v1.6.6 candidate)
+
+Choose a real canonical key from your gateway's session information:
+
+```bash
+antenna sessions add agent:betty:dashboard:11111111-1111-4111-8111-111111111111 --alias ideas --inbox yes
+antenna sessions list --json
+antenna config set inbox_mode allowlist
+antenna msg other-host "An idea" --session agent:betty:ideas
+antenna sessions update agent:betty:dashboard:11111111-1111-4111-8111-111111111111 --inbox no
+antenna sessions update agent:betty:dashboard:11111111-1111-4111-8111-111111111111 --clear-alias
+```
+
+The example key is illustrative; Antenna refuses metadata for a missing session.
+Aliases are local to the receiver and unique per agent. Use a lowercase ASCII
+slug of 1–48 characters, beginning with a letter, with single hyphen separators.
+`main`, `global`, `unknown`, `cron`, `hook`, `subagent`, `acp`, and `dashboard`
+are reserved. A real gateway address cannot be shadowed. Bare aliases, titles,
+and copied chat URLs are not addresses. Removing a session removes its metadata;
+re-adding it cannot inherit an old alias or inbox flag. Existing multi-name
+`add`/`remove` and core-session `--force` protection remain available.
+
+A full key, qualified alias, unique 8–32 hexadecimal key-UUID prefix or complete
+key UUID (with or without dashes) selects the same destination and inbox policy.
+UUID selection requires gateway `shortId` support; unsupported or ambiguous
+selectors fail without falling back to Main. A rotating runtime `sessionId` is
+not a durable destination. Aliases and exact keys work on older supported
+gateways. A 1.6.5 receiver does not understand these new aliases; use full keys.
+**Always pass `--session`: positional words after the peer are message text.**
+
+Queued items keep the canonical destination and the alias binding reviewed at
+admission. Alias changes/reassignment, missing sessions and revoked permission
+block delivery; nothing is silently redirected. Mode, flag and peer-bypass
+changes affect new arrivals and never release the backlog. Inbox drain checks
+current permission before each RPC but cannot cancel a send already admitted
+by the gateway. Registry-forwarded group messages use this same local policy.
+A queued receipt is not final delivery, and an RPC-start receipt is not proof
+that the recipient has read the message.
+
+### Upgrade and rollback
+
+Upgrade validates policy and queued binding data before activation, preserving
+existing booleans, aliases, flags and queue status. No automatic switch to
+Allowlist occurs. Custom relative queue files are copied at the same relative
+path when they do not collide with program files; absolute external queues
+remain external. Unsafe paths fail before activation.
+
+Do not run an older binary against new state as a rollback. While dispatch is
+stopped, prepare a private, non-activating projection:
+
+```bash
+python3 scripts/antenna-policy-export.py --config antenna-config.json --output /private/new-rollback-dir --dispatch-stopped
+```
+
+For Allowlist, the projection enables the legacy inbox and clears trusted-peer
+bypasses: intentionally broader review. All alias-bound queue items are kept
+in a separate private quarantine, never fed to an older drain. Source files are
+unchanged. The report describes what to reconcile; it does not install, restart,
+or activate anything. Preserve newer permissions, keys, peers and the quarantine,
+reconcile the destination install path, and activate config and projected queue
+together using the supported offline procedure. Senders then use canonical keys.
+Full release/mixed-host downgrade qualification remains required before release.
 
 ### Working with the Queue
 
@@ -400,7 +477,7 @@ Your assistant runs `antenna inbox list`, shows you the queue, and you say:
 Done. The approved messages get delivered to their target sessions; denied ones are discarded.
 
 > **Use case:** You're collaborating with a newly paired peer and want temporary
-> human review. Because inbox currently applies globally, you enable it and
+> human review. In On mode, review applies globally, so you enable it and
 > explicitly add established peers that should continue delivering
 > autonomously to the auto-approve list. Selective per-peer quarantine without
 > globally enabling inbox is not currently available.
@@ -411,6 +488,7 @@ Done. The approved messages get delivered to their target sessions; denied ones 
 
 ```json
 {
+  "inbox_mode": "off",
   "inbox_enabled": false,
   "inbox_auto_approve_peers": ["peer-that-bypasses-review"],
   "inbox_queue_path": "antenna-inbox.json"

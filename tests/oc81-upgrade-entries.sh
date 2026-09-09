@@ -20,7 +20,7 @@ mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/agent/memory" "$OLD/bin" 
   "$NEW/scripts" "$NEW/lib/relay-policy/agent" "$NEW/bin" "$NEW/agent" "$NEW/hooks" \
   "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
-cp "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
+cp "$ROOT/lib/session-policy.py" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
   "$ROOT/lib/change-plan.sh" "$NEW/lib/"
 cp "$ROOT/lib/relay-policy.sh" "$NEW/lib/"
 cp "$ROOT/lib/v163-staging-cleanup.sh" "$NEW/lib/"
@@ -95,6 +95,17 @@ fi
 STUB
 chmod +x "$HOME_DIR/bin/openclaw"
 
+python3 - "$OLD" <<'PYFIX'
+from pathlib import Path
+import json,sys
+root=Path(sys.argv[1]);f=root/'antenna-config.json';c=json.loads(f.read_text())
+k='agent:betty:main';entry={'entry_id':'22222222-2222-4222-8222-222222222222','alias_revision':1,'alias':'ideas','inbox':True}
+c.update(allowed_inbound_sessions=[k],session_policy_version=1,session_policies={k:entry},inbox_mode='allowlist',inbox_enabled=True,inbox_queue_path='review/inbox.json')
+f.write_text(json.dumps(c));(root/'review').mkdir()
+item={'ref':1,'from':'peer','status':'pending','session_key':k,'target_session':k,'full_message':'fixture','binding':{'canonical_key':k,'reference_kind':'alias','original_reference':'agent:betty:ideas','resolved_reference':'agent:betty:ideas','entry_id':entry['entry_id'],'alias_revision':1}}
+(root/'review/inbox.json').write_text(json.dumps([item]))
+PYFIX
+
 before="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 PATH="$HOME_DIR/bin:$PATH" HOME="$HOME_DIR" USER=fixture \
   bash "$NEW/scripts/antenna-upgrade.sh" --from "$OLD" --gateway "$GATEWAY" --yes >/dev/null
@@ -103,6 +114,9 @@ after="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum 
 check "8.1 upgrade leaves source tree byte-identical" test "$before" = "$after"
 check "8.1 upgrade rewrites destination install path" test \
   "$(jq -r .install_path "$NEW/antenna-config.json")" = "$NEW"
+check "upgrade preserves session metadata and selective mode" jq -e \
+  '.session_policies["agent:betty:main"].alias=="ideas" and .inbox_mode=="allowlist" and .inbox_enabled==true' "$NEW/antenna-config.json"
+check "upgrade preserves custom queue binding bytes" cmp "$OLD/review/inbox.json" "$NEW/review/inbox.json"
 check "8.1 upgrade preserves entries-only roster" jq -e \
   '.agents.entries and (.agents|has("list")|not)' "$GATEWAY"
 check "8.1 upgrade separates keyed Antenna workspace and state" jq -e --arg workspace "$NEW/agent" --arg state "$HOME_DIR/.openclaw/agents/antenna/agent" \

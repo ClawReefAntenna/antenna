@@ -22,7 +22,7 @@ make_case() {
   mkdir -p "$skill/scripts" "$skill/lib/relay-policy/agent" "$skill/bin" "$skill/agent" \
     "$home/.openclaw" "$home/.local/bin" "$home/bin"
   cp "$ROOT/scripts/antenna-setup.sh" "$skill/scripts/"
-  cp "$ROOT/lib/peers.sh" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
+  cp "$ROOT/lib/peers.sh" "$ROOT/lib/session-policy.py" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
     "$ROOT/lib/change-plan.sh" \
     "$ROOT/lib/v163-staging-cleanup.sh" "$skill/lib/"
   cp "$ROOT/lib/relay-policy/manifest.txt" "$skill/lib/relay-policy/"

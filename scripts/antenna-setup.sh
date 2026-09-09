@@ -730,13 +730,16 @@ jq -n \
     },
     mcs_enabled: false,
     mcs_model: "sonnet",
+    session_policy_version: 1,
+    session_policies: {},
+    inbox_mode: (if $inbox_enabled then "on" else "off" end),
     inbox_enabled: $inbox_enabled,
     inbox_auto_approve_peers: $inbox_auto,
     inbox_queue_path: "antenna-inbox.json",
     allowed_inbound_sessions: [("agent:" + $agent + ":main"), ("agent:" + $agent + ":antenna"), "agent:antenna:modeltest"],
     allowed_inbound_peers: [$host],
     allowed_outbound_peers: [$host]
-  }' > "$CONFIG_FILE"
+  }' | python3 "$SKILL_DIR/lib/session-policy.py" "$CONFIG_FILE" initialize
 chmod 644 "$CONFIG_FILE"
 ok "Created $CONFIG_FILE"
 
@@ -1240,7 +1243,7 @@ if [[ "$INBOX_ENABLED" == "true" ]]; then
     echo "  Auto-approved peers: $INBOX_AUTO_APPROVE"
   else
     echo "  No auto-approved peers. All inbound messages will be queued."
-    echo "  Grant inbox bypass later: antenna config set inbox_auto_approve_peers \"peer1,peer2\""
+    echo "  Grant inbox bypass later: antenna config set inbox_auto_approve_peers '[\"peer1\",\"peer2\"]'"
   fi
   echo ""
 else

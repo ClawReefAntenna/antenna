@@ -1,5 +1,13 @@
 # Changelog
 
+### Documentation reconciliation — v1.6.6 candidate
+
+- Complete CLI journey and response/recovery reference; distinguish host grants,
+  conversation attribution, group creation credit and private moderation.
+- Clarify selective receiving-session inbox behavior, retention and candidate versus
+  published compatibility. Skill wording remains a separately pending Workshop artifact.
+
+
 ### Signed Public Group workflow — v1.6.6 candidate
 
 - ANT-166-006: signed browse/themes/show/create/join/leave, canonical receiving

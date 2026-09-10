@@ -93,11 +93,14 @@ class Registration:
         self.fail(key in self.candidates,'INVALID_SESSION_CONTEXT','Select an existing allowed conversation, not a relay session.',6)
         return key
 
+    def service_peer(self,p):
+        return str(p.get('url',p.get('endpoint',''))).rstrip('/') in tuple(self.service+x for x in ('','/registry','/api','/registry/api'))
+
     def transport_ready(self):
         # Read-only check, no repair, credential copying, peer replacement or sends.
         peers=json.loads((self.cli.ROOT/'antenna-peers.json').read_text())
         matches=[p for p in peers.values() if isinstance(p,dict) and not p.get('self') and
-                 str(p.get('url',p.get('endpoint',''))).rstrip('/') in (self.service,self.service+'/registry')]
+                 self.service_peer(p)]
         self.fail(len(matches)==1 and matches[0].get('auth_mode')=='ed25519-v1',
                   'PAIRING_REQUIRED','Pair this host with the selected ClawReef service first.')
         p=matches[0]
@@ -107,11 +110,11 @@ class Registration:
             path=Path(value);path=path if path.is_absolute() else self.cli.ROOT/path
             self.fail(path.is_file() and path.stat().st_size>0,'PAIRING_REQUIRED','ClawReef peer credentials are unavailable.')
 
-    def request(self,operation,host_id,body=None,operation_id=''):
+    def request(self,operation,host_id,body=None,operation_id='',actor_id='',query='',raw_result=False):
         path=self.cli.CONTRACT['api_base']+'/'+operation
         raw=b'' if body is None else json.dumps(body,ensure_ascii=True,separators=(',',':')).encode()
-        fields=dict(audience=self.service,method='GET' if body is None else 'POST',path=path,query='',host_id=host_id,
-            actor_id='',key_id=self.key_id,timestamp=self.http.timestamp(),nonce=self.http.nonce(),
+        fields=dict(audience=self.service,method='GET' if body is None else 'POST',path=path,query=query,host_id=host_id,
+            actor_id=actor_id,key_id=self.key_id,timestamp=self.http.timestamp(),nonce=self.http.nonce(),
             idempotency_key=operation_id,body_sha256=hashlib.sha256(raw).hexdigest())
         key=self.peer.get('signing_private_key_file')
         self.fail(isinstance(key,str) and bool(key),'SIGNING_KEY_REQUIRED','A protected existing host signing key is required.')
@@ -121,7 +124,7 @@ class Registration:
             raise self.cli.Failure('SIGNING_KEY_REQUIRED','Unable to use the reviewed protected signing key.',3) from None
         headers=self.http.headers(fields,sig);headers['Accept']='application/json'
         if body is not None:headers['Content-Type']='application/json'
-        req=urllib.request.Request(self.service+path,data=raw if body is not None else None,method=fields['method'],headers=headers)
+        req=urllib.request.Request(self.service+path+('?'+query if query else ''),data=raw if body is not None else None,method=fields['method'],headers=headers)
         opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),self.cli.NoRedirect())
         try:
             try:response=opener.open(req,timeout=15)
@@ -136,10 +139,14 @@ class Registration:
             if not (status==200 and result['ok']):
                 allowed={'NOT_ENROLLED','HOST_REVOKED','SIGNATURE_INVALID','SIGNATURE_EXPIRED','CAPABILITY_DENIED',
                     'INVALID_ENROLLMENT_CODE','GRANT_EXPIRED','GRANT_USED','GRANT_CANCELLED','REPLAY_REJECTED',
-                    'REVIEW_CHANGED','IDEMPOTENCY_CONFLICT','OPERATION_EXPIRED','PAIRING_REQUIRED','OPERATION_IN_PROGRESS'}
+                    'INVALID_QUERY','INVALID_PATH','INVALID_GET','STALE_BINDING','DESTINATION_CONFLICT','GROUP_NOT_FOUND','SLUG_EXISTS','INVALID_GROUP_FIELDS','INVALID_THEMES','ACTOR_REQUIRED','REVIEW_CHANGED','IDEMPOTENCY_CONFLICT','OPERATION_EXPIRED','PAIRING_REQUIRED','OPERATION_IN_PROGRESS'}
                 code=result.get('code');code=code if code in allowed else 'SERVICE_ERROR'
                 raise self.cli.Failure(code,code.replace('_',' ').capitalize()+'.',4 if status==403 else 5 if status>=500 else 3,
                     retryable=status in (429,502,503,504))
+            if raw_result:
+                data=result.get('data')
+                self.fail(isinstance(data,dict) and self.relay_matches(data.get('relay')),'INVALID_RESPONSE','Service relay identity does not match local pairing.',5)
+                return {k:v for k,v in data.items() if k!='relay'}
             return self.valid_response(result.get('data'),host_id)
         except (urllib.error.URLError,TimeoutError,OSError):
             raise self.cli.Failure('NETWORK_ERROR','Enrollment state may require recovery; retry the same operation or use enroll --recover.',5,retryable=True) from None
@@ -159,7 +166,11 @@ class Registration:
             self.fail(isinstance(a,dict) and re.fullmatch(UUID,str(a.get('id'))) and type(a.get('revision')) is int
                 and isinstance(a.get('canonical_session_key'),str),'INVALID_RESPONSE','Invalid conversation binding.',5)
             safe.append({k:a[k] for k in ('id','canonical_session_key','revision')})
-        relay=data.get('relay')
+        relay_match=self.relay_matches(data.get('relay'))
+        return {'host_id':host_id,'peer_name':self.host,'key_id':self.key_id,'state':'active','revision':data['revision'],
+                'capabilities':caps,'actors':safe,'authority_scope':'host','remote_checked':True,'local_relay_key_matches':relay_match}
+
+    def relay_matches(self,relay):
         self.fail(isinstance(relay,dict) and isinstance(relay.get('peer_name'),str) and
             re.fullmatch(r'ed25519-sha256:[0-9a-f]{64}',str(relay.get('signing_key_id'))),
             'INVALID_RESPONSE','Invalid service relay identity.',5)
@@ -172,8 +183,7 @@ class Registration:
                 public=subprocess.run(['openssl','pkey','-pubin','-in',str(path),'-outform','DER'],capture_output=True,timeout=10)
                 relay_match=(public.returncode==0 and 'ed25519-sha256:'+hashlib.sha256(public.stdout).hexdigest()==relay['signing_key_id'])
             except (OSError,subprocess.TimeoutExpired):pass
-        return {'host_id':host_id,'peer_name':self.host,'key_id':self.key_id,'state':'active','revision':data['revision'],
-                'capabilities':caps,'actors':safe,'authority_scope':'host','remote_checked':True,'local_relay_key_matches':relay_match}
+        return relay_match
 
     def status(self,opts):
         state=self.read()

@@ -44,6 +44,12 @@
       "summary": "Inspect independent standing Join, Post and Create permissions.",
       "network": "Signed GET capabilities",
       "enrollment_required": true
+    },
+    {
+      "name": "groups",
+      "summary": "Browse, show, create, join, leave and reconcile Public Groups using independent standing host permissions. Resume interrupted local installation by operation ID.",
+      "network": "signed groups/themes API; existing Antenna send unchanged",
+      "enrollment_required": true
     }
   ],
   "features": {
@@ -51,7 +57,7 @@
     "onboarding_preparation": true,
     "signed_host_api": true,
     "enrollment": true,
-    "group_operations": false,
+    "group_operations": true,
     "removal_requests": false
   },
   "requestable_capabilities": [

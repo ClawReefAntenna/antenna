@@ -202,6 +202,18 @@ send_group() {
   (( failed == 0 )) || die "Public Group fan-out reported $failed failed delivery attempt(s)" 5
 }
 
+# Share the route mutation lock with signed CLI reconciliation. Readers observe
+# an atomic old/new file; do not hold this lock during network delivery.
+case "${1:-}" in
+  install|refresh|remove)
+    [[ ! -L "$ROUTES_FILE.lock" ]] || die "Unsafe route lock"
+    umask 077
+    exec {route_lock_fd}>"$ROUTES_FILE.lock"
+    [[ -f "$ROUTES_FILE.lock" && "$(stat -c '%u' "$ROUTES_FILE.lock")" -eq "$(id -u)" && "$(stat -c '%a' "$ROUTES_FILE.lock")" == "600" ]] || die "Unsafe route lock"
+    flock -x "$route_lock_fd"
+    ;;
+esac
+
 case "${1:-}" in
   list) list_groups ;;
   install) shift; install_routes "$@" ;;

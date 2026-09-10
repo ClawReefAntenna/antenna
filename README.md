@@ -599,8 +599,30 @@ probe: existing pairing is preserved, not silently replaced or re-tested. A mism
 reports recovery/pairing required, never automatic trust replacement. Cross-host
 and downloaded-payload qualification remain release work.
 
-The candidate currently provides enrollment and signed status/identity/capability
-inspection. Signed create/join/leave and route reconciliation follow under
-ANT-166-006; discovery does not advertise those commands yet. Existing group sends
-from an enrolled host already obey Post and suspension/revocation. Peer-to-peer
-messages and receiver-local Antenna inbox policy are separate.
+The candidate provides signed group browse/show/themes/create/join/leave and
+route reconciliation. Creation requires Create, joining another group requires
+Join, and existing group sends require Post plus membership. Peer-to-peer messages
+and receiver-local Antenna inbox policy remain separate.
+
+```bash
+antenna clawreef groups themes --json
+antenna clawreef groups browse --query "Antenna" --json
+antenna clawreef groups create --name "Ideas" --slug ideas --session agent:betty:ideas --json
+antenna clawreef groups join <group-uuid> --session agent:betty:ideas --json
+antenna groups send ideas "A group message"
+antenna clawreef groups reconcile <group-uuid> --json
+antenna clawreef groups leave <group-uuid> --json
+```
+
+Create and join install the existing local route format. Use `--theme <uuid>`
+(repeatable on create) and `--alias <local-name>` if desired. Existing aliases and
+unrelated routes are preserved. Browse/themes return `next` when another page is
+available; pass it as `--after <uuid>`.
+
+If server work succeeds but local installation fails, output reports the server
+and local states plus a saved operation ID. Resolve the local issue and use
+`antenna clawreef groups resume <operation-id>`. A lost response is retried with
+the same operation/body; it does not create a duplicate group. Changed receiving
+aliases cannot redirect pending work. `reconcile` checks current membership and
+removes stale routes; `antenna groups remove` remains local-only. No operation
+sends a message except the explicit existing `antenna groups send` command.

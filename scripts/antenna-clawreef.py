@@ -146,6 +146,15 @@ def fingerprint(peer):
 def run(args):
     parser = Parser(add_help=False)
     parser.add_argument('command', nargs='?', default='help')
+    parser.add_argument('group_command', nargs='?')
+    parser.add_argument('group_id', nargs='?')
+    parser.add_argument('--name')
+    parser.add_argument('--slug')
+    parser.add_argument('--description')
+    parser.add_argument('--theme', action='append', default=[])
+    parser.add_argument('--query', default='')
+    parser.add_argument('--after')
+    parser.add_argument('--alias')
     parser.add_argument('--help', '-h', action='store_true')
     parser.add_argument('--json', action='store_true')
     parser.add_argument('--service', default='https://clawreef.io')
@@ -160,25 +169,31 @@ def run(args):
         return 'ok', 'ClawReef discovery, enrollment and host permissions.', {'commands': CONTRACT['commands'],
             'options': ['--json', '--service <https-origin>', '--session <canonical-key|agent-alias|key-uuid>',
                         '--request <capability> (repeatable)', '--local-only (onboard/status)', '--code-stdin (enroll; never place codes in arguments)', '--recover (enroll; recover interrupted local registration)',
-                        '--actor <id> (reserved; unavailable until enrollment)'],
+                        'groups browse|themes|show <id>|create --name <text> --slug <slug>|join <id>|leave <id>|reconcile <id>|resume <operation-id>', '--session <reference> (create/join)', '--theme <id> (repeatable create; one browse filter)', '--alias <local-alias> (create/join/reconcile)' ],
             'requestable_capabilities': CONTRACT['requestable_capabilities'], 'exit_codes': CONTRACT['exit_codes']}
     fail(opts.command in {c['name'] for c in CONTRACT['commands']}, 'unsupported_command',
          'This command is not available in this candidate. Run antenna clawreef --help.', 4)
-    fail(not opts.actor, 'actor_profiles_unavailable', 'Actor profiles require the enrollment implementation; select --session for preparation.', 4)
-    fail(opts.command in ('onboard','enroll') or not (opts.session or opts.request), 'invalid_arguments', '--session and --request apply only to onboard.')
+    fail(not opts.actor, 'actor_profiles_unavailable', 'Use --session for a receiving conversation; per-actor permission profiles are not supported.', 4)
+    fail(opts.command in ('onboard','enroll','groups') or not opts.session, 'invalid_arguments', '--session applies to onboarding, enrollment or group receiving-context selection.')
+    fail(opts.command=='onboard' or not opts.request, 'invalid_arguments', '--request applies only to onboarding preparation.')
     fail(opts.command == 'enroll' or not (opts.code_stdin or opts.recover), 'invalid_arguments', 'Code input and recovery apply only to enroll.')
     fail(not opts.recover or not (opts.code_stdin or opts.session), 'invalid_arguments', 'Recovery uses the saved canonical binding.')
     fail(opts.command in ('onboard','status','discover') or not opts.local_only, 'invalid_arguments', 'This command requires a signed network request.')
+    fail(opts.command=='groups' or not (opts.group_command or opts.group_id or opts.name or opts.slug or opts.description or opts.theme or opts.query or opts.after or opts.alias), 'invalid_arguments','Group options apply only to groups.')
     service = origin(opts.service)
     if opts.command == 'discover':
         fail(not opts.local_only, 'invalid_arguments', 'discover requires an explicit read-only network request.')
         return 'ok', 'Compatible ClawReef discovery retrieved.', discover(service)
     policy, config, peer, host, candidates = local_state()
     registration_path = ROOT / '.clawreef' / (hashlib.sha256(service.encode()).hexdigest()+'.json')
-    if opts.command in ('enroll','whoami','capabilities') or (opts.command == 'status' and (registration_path.exists() or registration_path.is_symlink())):
+    if opts.command in ('enroll','whoami','capabilities','groups') or (opts.command == 'status' and (registration_path.exists() or registration_path.is_symlink())):
         spec=importlib.util.spec_from_file_location('clawreef_registration',ROOT/'lib/clawreef-registration.py')
         registration=importlib.util.module_from_spec(spec);sys.dont_write_bytecode=True;spec.loader.exec_module(registration)
         client=registration.Registration(sys.modules[__name__],service,(policy,config,peer,host,candidates))
+        if opts.command=='groups':
+            spec=importlib.util.spec_from_file_location('clawreef_groups',ROOT/'lib/clawreef-groups.py')
+            groups=importlib.util.module_from_spec(spec);spec.loader.exec_module(groups)
+            return groups.run(client,opts)
         return client.enroll(opts) if opts.command=='enroll' else client.status(opts)
     if opts.command == 'status':
         raise Failure('enrollment_required', 'Local preparation only; remote enrollment and grants are not verified.', 3,

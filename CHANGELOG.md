@@ -1,5 +1,16 @@
 # Changelog
 
+### Signed Public Group workflow — v1.6.6 candidate
+
+- ANT-166-006: signed browse/themes/show/create/join/leave, canonical receiving
+  contexts and atomic route reconciliation; all eight standing permission combinations.
+- Create includes ordinary initial membership without Join. Post remains the existing
+  signed Antenna group send; no per-action approvals or creator management powers.
+- Private pinned operation retries preserve aliases/unrelated routes and distinguish
+  server results from local installation. Current membership invalidates stale routes.
+- Preserve existing ClawReef `/api` ingress pairings; normalize framework query
+  serialization back to the signed RFC3986 query at the Registry adapter.
+
 ### Standing permissions and enrollment — v1.6.6 candidate
 
 - Three independent host-level Join/Post/Create permissions, without per-action

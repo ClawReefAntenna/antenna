@@ -1,16 +1,20 @@
 ---
-name: antenna
-description: "Authenticated messaging between OpenClaw instances over reachable HTTPS using built-in gateway webhook hooks. Use when: (1) sending a message from this OpenClaw instance to another host's session, (2) checking status/health of a remote peer, (3) managing the peer registry (adding/removing/listing known peers), (4) exchanging bootstrap trust material for new peers, (5) any cross-host agent communication that should NOT go through visible chat channels like Telegram/WhatsApp/Discord. Triggers: \"send to PEER\", \"message the other host\", \"antenna send\", \"antenna status\", \"antenna peers exchange\", \"cross-host message\", \"inter-host relay\", \"ping PEER\", \"peer list\", \"check antenna inbox\", \"approve message\"."
+name: "antenna"
+description: "Authenticated cross-host Antenna messaging: peer trust, status, inbox review, session routing, and ClawReef public-group workflows."
 metadata:
-  version: 1.6.5
+  version: 1.6.6
   repository: "https://github.com/ClawReefAntenna/antenna"
   homepage: "https://github.com/ClawReefAntenna/antenna"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.6.5)
+# Antenna — Inter-Host OpenClaw Messaging (v1.6.6 candidate)
 
 Send messages between OpenClaw instances over reachable HTTPS via Antenna's
 built-in `/hooks/agent` endpoint.
+
+## When to Use Antenna
+
+Authenticated messaging between OpenClaw instances over reachable HTTPS using built-in gateway webhook hooks. Use when: (1) sending a message from this OpenClaw instance to another host's session, (2) checking status/health of a remote peer, (3) managing the peer registry (adding/removing/listing known peers), (4) exchanging bootstrap trust material for new peers, (5) any cross-host agent communication that should NOT go through visible chat channels like Telegram/WhatsApp/Discord. Triggers: "send Antenna message to PEER", "message the other host", "antenna send", "antenna status", "antenna peers exchange", "cross-host message", "inter-host relay", "antenna ping PEER", "antenna peer list", "check antenna inbox", "approve Antenna inbox message".
 
 ## What Setup Changes
 
@@ -47,8 +51,8 @@ Normal path:
   Already-authorized non-interactive setup must pass `--yes`.
 - Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
 
-Existing v1.5.2 through v1.6.4 installation:
-- Extract v1.6.5 side by side; do not run `setup --force` in the new tree.
+Existing v1.5.2 through v1.6.5 installation:
+- Extract the v1.6.6 candidate side by side; do not run `setup --force` in the new tree.
 - Run the new tree's `bin/antenna.sh upgrade --from <old-skill-dir>`.
 - Upgrade previews the source, destination, gateway, CLI, authentication, and
   restart effects before mutation. Already-authorized non-interactive jobs add
@@ -85,7 +89,11 @@ This is wire-compatible with the supported v1.5.x-through-v1.6.2 endpoint and
 payload contract. Marker and signature verification reject a malformed or
 byte-modified signed envelope rather than delivering it.
 
-The LLM never performs relay parsing, delivery formatting, or session-routing logic; the scripts do all processing.
+The intended relay workflow delegates parsing, formatting and routing to deterministic scripts. The raw envelope nevertheless reaches the relay model before verification. The prescribed tool sequence is an instruction, not enforced capability confinement; the sandbox-off relay may have broader shell/session authority. Q1 confinement remains deferred.
+
+Send dry-run redacts legacy authentication material from both envelope and JSON previews. Previews still contain message text and modern signatures; treat them as private. Actual transport is unchanged and dry-run makes no network request.
+
+`antenna doctor` is not offline: connectivity checks contact configured non-self peers and reveal source/timing to them. Local read-only checks do not mean network silence. Doctor does not send a normal peer message merely to check connectivity.
 
 ## Trust Model
 
@@ -130,7 +138,7 @@ ClawReef is not in that delivery path. Public Group messages traverse ClawReef,
 which reads and relays their plaintext.
 
 Use `antenna upgrade --from <old-skill-dir>` for a side-by-side migration from
-v1.5.2 through v1.6.4. The destination must have no runtime state. Never use
+v1.5.2 through v1.6.5. The destination must have no runtime state. Never use
 `setup --force` as an upgrade mechanism. Setup and upgrade preserve foreign
 CLI targets by default. An intentional replacement must name the exact
 absolute command path with `--replace-cli-link /absolute/path/antenna`; the
@@ -153,6 +161,7 @@ ambiguous targets are always refused.
   "log_verbose": false,
   "mcs_enabled": false,
   "mcs_model": "sonnet",
+  "inbox_mode": "off",
   "inbox_enabled": false,
   "inbox_auto_approve_peers": [],
   "inbox_queue_path": "antenna-inbox.json",
@@ -240,6 +249,41 @@ key:
   malformed sessions, and mixed schemas are rejected before any send occurs.
 - Session routing belongs to the list. Command-level `--session` is rejected
   for Distribution List sends.
+
+## Candidate receiving aliases and ClawReef CLI
+
+Use `antenna sessions list --json` to inspect canonical keys, aliases and inbox flags.
+On the receiving host, `antenna sessions update <canonical-key> --alias ideas --inbox yes`
+sets optional metadata; `antenna config set inbox_mode allowlist` enables session-selective review.
+Senders use `--session agent:<agent-id>:ideas`, never a bare alias or display label.
+Full keys remain supported. Key-UUID references require exact gateway resolver support;
+runtime session IDs and chat URL slugs are not canonical addresses. Missing/ambiguous
+resolution fails without Main fallback. A 1.6.5 receiver still needs full keys.
+
+Alias bindings and queued canonical destinations are pinned. Changing mode, flag or
+trusted-peer settings affects new arrivals, never releases old queue items. Renaming
+or reassigning an alias, revocation and missing sessions fail drain rather than reroute.
+Upgrade preserves policy, registration and queue state. Do not point an old binary
+at new state: see the User Guide's stopped-dispatch rollback exporter and quarantine.
+
+For the complete 1.6.6 candidate workflow, read [ClawReef CLI](references/CLAWREEF-CLI.md)
+and check `antenna clawreef --help --json`. Discover compatibility, prepare onboarding
+locally, have the human issue an explicitly expiring single-use code, then enroll using
+a hidden prompt or protected stdin. Never pass codes or report reasons in arguments.
+Enrollment uses the existing paired host key, not browser credentials or new transport.
+Join/Post/Create are independent host grants; all eight combinations work. Create
+includes ordinary initial membership without Join. Actors are host-asserted attribution,
+not per-agent isolation. Creators receive credit, not management powers.
+
+Signed groups create/join install ordinary local routes; Post remains `antenna groups send`.
+Use groups resume with the saved operation ID and groups reconcile with the exact UUID;
+a local route error is not proof that server creation failed. Never blindly repeat sends.
+Current members may submit private reports even with all grants denied. Administration
+is web-only: review/approval and confirmed permanent execution are separate.
+Open reports remain; text is retained 90 days after closure, events 365 days per event,
+closed report metadata 365 days after closure. No automatic group deletion, archive,
+notification or grace-period feature. Daily bounded cleanup can lag physical deletion;
+reads enforce deadlines and backups follow separate policy.
 
 ## Usage
 
@@ -425,13 +469,12 @@ end-to-end self-loop test.
 
 Immediate autonomous delivery from paired, authenticated, and allowlisted
 peers is the normal Antenna posture. Inbox is an optional supervision or
-quarantine boundary. When `inbox_enabled` is `true`, review applies globally:
-messages from every paired peer are queued unless that peer appears in
-`inbox_auto_approve_peers`.
+quarantine boundary. `inbox_mode=off` delivers admitted messages directly. `on` queues unless the peer has an explicit trusted bypass. `allowlist` queues only destinations with inbox=yes (default no), even for trusted peers. All queued messages share the existing general inbox. With no inbox_mode, the legacy inbox_enabled boolean selects On/Off; setting it through the CLI also selects On/Off.
 
 Auto-approval does not create the underlying peer trust—that happened during
-pairing. It grants a durable bypass from inbox review until the peer is removed
-from the list.
+pairing. In On mode, it grants a durable bypass from inbox review until the peer
+is removed from the list. In Allowlist mode, destinations with inbox=yes still
+require review, even for trusted peers.
 
 ```bash
 antenna inbox                        # list pending messages (table view)
@@ -450,6 +493,7 @@ antenna inbox clear                  # purge all processed items
 **Configuration:**
 ```json
 {
+  "inbox_mode": "off",
   "inbox_enabled": false,
   "inbox_auto_approve_peers": ["trusted-peer-id"],
   "inbox_queue_path": "antenna-inbox.json"
@@ -464,9 +508,7 @@ Notes:
   currently supported
 - Queue file is local runtime state (gitignored)
 - Ref numbers auto-increment and support range selection
-- The relay agent uses exactly one shell-tool call and never receives or writes
-  envelope content; it never calls `sessions_send` directly. Drain stays in
-  script-only territory via `openclaw gateway call sessions.send`.
+- The intended relay sequence writes the opaque envelope to a private file and makes one wrapper shell call. The raw envelope reaches the model before verification. Drain uses deterministic scripts; this is not a claim of enforced model/tool confinement.
 
 **Scheduled inbox integration:**
 
@@ -509,7 +551,7 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 
 ## Security Notes
 
-- The relay agent is mechanical and non-interpreting: it writes the complete
+- The intended relay workflow is mechanical: it writes the complete
   opaque envelope, invokes one wrapper command, and returns the wrapper result
 - Inbound sessions are allowlisted (full session keys only)
 - Sender peer must be allowlisted on both inbound and outbound sides
@@ -536,28 +578,12 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 
 ## Troubleshooting
 
-- **Gateway won't start**: Run `antenna doctor`
-- **Want a clean slate**: Run `antenna uninstall` (use `--dry-run` first if you want a preview)
-- **401 Unauthorized**: wrong hook bearer token
-- **403 Forbidden**: session prefix/agent restrictions or peer policy mismatch
-- **Relay rejected**: peer not allowlisted, session not allowlisted, or identity secret mismatch
-- **`Relay rejected: timestamp out of range (stale|future)`**: peer clock skew exceeds freshness window; sync clocks or widen `.security.max_message_age_seconds` / `.security.max_future_skew_seconds`
-- **`Relay rejected: marker in body|headers`**: envelope-marker guard working as intended; rephrase or encode any literal `[ANTENNA_RELAY]` / `[/ANTENNA_RELAY]` content
-- **`self-id not configured - run antenna setup`**: sender is missing host identity in `antenna-config.json`; there is no `$(hostname)` fallback
-- **Encrypted exchange fails immediately**: `age` / `age-keygen` missing
-- **`Bundle expired - refusing import`**: request a fresh bundle from the peer, or pass `--force-expired` only for disaster recovery. To inspect an expired bundle without importing, use `antenna bundle verify <file> --force-expired`.
-- **`antenna bundle verify: decrypt failed`**: the bundle was encrypted for a different `age` public key than yours. Ask the peer to re-initiate against your current `antenna peers exchange pubkey`.
-- **`antenna bundle verify: endpoint URL rejected`**: the bundle's `from_endpoint_url` is not a valid HTTPS URL (e.g. `main`, bare host). Refuse to import; ask the peer to regenerate after fixing their self-peer URL.
-- **`antenna doctor: self-peer URL is not a valid URL`**: your own `self` peer entry has a malformed `url`. Correct that field directly in `antenna-peers.json`, preserving the rest of the peer registry. REF-1313 now rejects malformed URLs at input time, but stale pre-fix entries still need to be corrected.
-- **`antenna doctor: orphan peer references in config allowlists`** (warning, section 1b): allowlists in `antenna-config.json` reference peer IDs that no longer exist in `antenna-peers.json`. Remove the stale IDs with `antenna peers remove <id>` on any current peer (which also prunes its allowlist entries), or edit `antenna-config.json` directly.
-- **`antenna doctor: orphan secret file`** / **`stale backup file`** / **`secrets/ dir is not 700`** (warnings, section 6b): hygiene findings on the `secrets/` directory. None of these can authenticate a peer that isn't in the registry, but they are real leak-surface / drift signals. Move orphan files to `secrets.retired/` (or delete), rotate or remove `.bak*` leftovers, and run `chmod 700 secrets/` / `chmod 600 secrets/<file>` to tighten permissions.
-- **`Email send fails: could not resolve email for account`**: add `email = "..."` under `[accounts.<name>]` in your Himalaya TOML config, or pass `--account <other>` to pick a configured account that has an `email` set
-- **`Email send fails: himalaya not installed`**: install `himalaya` or fall back to sending the bundle file by hand
-- **`Legacy export refused - not a TTY`**: `antenna peers exchange <peer> --export` must run in an interactive terminal; switch to `antenna peers exchange initiate` for automated or remote operator handoff
-- **Message sent but not visible**: ensure `tools.sessions.visibility = "all"` and `tools.agentToAgent.enabled = true` on the receiver; the relay delivery wrapper uses gateway session delivery, which still depends on those settings. Also ensure `sandbox: { mode: "off" }` on the Antenna agent — sandboxed sessions silently clamp visibility to `tree`, blocking cross-agent delivery
-- **Exec denied / allowlist miss**: ensure relay agent instructions use only simple commands (no `$(...)`, heredocs, or chaining); the `antenna-relay-deliver.sh` wrapper accepts a file path only
-- **Repeated approval prompts**: ensure Antenna agent has `sandbox: { mode: "off" }` in registration. Default advice is **not** to set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (fixed in v1.2.14). If you deliberately perform a fresh setup reconfiguration, it preserves intentional `tools.exec` overrides instead of wiping them.
-- **`antenna peers add` refuses to update an existing peer**: by design — pass `--force` to update fields on a paired peer; without it, the command refuses to clobber trust material
+Use [the User Guide](references/USER-GUIDE.md) for diagnostic errors, identity
+classification, permissions and stopped-dispatch upgrade/rollback instructions.
+Doctor makes network connectivity checks; inspect its documented effects first.
+For signed CLI errors, follow [the CLI recovery guide](references/CLAWREEF-CLI.md).
+Never reinterpret a missing binding, expired operation or partial fan-out as
+permission to redirect or blindly resend.
 
 ## File Inventory
 

@@ -52,3 +52,6 @@ agent/memory
 /TOOLS.md
 /USER.md
 /openclaw-workspace-state.json
+
+# Non-secret service registration is installation-local, never shipped.
+.clawreef/

@@ -160,7 +160,7 @@ configured_path="$(jq -r '.install_path // empty' "$SOURCE_CONFIG")"
 runtime_names=(
   antenna-config.json antenna-peers.json antenna-lists.json
   antenna-public-groups.json antenna-inbox.json antenna-ratelimit.json
-  antenna.log secrets keys state
+  antenna.log secrets keys state .clawreef
 )
 for name in "${runtime_names[@]}"; do
   [[ ! -e "$SKILL_DIR/$name" && ! -L "$SKILL_DIR/$name" ]] \
@@ -317,7 +317,7 @@ done
 
 # Older installs may have created private runtime directories under the
 # process umask. Harden only the copied destination; never mutate the source.
-for private_dir in secrets keys state agent-runtime/.openclaw agent-runtime/memory; do
+for private_dir in secrets keys state .clawreef agent-runtime/.openclaw agent-runtime/memory; do
   [[ -d "$stage/$private_dir" ]] && chmod 700 "$stage/$private_dir"
 done
 
@@ -359,7 +359,7 @@ rollback_destination() {
   local item
   for item in "${moved[@]}"; do rm -rf -- "$SKILL_DIR/$item"; done
 }
-for staged_path in "$stage"/*; do
+for staged_path in "$stage"/* "$stage/.clawreef"; do
   [[ -e "$staged_path" ]] || continue
   name="$(basename "$staged_path")"
   if [[ "$name" == "agent-runtime" ]]; then

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only ClawReef discovery and local authorization-request preparation."""
+"""ClawReef discovery, protected enrollment and standing host permissions."""
 import argparse
 import hashlib
 import importlib.util
@@ -153,22 +153,33 @@ def run(args):
     parser.add_argument('--actor')
     parser.add_argument('--request', action='append', default=[])
     parser.add_argument('--local-only', action='store_true')
+    parser.add_argument('--code-stdin', action='store_true')
+    parser.add_argument('--recover', action='store_true')
     opts = parser.parse_args(args)
     if opts.help or opts.command == 'help':
-        return 'ok', 'ClawReef discovery and local onboarding preparation.', {'commands': CONTRACT['commands'],
+        return 'ok', 'ClawReef discovery, enrollment and host permissions.', {'commands': CONTRACT['commands'],
             'options': ['--json', '--service <https-origin>', '--session <canonical-key|agent-alias|key-uuid>',
-                        '--request <capability> (repeatable)', '--local-only (onboard/status; always local)',
+                        '--request <capability> (repeatable)', '--local-only (onboard/status)', '--code-stdin (enroll; never place codes in arguments)', '--recover (enroll; recover interrupted local registration)',
                         '--actor <id> (reserved; unavailable until enrollment)'],
             'requestable_capabilities': CONTRACT['requestable_capabilities'], 'exit_codes': CONTRACT['exit_codes']}
     fail(opts.command in {c['name'] for c in CONTRACT['commands']}, 'unsupported_command',
          'This command is not available in this candidate. Run antenna clawreef --help.', 4)
     fail(not opts.actor, 'actor_profiles_unavailable', 'Actor profiles require the enrollment implementation; select --session for preparation.', 4)
-    fail(opts.command == 'onboard' or not (opts.session or opts.request), 'invalid_arguments', '--session and --request apply only to onboard.')
+    fail(opts.command in ('onboard','enroll') or not (opts.session or opts.request), 'invalid_arguments', '--session and --request apply only to onboard.')
+    fail(opts.command == 'enroll' or not (opts.code_stdin or opts.recover), 'invalid_arguments', 'Code input and recovery apply only to enroll.')
+    fail(not opts.recover or not (opts.code_stdin or opts.session), 'invalid_arguments', 'Recovery uses the saved canonical binding.')
+    fail(opts.command in ('onboard','status','discover') or not opts.local_only, 'invalid_arguments', 'This command requires a signed network request.')
     service = origin(opts.service)
     if opts.command == 'discover':
         fail(not opts.local_only, 'invalid_arguments', 'discover requires an explicit read-only network request.')
         return 'ok', 'Compatible ClawReef discovery retrieved.', discover(service)
     policy, config, peer, host, candidates = local_state()
+    registration_path = ROOT / '.clawreef' / (hashlib.sha256(service.encode()).hexdigest()+'.json')
+    if opts.command in ('enroll','whoami','capabilities') or (opts.command == 'status' and (registration_path.exists() or registration_path.is_symlink())):
+        spec=importlib.util.spec_from_file_location('clawreef_registration',ROOT/'lib/clawreef-registration.py')
+        registration=importlib.util.module_from_spec(spec);sys.dont_write_bytecode=True;spec.loader.exec_module(registration)
+        client=registration.Registration(sys.modules[__name__],service,(policy,config,peer,host,candidates))
+        return client.enroll(opts) if opts.command=='enroll' else client.status(opts)
     if opts.command == 'status':
         raise Failure('enrollment_required', 'Local preparation only; remote enrollment and grants are not verified.', 3,
                       data={'host':host, 'service_origin':service, 'candidate_sessions': candidates,

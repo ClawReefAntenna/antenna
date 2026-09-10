@@ -1,5 +1,15 @@
 # Changelog
 
+### Standing permissions and enrollment — v1.6.6 candidate
+
+- Three independent host-level Join/Post/Create permissions, without per-action
+  approval queues or per-agent/session grants.
+- Protected one-use enrollment, non-secret local recovery state, signed
+  status/whoami/capabilities and side-by-side registration-state preservation.
+- Existing Post delivery checks current host permission/key; no transport or
+  membership changes for unenrolled hosts.
+
+
 All notable changes to the Antenna skill are documented here.
 
 This file is the recent-releases changelog in the source repository.

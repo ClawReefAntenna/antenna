@@ -23,16 +23,34 @@
     },
     {
       "name": "status",
-      "summary": "Inspect local preparation state; does not attest remote enrollment or grants.",
-      "network": "none",
+      "summary": "Inspect local state or verify current host enrollment and standing permissions.",
+      "network": "Signed GET status when locally enrolled; --local-only skips network",
       "enrollment_required": false
+    },
+    {
+      "name": "enroll",
+      "summary": "Redeem a human-issued setup code using the existing host key; recover interrupted registration.",
+      "network": "Signed POST enrollments/redeem",
+      "enrollment_required": false
+    },
+    {
+      "name": "whoami",
+      "summary": "Inspect the currently authorized host identity.",
+      "network": "Signed GET whoami",
+      "enrollment_required": true
+    },
+    {
+      "name": "capabilities",
+      "summary": "Inspect independent standing Join, Post and Create permissions.",
+      "network": "Signed GET capabilities",
+      "enrollment_required": true
     }
   ],
   "features": {
     "discovery": true,
     "onboarding_preparation": true,
-    "signed_host_api": false,
-    "enrollment": false,
+    "signed_host_api": true,
+    "enrollment": true,
     "group_operations": false,
     "removal_requests": false
   },

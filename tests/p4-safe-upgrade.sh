@@ -17,7 +17,7 @@ OLD="$TMP/antenna-v1.5.2"
 NEW="$TMP/antenna-v1.6.0"
 HOME_DIR="$TMP/home"
 GATEWAY="$HOME_DIR/.openclaw/openclaw.json"
-mkdir -p "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/bin" "$OLD/agent/memory" \
+mkdir -p "$OLD/.clawreef" "$OLD/secrets" "$OLD/keys" "$OLD/state" "$OLD/bin" "$OLD/agent/memory" \
   "$NEW/scripts" "$NEW/bin" "$NEW/lib/relay-policy/agent" "$NEW/agent" \
   "$HOME_DIR/.openclaw" "$HOME_DIR/.local/bin" "$HOME_DIR/bin" "$HOME_DIR/custom"
 cp "$ROOT/scripts/antenna-upgrade.sh" "$NEW/scripts/"
@@ -49,6 +49,9 @@ printf '{"reef":{"group_id":"11111111-1111-4111-8111-111111111111","name":"Reef"
 printf '[]\n' > "$OLD/antenna-inbox.json"
 printf '{"entries":[]}\n' > "$OLD/antenna-ratelimit.json"
 printf '{"entries":[]}\n' > "$OLD/state/antenna-replay.json"
+printf '{"state":"pending","host_id":"fixture","operation_id":"preserve-recovery"}\n' > "$OLD/.clawreef/fixture.json"
+chmod 700 "$OLD/.clawreef"
+chmod 600 "$OLD/.clawreef/fixture.json"
 printf 'secret\n' > "$OLD/secrets/peer.secret"
 printf 'token\n' > "$OLD/secrets/peer.token"
 printf 'self-token\n' > "$OLD/secrets/self.token"
@@ -94,6 +97,8 @@ after="$(find "$OLD" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum 
 
 check "source tree remains byte-identical" test "$before" = "$after"
 check "destination install_path is rewritten" test "$(jq -r .install_path "$NEW/antenna-config.json")" = "$NEW"
+check "ClawReef enrollment/recovery state is preserved exactly" cmp -s "$OLD/.clawreef/fixture.json" "$NEW/.clawreef/fixture.json"
+check "ClawReef enrollment/recovery state remains private" test "$(stat -c %a "$NEW/.clawreef/fixture.json")" = 600
 check "legacy peer record is preserved exactly" cmp -s "$OLD/antenna-peers.json" "$NEW/antenna-peers.json"
 check "legacy auth is not silently invented" jq -e '.["legacy-peer"] | has("auth_mode") | not' "$NEW/antenna-peers.json"
 check "lists, routes, replay state, secrets, keys, and logs migrate" test \

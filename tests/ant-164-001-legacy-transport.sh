@@ -88,6 +88,18 @@ printf '{"runId":"legacy-contract"}\n__HTTP_CODE__200\n'
 SH
 chmod 0700 "$TMP/bin/curl"
 
+# The receiver validates canonical keys through sessions.resolve. Keep this
+# transport fixture independent of the operator's installed gateway.
+cat >"$TMP/bin/openclaw" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${1:-}" == gateway && "${2:-}" == call && "${3:-}" == sessions.resolve ]]
+[[ "${4:-}" == --params ]]
+jq -e '.key == "agent:betty:main" and (has("shortId") | not)' <<<"${5:-}" >/dev/null
+printf '{"ok":true,"key":"agent:betty:main","agentId":"betty"}\n'
+SH
+chmod 0700 "$TMP/bin/openclaw"
+
 export ANT164_CURL_ARGS="$TMP/curl.args"
 export ANT164_CURL_PAYLOAD="$TMP/curl.payload.json"
 
@@ -144,7 +156,7 @@ fi
 # mixed-version direction without any endpoint mapping or transform.
 INBOUND_RESULT="$(
   cd "$SKILL"
-  bash scripts/antenna-relay.sh --stdin <"$TMP/decoded-envelope"
+  PATH="$TMP/bin:$PATH" bash scripts/antenna-relay.sh --stdin <"$TMP/decoded-envelope"
 )"
 if jq -e '
   .status == "ok" and

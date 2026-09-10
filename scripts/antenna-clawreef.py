@@ -148,6 +148,8 @@ def run(args):
     parser.add_argument('command', nargs='?', default='help')
     parser.add_argument('group_command', nargs='?')
     parser.add_argument('group_id', nargs='?')
+    parser.add_argument('--reason-stdin', action='store_true')
+    parser.add_argument('--request-id')
     parser.add_argument('--name')
     parser.add_argument('--slug')
     parser.add_argument('--description')
@@ -167,7 +169,7 @@ def run(args):
     opts = parser.parse_args(args)
     if opts.help or opts.command == 'help':
         return 'ok', 'ClawReef discovery, enrollment and host permissions.', {'commands': CONTRACT['commands'],
-            'options': ['--json', '--service <https-origin>', '--session <canonical-key|agent-alias|key-uuid>',
+            'options': ['reports submit <group-id> --reason-stdin [--request-id <uuid>] | list [--after <uuid>] | show <request-id>', '--json', '--service <https-origin>', '--session <canonical-key|agent-alias|key-uuid>',
                         '--request <capability> (repeatable)', '--local-only (onboard/status)', '--code-stdin (enroll; never place codes in arguments)', '--recover (enroll; recover interrupted local registration)',
                         'groups browse|themes|show <id>|create --name <text> --slug <slug>|join <id>|leave <id>|reconcile <id>|resume <operation-id>', '--session <reference> (create/join)', '--theme <id> (repeatable create; one browse filter)', '--alias <local-alias> (create/join/reconcile)' ],
             'requestable_capabilities': CONTRACT['requestable_capabilities'], 'exit_codes': CONTRACT['exit_codes']}
@@ -179,17 +181,22 @@ def run(args):
     fail(opts.command == 'enroll' or not (opts.code_stdin or opts.recover), 'invalid_arguments', 'Code input and recovery apply only to enroll.')
     fail(not opts.recover or not (opts.code_stdin or opts.session), 'invalid_arguments', 'Recovery uses the saved canonical binding.')
     fail(opts.command in ('onboard','status','discover') or not opts.local_only, 'invalid_arguments', 'This command requires a signed network request.')
-    fail(opts.command=='groups' or not (opts.group_command or opts.group_id or opts.name or opts.slug or opts.description or opts.theme or opts.query or opts.after or opts.alias), 'invalid_arguments','Group options apply only to groups.')
+    fail(opts.command in ('groups','reports') or not (opts.group_command or opts.group_id or opts.name or opts.slug or opts.description or opts.theme or opts.query or opts.after or opts.alias), 'invalid_arguments','Group options apply only to groups.')
+    fail(opts.command=='reports' or not (opts.reason_stdin or opts.request_id), 'invalid_arguments','Report options apply only to reports.')
     service = origin(opts.service)
     if opts.command == 'discover':
         fail(not opts.local_only, 'invalid_arguments', 'discover requires an explicit read-only network request.')
         return 'ok', 'Compatible ClawReef discovery retrieved.', discover(service)
     policy, config, peer, host, candidates = local_state()
     registration_path = ROOT / '.clawreef' / (hashlib.sha256(service.encode()).hexdigest()+'.json')
-    if opts.command in ('enroll','whoami','capabilities','groups') or (opts.command == 'status' and (registration_path.exists() or registration_path.is_symlink())):
+    if opts.command in ('enroll','whoami','capabilities','groups','reports') or (opts.command == 'status' and (registration_path.exists() or registration_path.is_symlink())):
         spec=importlib.util.spec_from_file_location('clawreef_registration',ROOT/'lib/clawreef-registration.py')
         registration=importlib.util.module_from_spec(spec);sys.dont_write_bytecode=True;spec.loader.exec_module(registration)
         client=registration.Registration(sys.modules[__name__],service,(policy,config,peer,host,candidates))
+        if opts.command=='reports':
+            spec=importlib.util.spec_from_file_location('clawreef_reports',ROOT/'lib/clawreef-reports.py')
+            reports=importlib.util.module_from_spec(spec);spec.loader.exec_module(reports)
+            return reports.run(client,opts)
         if opts.command=='groups':
             spec=importlib.util.spec_from_file_location('clawreef_groups',ROOT/'lib/clawreef-groups.py')
             groups=importlib.util.module_from_spec(spec);spec.loader.exec_module(groups)

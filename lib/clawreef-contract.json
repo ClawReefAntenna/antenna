@@ -50,6 +50,12 @@
       "summary": "Browse, show, create, join, leave and reconcile Public Groups using independent standing host permissions. Resume interrupted local installation by operation ID.",
       "network": "signed groups/themes API; existing Antenna send unchanged",
       "enrollment_required": true
+    },
+    {
+      "name": "reports",
+      "summary": "Submit and inspect private member requests for administrator group removal. No automatic deletion.",
+      "network": "signed reports API",
+      "enrollment_required": true
     }
   ],
   "features": {
@@ -58,7 +64,7 @@
     "signed_host_api": true,
     "enrollment": true,
     "group_operations": true,
-    "removal_requests": false
+    "removal_requests": true
   },
   "requestable_capabilities": [
     "groups.create",

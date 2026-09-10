@@ -646,3 +646,8 @@ Highlights:
 ---
 
 For all releases prior to `1.2.21`, see [`references/CHANGELOG-HISTORY.md`](references/CHANGELOG-HISTORY.md) or the [GitHub releases page](https://github.com/ClawReefAntenna/antenna/releases).
+
+## v1.6.6 candidate — private removal requests
+
+- Added signed member report submission/list/show with stdin-only reasons and stable non-secret retries.
+- Shared web/CLI member policy, private admin review, deliberate permanent removal, stale-route rejection and bounded retention: reports stay open until resolved; text 90 days after closure; metadata one year.

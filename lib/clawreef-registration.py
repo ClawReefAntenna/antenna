@@ -137,7 +137,7 @@ class Registration:
             self.fail(isinstance(result,dict) and result.get('schema_version')==1 and type(result.get('ok')) is bool,
                       'INVALID_RESPONSE','Expected a supported service response.',5)
             if not (status==200 and result['ok']):
-                allowed={'NOT_ENROLLED','HOST_REVOKED','SIGNATURE_INVALID','SIGNATURE_EXPIRED','CAPABILITY_DENIED',
+                allowed={'REPORT_NOT_FOUND','REPORT_ALREADY_OPEN','REPORT_CONFLICT','REPORT_CLOSED','REPORT_RATE_LIMIT','INVALID_REPORT_TEXT','MEMBERSHIP_REQUIRED','NOT_ENROLLED','HOST_REVOKED','SIGNATURE_INVALID','SIGNATURE_EXPIRED','CAPABILITY_DENIED',
                     'INVALID_ENROLLMENT_CODE','GRANT_EXPIRED','GRANT_USED','GRANT_CANCELLED','REPLAY_REJECTED',
                     'INVALID_QUERY','INVALID_PATH','INVALID_GET','STALE_BINDING','DESTINATION_CONFLICT','GROUP_NOT_FOUND','SLUG_EXISTS','INVALID_GROUP_FIELDS','INVALID_THEMES','ACTOR_REQUIRED','REVIEW_CHANGED','IDEMPOTENCY_CONFLICT','OPERATION_EXPIRED','PAIRING_REQUIRED','OPERATION_IN_PROGRESS'}
                 code=result.get('code');code=code if code in allowed else 'SERVICE_ERROR'

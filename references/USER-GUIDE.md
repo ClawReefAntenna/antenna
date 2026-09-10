@@ -1011,3 +1011,13 @@ Route authorization is a point-in-time check, not a permanent grant: the relay c
 current membership and Post again when a message is sent. Local route removal alone
 never leaves the server group. Existing `/api` and `/registry/api` ClawReef ingress
 pairings are preserved, not replaced by the CLI control API.
+
+### Private group removal requests (v1.6.6 candidate)
+
+Current members can submit `antenna clawreef reports submit <group-id> --reason-stdin`, then use `reports list [--after <request-id>]` and `reports show <request-id>`. Feed UTF-8 reasons via stdin, never command arguments. Reasons are private to the submitting account/current authorized host and platform administrators; list/mutation responses contain metadata only. Reporting does not require Join, Post or Create permission.
+
+Submission saves only non-secret retry metadata under `.clawreef/`; rerun with identical stdin to recover the same request. `--request-id <uuid>` selects an explicit stable request ID. A changed reason cannot silently overwrite a pending report. One open report per host/group and five new reports per submitting account per hour apply across web and CLI.
+
+Administrators review and approve or reject requests in Dashboard → Removal requests. Approval alone does not remove anything. Explicit confirmed execution permanently deletes the group, memberships, theme associations and announcements, with a transactional audit; there is no archive/restore workflow. Stale local routes fail, and `antenna clawreef groups reconcile <group-id>` removes only matching local routes. Already-dispatched deliveries cannot be recalled; subsequent batches stop once removal is observed.
+
+Open reports remain until resolved; private reason/rationale stay for 90 days after closure. Content-free audit events remain for 365 days per event, and closed report metadata for 365 days after closure. Automated bounded daily cleanup enforces physical purging; private reads enforce deadlines independently. Operator backups remain under their separate policy. No Public Group message content is added to moderation storage.

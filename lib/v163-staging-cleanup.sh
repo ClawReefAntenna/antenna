@@ -29,13 +29,13 @@ v163_staging_mapping_filter='{
 v163_staging_mapping_audit() {
   local gateway="$1"
   jq -r --arg id "$V163_STAGING_MAPPING_ID" --arg path "$V163_STAGING_PATH" \
-    --arg module "$V163_STAGING_MODULE" --argjson canonical "$v163_staging_mapping_filter" '
+    --arg transform_module "$V163_STAGING_MODULE" --argjson canonical "$v163_staging_mapping_filter" '
       (.hooks.mappings // []) as $m
       | if ($m | type) != "array" then "fail|hooks.mappings is not an array"
         elif ([$m[] | select(.id == $id)] | length) > 1 then "fail|duplicate Antenna v1.6.3 mapping id"
         elif ([$m[] | select((((.match.path // "") | sub("^/+";"") | sub("/+$";"")) == $path))] | length) > 1
           then "fail|duplicate /hooks/antenna path mappings"
-        elif ([$m[] | select(.transform.module? == $module and .id != $id)] | length) > 0
+        elif ([$m[] | select(.transform.module? == $transform_module and .id != $id)] | length) > 0
           then "fail|foreign mapping uses the v1.6.3 transform module"
         elif ([$m[] | select((.id == $id) or (((.match.path // "") | sub("^/+";"") | sub("/+$";"")) == $path))] | length) == 0
           then "missing|mapping absent"

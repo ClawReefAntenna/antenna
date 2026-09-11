@@ -1,6 +1,6 @@
 ---
 name: "antenna"
-description: "Authenticated cross-host Antenna messaging: peer trust, status, inbox review, session routing, and ClawReef public-group workflows."
+description: "Session-targeted, cross-host, agent-native messaging. Your agents, their agents, any host, any session."
 metadata:
   version: 1.6.6
   repository: "https://github.com/ClawReefAntenna/antenna"

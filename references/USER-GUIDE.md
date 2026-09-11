@@ -391,7 +391,9 @@ also selects On/Off. Invalid or conflicting policy fails closed, never Off.
 
 ### Session aliases and review flags (v1.6.6 candidate)
 
-Choose a real canonical key from your gateway's session information:
+Give the conversation a name you can remember; let Antenna keep track of the
+address. Your receiving host owns the alias, and the full canonical key stays
+underneath. Start with a real canonical key from your gateway's session information:
 
 ```bash
 antenna sessions add agent:betty:dashboard:11111111-1111-4111-8111-111111111111 --alias ideas --inbox yes
@@ -907,6 +909,9 @@ skills/antenna/
 
 ## ClawReef discovery and onboarding preparation (v1.6.6 candidate)
 
+Take a look around before connecting. Discovery shows what the service supports;
+onboarding prepares the request for your human to review.
+
 `antenna clawreef --help` lists the commands implemented in this candidate.
 Discovery works before Antenna setup or enrollment:
 
@@ -923,7 +928,8 @@ only reads the versioned discovery endpoint, sends no credentials, and refuses
 redirects. The dev Basic gate remains in place: an unauthenticated CLI request
 reports `service_access_required`. Do not put that password into a hooks token.
 
-Onboarding and status are always local-only (`--local-only` is also accepted).
+Onboarding is always local-only. Use `status --local-only` for offline inspection;
+after enrollment, ordinary `status` checks the Registry.
 Onboarding requires configured Antenna state, exactly one self peer, an Ed25519
 public key and an existing allowed conversation resolved by the local gateway.
 Use a full canonical key, agent-scoped alias or supported key-UUID reference.

@@ -103,7 +103,7 @@ usage() {
 Antenna — Inter-Host OpenClaw Messaging
 
 Usage:
-  antenna clawreef --help                    Discover ClawReef and prepare onboarding
+  antenna clawreef --help                    Explore ClawReef enrollment and group commands
 
   antenna setup                              First-run setup wizard
   antenna setup --host-id <id> ... --yes     Authorized non-interactive setup
@@ -143,7 +143,7 @@ Usage:
     --force-expired                           Don't fail on expired bundles
     --no-decrypt                              Treat <file> as already-decrypted JSON
 
-  Inbox is an optional global review queue; autonomous delivery is the default.
+  Inbox offers Off, On and Allowlist review modes; autonomous delivery is the default.
   antenna inbox list                         Show pending queued messages
   antenna inbox count                        Count pending messages
   antenna inbox show <ref>                   Show full message for a ref

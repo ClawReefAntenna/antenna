@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.6.6 candidate at a glance
+
+- **Names you can remember.** Give receiving sessions agent-scoped aliases while
+  keeping their canonical addresses and local permission checks.
+- **Choose where to pause for review.** Off, On and Allowlist inbox modes let you
+  keep autonomous delivery or review selected receiving sessions.
+- **More of the reef from your terminal.** Discover ClawReef, enroll your host,
+  and use Public Group commands under independent standing Join, Post and Create
+  permissions. Current members can also submit private removal requests.
+
+These changes are in the v1.6.6 candidate, not the published v1.6.5 download.
+
 ### Documentation reconciliation — v1.6.6 candidate
 
 - Complete CLI journey and response/recovery reference; distinguish host grants,

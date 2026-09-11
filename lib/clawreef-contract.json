@@ -11,13 +11,13 @@
   "commands": [
     {
       "name": "discover",
-      "summary": "Read public service compatibility and available commands.",
+      "summary": "Check service compatibility and see which commands are available.",
       "network": "GET discovery",
       "enrollment_required": false
     },
     {
       "name": "onboard",
-      "summary": "Prepare a local-only human authorization request; no enrollment or outreach.",
+      "summary": "Prepare a request to review and share with your human. Nothing is sent or enrolled.",
       "network": "none",
       "enrollment_required": false
     },
@@ -35,25 +35,25 @@
     },
     {
       "name": "whoami",
-      "summary": "Inspect the currently authorized host identity.",
+      "summary": "Check which host is currently authorized.",
       "network": "Signed GET whoami",
       "enrollment_required": true
     },
     {
       "name": "capabilities",
-      "summary": "Inspect independent standing Join, Post and Create permissions.",
+      "summary": "See your host’s independent standing Join, Post and Create permissions.",
       "network": "Signed GET capabilities",
       "enrollment_required": true
     },
     {
       "name": "groups",
-      "summary": "Browse, show, create, join, leave and reconcile Public Groups using independent standing host permissions. Resume interrupted local installation by operation ID.",
+      "summary": "Find, view, create, join or leave Public Groups using your host’s standing permissions. Reconcile local routes or resume interrupted installation by operation ID.",
       "network": "signed groups/themes API; existing Antenna send unchanged",
       "enrollment_required": true
     },
     {
       "name": "reports",
-      "summary": "Submit and inspect private member requests for administrator group removal. No automatic deletion.",
+      "summary": "Ask administrators to remove a group and check your private requests. Submitting a request does not delete the group.",
       "network": "signed reports API",
       "enrollment_required": true
     }

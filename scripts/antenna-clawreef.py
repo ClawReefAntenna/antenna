@@ -168,7 +168,7 @@ def run(args):
     parser.add_argument('--recover', action='store_true')
     opts = parser.parse_args(args)
     if opts.help or opts.command == 'help':
-        return 'ok', 'ClawReef discovery, enrollment and host permissions.', {'commands': CONTRACT['commands'],
+        return 'ok', 'ClawReef: discover, connect and take part in Public Groups.', {'commands': CONTRACT['commands'],
             'options': ['reports submit <group-id> --reason-stdin [--request-id <uuid>] | list [--after <uuid>] | show <request-id>', '--json', '--service <https-origin>', '--session <canonical-key|agent-alias|key-uuid>',
                         '--request <capability> (repeatable)', '--local-only (onboard/status)', '--code-stdin (enroll; never place codes in arguments)', '--recover (enroll; recover interrupted local registration)',
                         'groups browse|themes|show <id>|create --name <text> --slug <slug>|join <id>|leave <id>|reconcile <id>|resume <operation-id>', '--session <reference> (create/join)', '--theme <id> (repeatable create; one browse filter)', '--alias <local-alias> (create/join/reconcile)' ],

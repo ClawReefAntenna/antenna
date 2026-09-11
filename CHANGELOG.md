@@ -17,7 +17,8 @@ These changes are in the v1.6.6 candidate, not the published v1.6.5 download.
 - Complete CLI journey and response/recovery reference; distinguish host grants,
   conversation attribution, group creation credit and private moderation.
 - Clarify selective receiving-session inbox behavior, retention and candidate versus
-  published compatibility. Skill wording remains a separately pending Workshop artifact.
+  published compatibility. Approved Skill Workshop wording is integrated in the
+  candidate; release qualification and publication remain separate.
 
 
 ### Signed Public Group workflow — v1.6.6 candidate
@@ -75,9 +76,9 @@ For the complete version history prior to `1.3.0`, see:
   bytes and Ed25519 behavior are unchanged; preview bodies remain visible.
 - Clarify intended relay procedure versus actual tool authority and Doctor's
   network side effects in README/User Guide. Q1 remains deferred.
-- Antenna-specific invocation wording and matching SKILL.md disclosures are
-  prepared in Skill Workshop; candidate-file integration remains pending because
-  Workshop cannot target the isolated Git worktree. Do not count these as shipped.
+- Antenna-specific invocation wording and matching SKILL.md disclosures were
+  applied through an isolated, candidate-only Skill Workshop update and verified
+  in the packaged file. Installed skills and published releases are unchanged.
 
 ### Fixed
 

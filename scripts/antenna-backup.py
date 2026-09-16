@@ -138,7 +138,7 @@ def prepared(m,files,target):
     for name,p in peers.items():
         for field in state.KEY_FIELDS:
             if field not in p: continue
-            original=p[field];p[field]=state.destination(oldroot,original,True)
+            original=p[field];p[field]=state.destination(oldroot,original,True,public=field=='signing_public_key_file')
             if original!=p[field]: remaps.append({'peer':name,'field':field,'to':p[field]})
     if cfg.get('log_path') and Path(cfg['log_path']).is_absolute():
         cfg['log_path']='antenna.log';remaps.append({'field':'log_path','to':'antenna.log'})

@@ -242,6 +242,17 @@ class Recovery(unittest.TestCase):
             if entry['backup'] is not None:
                 self.assertEqual((retained[0].parent/entry['backup']).read_bytes(),before[entry['path']][0])
 
+    def test_external_public_pin_restores_into_runtime_trusted_keys(self):
+        external=self.base/'external-public.pem';external.write_bytes((self.root/'secrets/antenna-signing-public.pem').read_bytes());external.chmod(0o600)
+        peer={'url':'https://remote.invalid','auth_mode':'ed25519-v1','token_file':'secrets/hooks_token_self','signing_public_key_file':str(external)}
+        self.write('antenna-peers.json',s.encode({'self':self.peer,'remote':peer}))
+        m,files,_=self.archive();_,desired,prior,_,_=B['restore_plan'](m,files,self.root)
+        B['replace_state'](self.root,desired,prior)
+        restored=s.decode((self.root/'antenna-peers.json').read_bytes())['remote']['signing_public_key_file']
+        self.assertTrue(restored.startswith('keys/'))
+        p=subprocess.run(['bash','-c','source "$1/lib/antenna-signature.sh"; signature_public_key_ok "$1/$2" "$1/keys"','_',str(self.root),restored],capture_output=True)
+        self.assertEqual(p.returncode,0,p.stderr)
+
     def test_custom_queue_and_registration_roundtrip(self):
         self.config['inbox_queue_path']='queues/custom.json'
         self.write('antenna-config.json',s.encode(self.config))

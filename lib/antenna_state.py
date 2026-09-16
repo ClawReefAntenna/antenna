@@ -122,11 +122,12 @@ def source_path(root, value):
     return lexical(p if p.is_absolute() else root / p)
 
 
-def destination(root, value, credential=False):
+def destination(root, value, credential=False, public=False):
     p = source_path(root, value)
     try: name = p.relative_to(root).as_posix()
     except ValueError:
         # Never trust archived external locations as write authority.
+        if credential and public: return 'keys/'+digest(str(p).encode())+'.ed25519.pem'
         return ('secrets/restored-' + digest(str(p).encode()) if credential else 'antenna-inbox.json')
     rel = relative(name)
     if credential:
@@ -162,7 +163,7 @@ def references(root, config, peers):
         need(isinstance(peer,dict))
         for field in KEY_FIELDS:
             if field not in peer: continue
-            name = destination(root,peer[field],True)
+            name = destination(root,peer[field],True,public=field=='signing_public_key_file')
             path = source_path(root,peer[field])
             need(name not in refs or refs[name] == path, 'PATH_COLLISION','State roles collide.')
             refs[name] = path
@@ -229,6 +230,8 @@ def command(args, raw=None):
 def validate_snapshot(root, files):
     config=decode(files['antenna-config.json']);peers=decode(files['antenna-peers.json'])
     config_valid(config)
+    need(isinstance(config.get('install_path'),str) and lexical(config['install_path'])==root,
+         'INSTALL_PATH_MISMATCH','Snapshot install_path does not match its source installation.')
     need(isinstance(peers,dict) and sum(isinstance(p,dict) and p.get('self') is True for p in peers.values())==1)
     refs,queue=references(root,config,peers)
     required={'antenna-config.json','antenna-peers.json'}
@@ -243,10 +246,10 @@ def validate_snapshot(root, files):
         for field in fields: need(field in p)
         for field in KEY_FIELDS:
             if field not in p: continue
-            logical=destination(root,p[field],True);required.add(logical)
+            logical=destination(root,p[field],True,public=field=='signing_public_key_file');required.add(logical)
             need(logical in files and files[logical], 'MISSING_CREDENTIAL','Referenced credential is missing.')
         if mode=='ed25519-v1':
-            pub=files[destination(root,p['signing_public_key_file'],True)]
+            pub=files[destination(root,p['signing_public_key_file'],True,public=True)]
             der=command(['openssl','pkey','-pubin','-outform','DER'],pub)
             need(der.startswith(bytes.fromhex('302a300506032b6570032100')) and len(der)==44,'INVALID_KEY','Expected Ed25519 public key.')
             fingerprints[name]='ed25519-sha256:'+digest(der)

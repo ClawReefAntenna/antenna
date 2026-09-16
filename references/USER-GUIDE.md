@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*v1.6.6 candidate guide · Published-install examples retain v1.6.5 labels until release. New candidate commands require the candidate client and compatible Registry.*
+*v1.6.7 private candidate guide — not yet published. See [backup, restore and readiness](BACKUP-AND-READINESS.md) for the new commands; older installation examples do not install this candidate.*
 
 ---
 

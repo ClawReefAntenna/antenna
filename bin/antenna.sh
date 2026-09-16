@@ -23,6 +23,18 @@ if [[ "${1:-}" == "clawreef" ]]; then
   exec python3 "$SKILL_DIR/scripts/antenna-clawreef.py" "$@"
 fi
 
+# Recovery must tolerate missing config; readiness must not chmod or initialize.
+case "${1:-}" in
+  backup|readiness)
+    command="$1"; shift
+    export ANTENNA_INVOKED_CLI="$0"
+    if [[ "$command" == backup ]]; then
+      exec python3 -B "$SKILL_DIR/scripts/antenna-backup.py" "$@"
+    fi
+    exec python3 -B "$SKILL_DIR/scripts/antenna-readiness.py" "$@"
+    ;;
+esac
+
 # ── Self-healing permissions ─────────────────────────────────────────────────
 # ClawHub doesn't preserve execute bits. Fix them on first run so install.sh
 # is optional and everything Just Works after `clawhub install antenna`.
@@ -110,6 +122,9 @@ Usage:
   antenna upgrade --from <old-skill-dir>     Preview and preserve state into this side-by-side release
   antenna pair [--peer-id <id>]              Interactive peer pairing wizard
   antenna uninstall [options]                Remove Antenna runtime state / optional gateway config
+
+  antenna backup --help                      Encrypted backup, verify and in-place restore
+  antenna readiness [--json] [--gateway <path>]  Read-only local upgrade preparation
 
   antenna doctor                             Health check: verify gateway config, secrets, connectivity
   antenna doctor --backup                    Back up gateway config before changes

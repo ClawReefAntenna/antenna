@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.7] — Unreleased private candidate
+
+- Encrypted Antenna-state backup with protected operator passphrase entry and verification.
+- Confirmed in-place snapshot replacement, preserving program/OpenClaw files and rolling back failed replacements. No service starts or message sends.
+- Local-only, read-only readiness with actionable human output and versioned JSON.
+- Private undated coordinated-release notice; no public countdown has started.
+- Messaging transport, MCS and relay execution policy unchanged.
+
+See [operator guidance and limitations](references/BACKUP-AND-READINESS.md).
+
 ## v1.6.6 candidate at a glance
 
 - **Names you can remember.** Give receiving sessions agent-scoped aliases while

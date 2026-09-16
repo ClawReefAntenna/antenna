@@ -2,12 +2,12 @@
 name: "antenna"
 description: "Session-targeted, cross-host, agent-native messaging. Your agents, their agents, any host, any session."
 metadata:
-  version: 1.6.6
+  version: 1.6.7
   repository: "https://github.com/ClawReefAntenna/antenna"
   homepage: "https://github.com/ClawReefAntenna/antenna"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.6.6 candidate)
+# Antenna — Inter-Host OpenClaw Messaging (v1.6.7 private candidate)
 
 Send messages between OpenClaw instances over reachable HTTPS via Antenna's
 built-in `/hooks/agent` endpoint.

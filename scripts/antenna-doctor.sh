@@ -17,6 +17,13 @@ SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="$SKILL_DIR/antenna-config.json"
 PEERS_FILE="$SKILL_DIR/antenna-peers.json"
 
+if [[ -f "$CONFIG_FILE" ]] && jq -e 'has("transport_profile")' "$CONFIG_FILE" >/dev/null 2>&1; then
+  _plugin_gateway="${OPENCLAW_CONFIG_PATH:-$HOME/.openclaw/openclaw.json}"
+  if [[ ${1:-} == --gateway && $# == 2 ]]; then _plugin_gateway="$2";
+  elif [[ $# != 0 ]]; then echo 'Migrated Doctor accepts only --gateway PATH; no legacy repairs.' >&2; exit 1; fi
+  exec node "$SKILL_DIR/plugin/migration-check.mjs" doctor "$_plugin_gateway" "$SKILL_DIR"
+fi
+
 # shellcheck source=../lib/peers.sh
 source "$SKILL_DIR/lib/peers.sh"
 # shellcheck source=../lib/config.sh

@@ -240,6 +240,12 @@ def main(argv=None):
     create.add_argument('--json',action='store_true')
     a=parser.parse_args(argv)
     if a.action=='restore': state.need(not a.yes or a.apply,'USAGE','--yes requires --apply.')
+    if a.action in ('create','restore'):
+        target_root=Path(a.to) if a.action=='restore' else ROOT
+        target_config=target_root/'antenna-config.json'
+        if target_config.exists():
+            state.need('transport_profile' not in state.decode(state.read_file(target_config)),
+                       'PLUGIN_MIGRATION', 'Legacy backup/restore cannot cover plugin state. Use the migration runbook; no files changed.')
     terminal()
     with tempfile.TemporaryDirectory(prefix='antenna-backup-') as temp:
         temp=Path(temp)

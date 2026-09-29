@@ -16,6 +16,12 @@ import antenna_state as state
 
 
 def report(root,gateway):
+    current=root/'antenna-config.json'
+    if current.exists() and 'transport_profile' in state.decode(state.read_file(current)):
+        return {'schema_version':1,'complete':False,'target':str(root),'version':'plugin-candidate',
+                'checks':[{'id':'plugin_migration','status':'fail','reason':'Use the plugin migration Doctor; legacy readiness cannot qualify this installation.',
+                           'evidence':str(current),'next_action':'Run node plugin/migration-check.mjs doctor HOST_JSON LEGACY_ROOT'}],
+                'summary':{'fail':1},'local_result':'Legacy readiness is not applicable; plugin cutover remains unverified'}
     checks=[]
     def add(code,status,reason,source,action='',**data):
         checks.append(dict(id=code,status=status,reason=reason,evidence=str(source),next_action=action,**data))

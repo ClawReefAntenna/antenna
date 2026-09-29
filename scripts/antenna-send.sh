@@ -30,6 +30,11 @@ SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 PEERS_FILE="$SKILL_DIR/antenna-peers.json"
 CONFIG_FILE="$SKILL_DIR/antenna-config.json"
 
+# An explicitly migrated installation never falls back to general hooks.
+if [[ -f "$CONFIG_FILE" ]] && jq -e 'has("transport_profile")' "$CONFIG_FILE" >/dev/null 2>&1; then
+  exec node "$SKILL_DIR/plugin/send.mjs" "$SKILL_DIR" "$@"
+fi
+
 # shellcheck source=../lib/peers.sh
 source "$SKILL_DIR/lib/peers.sh"
 # shellcheck source=../lib/config.sh

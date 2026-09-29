@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Retired legacy operation in an explicitly migrated installation.
+_antenna_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "$_antenna_root/antenna-config.json" ]] && jq -e 'has("transport_profile")' "$_antenna_root/antenna-config.json" >/dev/null 2>&1; then
+  echo 'Legacy operation disabled: use the plugin operator commands and migration runbook.' >&2
+  exit 1
+fi
+unset _antenna_root
 # antenna-uninstall.sh — Remove Antenna runtime state and optionally gateway registration.
 # Conservative by design: only removes Antenna-owned/runtime artifacts unless explicitly
 # asked to purge the entire skill directory.

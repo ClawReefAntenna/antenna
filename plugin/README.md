@@ -6,9 +6,9 @@ Authentication, replay checks and receiver-selected existing destinations apply
 in every mode. Ordinary approval and MCS holds remain independent.
 
 This is the packaged inbound vertical slice, not a released replacement for
-the legacy Antenna skill. Legacy sending, groups, setup/Doctor/uninstall,
-native subscription destination qualification and whole-install migration
-remain separate release work. No atomic session-incarnation or exactly-once
+the legacy Antenna skill. Manual legacy migration, new direct/list transport and contact exchange now have
+a development implementation; see [MIGRATION.md](MIGRATION.md). Full release,
+live cutover and native subscription qualification remain separate work. No atomic session-incarnation or exactly-once
 delivery guarantee is made.
 
 ## Install in an isolated OpenClaw instance

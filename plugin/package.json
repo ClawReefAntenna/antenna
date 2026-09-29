@@ -1,6 +1,6 @@
 {
   "name": "@clawreefantenna/antenna-plugin",
-  "version": "1.6.8-dev.0",
+  "version": "1.6.8-dev.1",
   "type": "module",
   "private": true,
   "license": "MIT",
@@ -11,7 +11,8 @@
     "*.mjs",
     "*.sh",
     "openclaw.plugin.json",
-    "README.md"
+    "README.md",
+    "MIGRATION.md"
   ],
   "openclaw": {
     "extensions": [
@@ -22,6 +23,6 @@
     "openclaw": ">=2026.9.5"
   },
   "scripts": {
-    "test": "node tests/package.mjs && node tests/flow.mjs"
+    "test": "node tests/package.mjs && node tests/flow.mjs && node tests/legacy.mjs"
   }
 }

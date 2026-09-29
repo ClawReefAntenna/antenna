@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Retired legacy operation in an explicitly migrated installation.
+_antenna_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "$_antenna_root/antenna-config.json" ]] && jq -e 'has("transport_profile")' "$_antenna_root/antenna-config.json" >/dev/null 2>&1; then
+  echo 'Legacy operation disabled: use the plugin operator commands and migration runbook.' >&2
+  exit 1
+fi
+unset _antenna_root
 # antenna-pair.sh — Interactive pairing wizard for connecting to a remote peer.
 # Can be launched standalone (antenna pair) or auto-offered at end of setup.
 #

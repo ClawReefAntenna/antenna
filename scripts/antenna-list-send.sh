@@ -65,7 +65,7 @@ for i in "${!MEMBERS[@]}"; do
   reason=""
   peers_exists "$member" || reason="unknown peer"
   if [[ -z "$reason" ]] && ! jq -e --arg peer "$member" '(.allowed_outbound_peers|type)=="array" and all(.allowed_outbound_peers[];type=="string") and (.allowed_outbound_peers|index($peer)!=null)' "$CONFIG_FILE" >/dev/null 2>&1; then reason="not outbound-allowed"; fi
-  if [[ -z "$reason" ]]; then url=$(peers_get "$member" url); validate_peer_url "$url" >/dev/null 2>&1 || reason="invalid URL"; fi
+  if [[ -z "$reason" ]]; then url=$(peers_get "$member" url); validate_peer_url "$url" "$(peers_get "$member" allow_http)" >/dev/null 2>&1 || reason="invalid URL"; fi
   if [[ -z "$reason" ]]; then token=$(peers_get "$member" token_file); [[ -n "$token" && "$token" != /* ]] && token="$SKILL_DIR/$token"; [[ -f "$token" && -r "$token" ]] || reason="missing token"; fi
   if [[ -z "$reason" ]]; then mode=$(peers_get "$member" auth_mode); case "$mode" in ed25519-v1) NEED_ED=true;; plaintext-legacy) NEED_LEGACY=true;; *) reason="unsupported auth mode";; esac; fi
   if [[ -n "$reason" ]]; then

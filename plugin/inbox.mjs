@@ -67,7 +67,8 @@ export function policyFor(config,peer,destination) {
  const configured=peer.mcs??'default',mode=configured==='default'?config.mcs:configured;
  if(!['off','dumb','smart','both'].includes(mode)||!['off','on'].includes(config.inbox))throw new InboxError('invalid policy');
  // Concrete prototype adapter accepts a resolved per-destination approval bit.
- const approval=Object.hasOwn(config.approvalByDestination??{},destination)?config.approvalByDestination[destination]:config.inbox==='on';
+ const approvals=peer.approvalByDestination??config.approvalByDestination??{};
+ const approval=Object.hasOwn(approvals,destination)?approvals[destination]:config.inbox==='on';
  if(typeof approval!=='boolean')throw new InboxError('invalid inbox policy');
  return {configured,mode,approval,revision:config.policyRevision??'prototype-1'};
 }

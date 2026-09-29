@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Retired legacy operation in an explicitly migrated installation.
+_antenna_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "$_antenna_root/antenna-config.json" ]] && jq -e 'has("transport_profile")' "$_antenna_root/antenna-config.json" >/dev/null 2>&1; then
+  echo 'Legacy operation disabled: use the plugin operator commands and migration runbook.' >&2
+  exit 1
+fi
+unset _antenna_root
 # antenna-setup.sh — First-run setup wizard for Antenna.
 # Creates config, peers file, identity secret, and prints gateway registration instructions.
 # Runtime files are local installation state; tracked example files live alongside them.

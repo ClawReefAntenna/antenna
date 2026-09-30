@@ -44,7 +44,10 @@ Remove a rule to disable it. Keep at least one rule; use MCS Off to disable scan
 Omit `rulesetFile` from plugin configuration to return to the bundled default.
 Validation checks usability, not detection effectiveness. Evaluation reuses the
 separate editable `corpus/controls.json` baseline: 40 malicious, 40 benign and
-four ambiguous examples. It does not activate the tested ruleset or release holds.
+four ambiguous examples. Use `--corpus /path/tests.json` to select your own
+labelled examples; see the [corpus authoring guide](CORPORA.md). Add `--verbose`
+for missed attacks and false positives with full content and rule explanations.
+Evaluation does not activate the tested ruleset or release holds.
 
 ## Instructions to give your agent
 

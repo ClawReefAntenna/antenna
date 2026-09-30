@@ -26,10 +26,10 @@ export function summarize(rows){
 }
 function options(args){
  const o={files:[],repeat:1,engine:null,json:false,preview:false,details:false};
- const values=new Set(['--engine','--repeat','--text','--file','--expect','--suite','--output','--ruleset']);
+ const values=new Set(['--engine','--repeat','--text','--file','--expect','--suite','--output','--ruleset','--corpus']);
  const seen=new Set();
  while(args.length){const key=args.shift();
-  if(!values.has(key)&&!['--json','--preview','--stdin','--details'].includes(key))throw Error('unknown option');
+  if(!values.has(key)&&!['--json','--preview','--stdin','--details','--verbose'].includes(key))throw Error('unknown option');
   if(key!=='--file'&&seen.has(key))throw Error('duplicate option');seen.add(key);
   const value=values.has(key)?args.shift():true;
   if(value===undefined)throw Error('missing option value');
@@ -66,23 +66,75 @@ async function readStdin(){
  });
 }
 function safeError(e){if(e.code==='ELOOP')return 'not_regular_file';return ['empty_input','input_too_large','invalid_utf8','binary_input','not_regular_file','stdin_deadline'].includes(e.message)?e.message:'input_read_failed';}
+// JSON quoting makes untrusted content inert while preserving its full text.
+const display=value=>JSON.stringify(value??'unknown');
 export function human(report){
- const lines=[`Antenna MCS ${report.command}${report.preview?' preview':''}`,`Engine: ${report.engine}; cases: ${report.plan.cases}; repetitions: ${report.plan.repetitions}; maximum model requests: ${report.plan.maxRequests}`,`Model: ${JSON.stringify(report.scanner??'offline')}`,report.disclosure];
- if(report.summary){lines.push(JSON.stringify(report.summary));for(const r of report.results)lines.push(`${JSON.stringify(r.id)} #${r.repetition}: ${r.outcome}${r.error?' ('+r.error+')':''} ${JSON.stringify({source:r.source,bodyDigest:r.bodyDigest,elapsedMs:r.elapsedMs,findings:r.findings})}`);}
+ const lines=[`Antenna MCS ${report.command}${report.preview?' preview':''} — ${report.engine}${report.scanner?' ('+display(report.scanner.model)+')':''}`];
+ if(report.preview)return lines.concat(`Cases: ${report.plan.cases}; repetitions: ${report.plan.repetitions}; maximum model requests: ${report.plan.maxRequests}`,report.disclosure).join('\n')+'\n';
+ if(report.command==='evaluate'){
+  for(let repetition=1;repetition<=report.plan.repetitions;repetition++){
+   const rows=report.results.filter(r=>r.repetition===repetition),s=summarize(rows),v=s.score;
+   if(report.plan.repetitions>1)lines.push(`Repetition ${repetition}/${report.plan.repetitions} (${s.uniqueCases} unique cases)`);
+   lines.push(`Attacks caught: ${v?.malicious?v.detected+'/'+v.malicious:'N/A (0 malicious cases)'}`,
+    `False positives: ${v?.benign?v.falseFlags+'/'+v.benign:'N/A (0 benign cases)'}`,
+    `Incomplete scans: ${s.incomplete}`,`Model requests: ${s.requests}`);
+  }
+ }else for(const r of report.results)lines.push(`${display(r.id)} #${r.repetition}: ${r.outcome}${r.reason?' — '+display(r.reason):''} ${JSON.stringify({source:r.source,bodyDigest:r.bodyDigest,elapsedMs:r.elapsedMs,findings:r.findings})}`);
+ if(report.verbose){
+  const groups=[['ATTACKS MISSED',r=>r.expected==='malicious'&&r.verdict==='pass'],['FALSE POSITIVES',r=>r.expected==='benign'&&r.verdict==='flagged'],['INCOMPLETE SCANS',r=>r.verdict==='incomplete']];
+  for(const [title,filter] of groups){
+   const rows=report.results.filter(filter);if(!rows.length)continue;
+   lines.push('',title);
+   for(const r of rows){
+    lines.push('',`ID: ${display(r.id)}${report.plan.repetitions>1?' (repetition '+r.repetition+')':''}`);
+    if(title==='ATTACKS MISSED')lines.push(`Type: ${display(r.family)}`);
+    if(title!=='INCOMPLETE SCANS')lines.push(`Content: ${display(r.body)}`);
+    if(title==='FALSE POSITIVES'){
+     lines.push(`Scanner: ${r.stage==='smart'?'Smart':'Dumb'}`);
+     for(const f of r.findings)lines.push(`${f.id?'Rule: '+display(f.id):'Finding: '+display(f.category)} — ${display(f.reason)}`);
+    }
+    if(title==='INCOMPLETE SCANS')lines.push(`Reason: ${display(r.error??r.reason??'scanner_incomplete')}`);
+   }
+  }
+ }
  return lines.join('\n')+'\n';
+}
+export function loadCorpus(file){
+ const fd=fs.openSync(file??new URL('./corpus/controls.json',import.meta.url),fs.constants.O_RDONLY|fs.constants.O_NONBLOCK|fs.constants.O_NOFOLLOW);
+ let bytes;
+ try{
+  const stat=fs.fstatSync(fd);if(!stat.isFile())throw Error('corpus must be a regular file');
+  if(stat.size>LIMITS.corpusBytes)throw Error('corpus exceeds 4 MiB');
+  const buffer=Buffer.alloc(LIMITS.corpusBytes+1);let n=0,k;
+  while(n<buffer.length&&(k=fs.readSync(fd,buffer,n,buffer.length-n,null)))n+=k;
+  if(n>LIMITS.corpusBytes)throw Error('corpus exceeds 4 MiB');bytes=buffer.subarray(0,n);
+ }finally{fs.closeSync(fd);}
+ let data;try{data=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{throw Error('corpus must be valid UTF-8 JSON');}
+ if(!data||data.schema!==1||!Array.isArray(data.cases)||!data.cases.length||data.cases.length>LIMITS.batchCases)throw Error('corpus requires schema 1 and 1–500 cases');
+ const ids=new Set();
+ for(const [i,item] of data.cases.entries()){
+  const fail=reason=>{throw Error(`corpus case ${i+1}: ${reason}`);};
+  if(!item||typeof item.id!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(item.id)||ids.has(item.id))fail('unique ID required (1–128 letters, digits, underscores or hyphens)');ids.add(item.id);
+  if(typeof item.family!=='string'||!item.family.trim()||item.family.length>128)fail('family must be 1–128 characters');
+  if(!['malicious','benign','ambiguous'].includes(item.expected))fail('expected must be malicious, benign or ambiguous');
+  if(typeof item.body!=='string')fail('body must be text');
+  if(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(item.body))fail('body contains an unpaired Unicode surrogate');
+  try{decode(Buffer.from(item.body));}catch(e){fail(e.message);}
+ }
+ return {cases:data.cases,metadata:{version:data.version??null,sha256:hash(bytes),provenance:data.provenance??null,source:file??'bundled',schema:1}};
 }
 export async function runDiagnostic(command,args,c,host,{configPath,stdout=console.log,stderr=console.error,scanModel=gatewayScan}={}){
  let o;try{o=options([...args]);if(!['evaluate','test'].includes(command))throw Error('evaluate or test required');
-  if(command==='evaluate'&&(o.text!==undefined||o.files.length||o.stdin||o.expect))throw Error('evaluation takes bundled cases, not custom inputs');
-  if(command==='test'&&(Number(o.text!==undefined)+Number(o.files.length>0)+Number(!!o.stdin)!==1||o.suite))throw Error('choose exactly one of text, files, stdin');
+  if(command==='evaluate'&&(o.text!==undefined||o.files.length||o.stdin||o.expect))throw Error('evaluation takes corpus cases, not text/file/stdin inputs');
+  if(command==='test'&&(Number(o.text!==undefined)+Number(o.files.length>0)+Number(!!o.stdin)!==1||o.suite||o.corpus))throw Error('choose exactly one of text, files, stdin');
+  if(o.suite&&o.corpus)throw Error('choose --suite bundled or --corpus, not both');
   if(o.suite&&o.suite!=='bundled')throw Error('only bundled suite supported');
   if(o.files.length>LIMITS.batchCases)throw Error('too many files');
  }catch(e){stderr(JSON.stringify({status:'input_error',reason:e.message}));return 64;}
  const engine=o.engine??(command==='evaluate'?'smart':'dumb');
  let corpus,cases;
  if(command==='evaluate'){
-  const bytes=fs.readFileSync(new URL('./corpus/controls.json',import.meta.url));corpus=JSON.parse(bytes);
-  cases=corpus.cases;corpus={version:corpus.version,sha256:hash(bytes),provenance:corpus.provenance};
+  try{const loaded=loadCorpus(o.corpus);cases=loaded.cases;corpus=loaded.metadata;}catch(e){stderr(JSON.stringify({status:'input_error',reason:e.code==='ELOOP'?'corpus must not be a symlink':e.code?'corpus file unavailable ('+e.code+')':e.message}));return 64;}
  }else{
   cases=o.files.length?o.files.map((file,i)=>({id:'file-'+(i+1),source:file})): [{id:o.stdin?'stdin':'text'}];
   for(const item of cases){item.expected=o.expect;item.labelProvenance=o.expect?'operator batch label':'unlabelled';
@@ -92,8 +144,9 @@ export async function runDiagnostic(command,args,c,host,{configPath,stdout=conso
  }
  if(cases.length>LIMITS.batchCases){stderr(JSON.stringify({status:'input_error',reason:'case limit exceeded'}));return 64;}
  const model=engine!=='dumb';let p,ruleset;
- try{ruleset=loadRuleset(o.ruleset??c.rulesetFile);if(model&&c.scannerModel)p=resolveScanner(c.scannerModel,host);}catch(e){stderr(JSON.stringify({status:'configuration_error',reason:e.message}));return 3;}
- const report={schema:1,command,engine,preview:o.preview,startedAt:new Date().toISOString(),plan:{cases:cases.length,repetitions:o.repeat,maxRequests:model?cases.length*o.repeat:0,order:'corpus/file order; serial; no randomization',limits:LIMITS},corpus:corpus??null,scanner:p?{model:p.modelId,identity:p.identity,ready:p.identity===c.scannerIdentity}:null,rules:ruleset.hash,rubric:RUBRIC,verdictSchema:1,implementation:Object.fromEntries(knownSources.map(f=>[f,hash(fs.readFileSync(new URL(f,import.meta.url)))])),disclosure:model?'Smart/model/Both may send supplied bodies to the selected registered model. No delivery, policy change or inbox insertion.':'Offline Dumb scan. No delivery, policy change or inbox insertion.',details:o.details?'Detailed findings may include submitted text; exports are private.':'Bodies, raw responses and finding explanations omitted.',results:[]};
+ if(['smart','model'].includes(engine)&&o.ruleset){stderr(JSON.stringify({status:'input_error',reason:'--ruleset applies only to Dumb or Both'}));return 64;}
+ try{if(engine==='dumb'||engine==='both')ruleset=loadRuleset(o.ruleset??c.rulesetFile);if(model&&c.scannerModel)p=resolveScanner(c.scannerModel,host);}catch(e){stderr(JSON.stringify({status:'configuration_error',reason:e.message}));return 3;}
+ const report={schema:1,command,engine,preview:o.preview,startedAt:new Date().toISOString(),plan:{cases:cases.length,repetitions:o.repeat,maxRequests:model?cases.length*o.repeat:0,order:'corpus/file order; serial; no randomization',limits:LIMITS},corpus:corpus??null,scanner:p?{model:p.modelId,identity:p.identity,ready:p.identity===c.scannerIdentity}:null,rules:ruleset?.hash??null,rubric:RUBRIC,verdictSchema:1,implementation:Object.fromEntries(knownSources.map(f=>[f,hash(fs.readFileSync(new URL(f,import.meta.url)))])),disclosure:model?'Smart/model/Both may send supplied bodies to the selected registered model. No delivery, policy change or inbox insertion.':'Offline Dumb scan. No delivery, policy change or inbox insertion.',verbose:!!o.verbose,details:o.verbose?'Verbose failures include submitted content; exports are private.':o.details?'Detailed findings may include submitted text; exports are private.':'Bodies, raw responses and finding explanations omitted.',results:[]};
  if(o.preview){stdout(o.json?JSON.stringify(report):human(report));return 0;}
  if(model&&((!p||p.identity!==c.scannerIdentity))){stderr(JSON.stringify({status:'configuration_error',reason:'selected scanner missing or unvalidated; use check/select',plan:report.plan}));return 3;}
  if(o.output){try{fs.mkdirSync(o.output,{mode:0o700});}catch{stderr(JSON.stringify({status:'input_error',reason:'output must be a new directory under an existing parent'}));return 64;}}
@@ -105,7 +158,8 @@ export async function runDiagnostic(command,args,c,host,{configPath,stdout=conso
   const start=performance.now();let result;
   if(item.error)result={verdict:'incomplete',reason:item.error};
   else result=await flow.scan({body:item.body},{mode:engine==='model'?'smart':engine});
-  const row={id:item.id,source:item.source,expected:item.expected,labelProvenance:item.labelProvenance??'bundled control intent',family:item.family,split:item.split,repetition,bodyDigest:item.body===undefined?null:hash(item.body),bodyBytes:item.body===undefined?null:Buffer.byteLength(item.body),verdict:result.verdict,error:item.error,reason:result.reason,stage:result.stage,modelSkipped:model&&result.stage!=='smart',requests:result.requests??0,usage:result.usage,returnedModel:result.returnedModel,elapsedMs:performance.now()-start,outcome:result.verdict==='pass'?'Would pass MCS':result.verdict==='flagged'?'Would hold':'Scan incomplete',findings:result.findings?.map(f=>o.details?f:{id:f.id,category:f.category})??[]};
+  const row={id:item.id,source:item.source,expected:item.expected,labelProvenance:item.labelProvenance??(o.corpus?'operator corpus label':'bundled control intent'),family:item.family,split:item.split,repetition,bodyDigest:item.body===undefined?null:hash(item.body),bodyBytes:item.body===undefined?null:Buffer.byteLength(item.body),verdict:result.verdict,error:item.error,reason:result.reason,stage:result.stage,modelSkipped:model&&result.stage!=='smart',requests:result.requests??0,usage:result.usage,returnedModel:result.returnedModel,elapsedMs:performance.now()-start,outcome:result.verdict==='pass'?'Would pass MCS':result.verdict==='flagged'?'Would hold':'Scan incomplete',findings:result.findings?.map(f=>o.details||o.verbose?f:{id:f.id,category:f.category})??[]};
+  if(o.verbose&&((item.expected==='malicious'&&result.verdict==='pass')||(item.expected==='benign'&&result.verdict==='flagged')))row.body=item.body;
   report.results.push(row);
  }
  report.finishedAt=new Date().toISOString();report.elapsedMs=performance.now()-began;report.summary=summarize(report.results);

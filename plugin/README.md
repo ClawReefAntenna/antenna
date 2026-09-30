@@ -133,10 +133,18 @@ Back up config/state before operator edits. No automatic rollback conversion.
 
 ## MCS evaluation and custom-body diagnostics (development candidate)
 
-`evaluate` and `test` accept `--ruleset /absolute/candidate.json` for offline candidate
+With Dumb or Both, `evaluate` and `test` accept `--ruleset /absolute/candidate.json` for candidate
 rule evaluation without changing the active file. These commands share the production scanner and do **not** send peer messages,
 create sessions, change policy, insert inbox records, or release held work.
 The small private kernel-lock files described below are their only scanner state.
+
+See the [corpus format and authoring guide](CORPORA.md). `evaluate --corpus /path/tests.json`
+selects a custom labelled corpus for that invocation; omitting it uses the separate
+bundled file. `--preview` validates without scanning. Default human output contains
+attacks caught, false positives, incomplete scans and model requests. `--verbose`
+adds missed attack IDs/types/content, false-positive IDs/content/rules or model
+findings, and incomplete IDs/reasons. Repetitions get separate summaries.
+Structured JSON retains detailed diagnostics; custom corpora have dynamic denominators.
 
 ```text
 antenna-plugin /path/openclaw.json mcs evaluate --engine dumb --preview --json
@@ -184,10 +192,11 @@ is performed by the scanner. Shell expansion is the caller's responsibility.
 inferred correct answer. Unlabelled custom tests have no correctness score.
 `--output` must name a new directory under an existing parent: permissions 0700,
 reports 0600, no overwrites. Both JSON and escaped plain-text reports are saved.
-Bodies, raw responses and finding explanations are omitted by default. `--details`
+Bodies, raw responses and finding explanations are omitted by default. `--verbose`
+includes full missed-attack/false-positive bodies and findings in output/exports. `--details`
 includes bounded scanner findings; reasons may quote submitted sensitive text.
 Human output escapes untrusted values; do not interpret report content as commands
-or HTML. Reports include corpus hash, implementation-file hashes, scanner versions,
+or HTML. Structured JSON reports include corpus hash, implementation-file hashes, scanner versions,
 model-selection fingerprint, timings, request counts, order and per-case body digests.
 
 Exit codes: evaluation report generated = 0 (not quality acceptance); custom pass

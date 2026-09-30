@@ -15,7 +15,8 @@
     "MIGRATION.md",
     "corpus/*.json",
     "rules/*.json",
-    "RULESETS.md"
+    "RULESETS.md",
+    "CORPORA.md"
   ],
   "openclaw": {
     "extensions": [
@@ -26,6 +27,6 @@
     "openclaw": ">=2026.9.5"
   },
   "scripts": {
-    "test": "node tests/package.mjs && node tests/flow.mjs && node tests/legacy.mjs && node tests/migration-doctor.mjs && node tests/diagnostics.mjs && node tests/resources.mjs"
+    "test": "node tests/package.mjs && node tests/flow.mjs && node tests/legacy.mjs && node tests/migration-doctor.mjs && node tests/diagnostics.mjs && node tests/resources.mjs && node tests/corpus.mjs"
   }
 }

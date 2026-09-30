@@ -1,3 +1,4 @@
+import {LIMITS} from './limits.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {profileIdentity} from './scanners.mjs';
@@ -59,6 +60,8 @@ export function validateConfig(input,{requireReady=false,host={}}={}){
  const c=structuredClone(input);
  if(c.schemaVersion!==2)throw Error('explicit schema migration required');
  c.mcs??='dumb';c.inbox??='on';c.maxBodyChars??=65536;
+ c.maxActiveSmart??=LIMITS.active;
+ if(!Number.isInteger(c.maxActiveSmart)||c.maxActiveSmart<1||c.maxActiveSmart>LIMITS.active)throw Error('maxActiveSmart must be 1 or 2');
  if(!modes.includes(c.mcs)||!['on','off'].includes(c.inbox))throw Error('invalid mode');
  if(typeof c.receiver!=='string'||!c.receiver||typeof c.bearer!=='string'||c.bearer.length<32)throw Error('receiver and private bearer required');
  if(!c.peers||Array.isArray(c.peers)||!c.destinations||Array.isArray(c.destinations))throw Error('invalid peer/destination map');

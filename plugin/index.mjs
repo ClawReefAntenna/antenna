@@ -14,7 +14,7 @@ export default {id:'antenna',name:'Antenna',register(api){
  const flow=makeFlow(c,api.config); flow.inbox.recover();
  let active=0;const arrivals=[];
  api.registerHttpRoute({path:'/antenna/v1/receive',auth:'plugin',handler:async(req,res)=>{
-  let acquired=false,submissionAttempted=false;
+  let acquired=false,submissionAttempted=false,bodyTimer;
   const send=(code,result)=>{res.statusCode=code;res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return true;};
   const fail=(code,status,reason)=>{throw new Refusal(code,status,reason);};
   try{
@@ -26,9 +26,10 @@ export default {id:'antenna',name:'Antenna',register(api){
    const cap=4*c.maxBodyChars+4096;
    if(req.headers['content-length']&&Number(req.headers['content-length'])>cap)fail(413,'rejected','too_large');
    req.setTimeout(5000,()=>req.destroy());
+   bodyTimer=setTimeout(()=>req.destroy(),5000);
    const chunks=[];let n=0;
    for await(const chunk of req){n+=chunk.length;if(n>cap)fail(413,'rejected','too_large');chunks.push(chunk);}
-   req.setTimeout(0); // Body-read timeout must not shorten the bounded Smart scan.
+   clearTimeout(bodyTimer);req.setTimeout(0); // Body-read timeout must not shorten the bounded Smart scan.
    const fields=parse(Buffer.concat(chunks),c.maxBodyChars);
    let target=authenticate(fields,c);
    // Bounded qualification slice: existing 10/peer, 30/global per minute defaults.
@@ -48,6 +49,6 @@ export default {id:'antenna',name:'Antenna',register(api){
   }catch(e){
    if(e instanceof Refusal)return send(e.code,e.result);
    return send(submissionAttempted?504:503,{status:submissionAttempted?'unknown':'unavailable',reason:submissionAttempted?'confirmation_unavailable':'runtime_unavailable'});
-  }finally{if(acquired)active--;}
+  }finally{clearTimeout(bodyTimer);if(acquired)active--;}
  }});
 }};

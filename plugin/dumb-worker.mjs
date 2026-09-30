@@ -1,3 +1,4 @@
+import {LIMITS} from './limits.mjs';
 import {parentPort,workerData} from 'node:worker_threads';
 export const VERSION='antenna-dumb-0.2';
 // Locally authored candidate rules; no downloaded feeds or executable configuration.
@@ -9,7 +10,7 @@ const rules=[
  ['D005','concealment','Conceal actions from the owner',/\b(?:hide|conceal)\b[^.!?\n]{0,48}\b(?:activity|actions?|execution)\b[^.!?\n]{0,48}\b(?:owner|user|administrator)\b/giu]
 ];
 function scan(body){
- const budget=Math.min(4*Buffer.byteLength(body),262144);let derived=0,incomplete=false;
+ const budget=Math.min(LIMITS.derivedMultiplier*Buffer.byteLength(body),LIMITS.derivedBytes);let derived=0,incomplete=false;
  const findings=[],seen=new Set();
  function inspect(text,map,depth,projection){
   let normalized='',nm=[];
@@ -21,7 +22,7 @@ function scan(body){
   derived+=Buffer.byteLength(normalized);
   if(derived>budget){incomplete=true;return;}
   for(const [id,category,reason,re] of rules){re.lastIndex=0;let m;
-   while((m=re.exec(normalized))&&findings.length<16){// Only direct clause-local negation; never exempt quotations or later matches.
+   while((m=re.exec(normalized))&&findings.length<LIMITS.findings){// Only direct clause-local negation; never exempt quotations or later matches.
     const prefix=normalized.slice(Math.max(0,m.index-48),m.index);
     if(/(?:^|[.!?;\n]\s*)(?:please\s+)?(?:never|do not|don't)\s+$/u.test(prefix)){re.lastIndex=m.index+1;continue;}
     const start=nm[m.index][0],end=nm[m.index+m[0].length-1][1],key=id+':'+start+':'+end;
@@ -31,7 +32,7 @@ function scan(body){
   // Only explicit base64 labels and runs of >=4 hex escapes are candidates.
   const candidates=/\bbase64\s*:\s*([A-Za-z0-9+/=]{8,})|((?:\\u[0-9a-fA-F]{4}|\\x[0-9a-fA-F]{2}){4,})/g;
   for(const m of text.matchAll(candidates)){
-   if(depth>=2){incomplete=true;continue;}
+   if(depth>=LIMITS.decodeDepth){incomplete=true;continue;}
    let decoded;
    try{if(m[1]){const raw=Buffer.from(m[1],'base64');if(raw.toString('base64')!==m[1])throw Error();decoded=new TextDecoder('utf-8',{fatal:true}).decode(raw);}
     else decoded=m[2].replace(/\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})/g,(_,u,x)=>String.fromCharCode(parseInt(u??x,16)));
@@ -43,4 +44,7 @@ function scan(body){
  const map=Array.from({length:body.length},(_,i)=>[i,i+1]);inspect(body,map,0,'original');
  return {schema:1,version:VERSION,verdict:findings.length?'flagged':incomplete?'incomplete':'pass',findings,reason:incomplete?'inspection_budget_or_encoding':undefined};
 }
-if(parentPort)parentPort.postMessage(scan(workerData));
+if(parentPort){
+ if(workerData!==null&&workerData!==undefined)parentPort.postMessage(scan(workerData));
+ else parentPort.on('message',body=>parentPort.postMessage(scan(body)));
+}

@@ -1,3 +1,5 @@
+import path from 'node:path';
+import {capacityDirectory} from './capacity.mjs';
 import {credentialFor,readyProfile} from './policy.mjs';
 import {callGatewayFromCli} from 'openclaw/plugin-sdk/gateway-runtime';
 import {authenticate} from './envelope.mjs';
@@ -9,8 +11,8 @@ export function makeFlow(c,config) {
  const extra={scopes:['operator.read','operator.write'],progress:false};
  return new ReceiveFlow({
   inbox:new Inbox(c.inboxFile),
-  dumb:scanDumb,
-  smart:c.scannerProfile?createSmart(readyProfile(c.scannerProfile,config),{credential:()=>credentialFor(c.scannerProfile)}):undefined,
+  dumb:body=>scanDumb(body,{resourceDir:capacityDirectory(path.dirname(c.inboxFile))}),
+  smart:c.scannerProfile?createSmart(readyProfile(c.scannerProfile,config),{credential:()=>credentialFor(c.scannerProfile),resourceDir:capacityDirectory(path.dirname(c.inboxFile)),maxActive:c.maxActiveSmart??2}):undefined,
   authorize:fields=>authenticate(fields,c,Date.parse(fields.timestamp)),
   resolve:async target=>{const found=await callGatewayFromCli('sessions.resolve',opts,{key:target,allowMissing:true},extra);return found.ok&&found.key===target;},
   submit:async(fields,target)=>{

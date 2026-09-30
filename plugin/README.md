@@ -87,3 +87,105 @@ Unknown legacy layouts, including old array inboxes, require manual migration;
 they are rejected rather than guessed at or discarded. Existing schema-2
 inbox payloads and hold reasons are never rewritten by configuration migration.
 Back up config/state before operator edits. No automatic rollback conversion.
+
+## MCS evaluation and custom-body diagnostics (development candidate)
+
+These commands share the production scanner and do **not** send peer messages,
+create sessions, change policy, insert inbox records, or release held work.
+The small private kernel-lock files described below are their only scanner state.
+
+```text
+antenna-plugin /path/openclaw.json mcs evaluate --engine dumb --preview --json
+antenna-plugin /path/openclaw.json mcs evaluate --engine smart --repeat 2 --output /new/private-report
+antenna-plugin /path/openclaw.json mcs evaluate --engine both --json
+antenna-plugin /path/openclaw.json mcs test --text "meeting agenda" --json
+antenna-plugin /path/openclaw.json mcs test --file one.txt --file two.txt --engine smart --expect benign
+antenna-plugin /path/openclaw.json mcs test --stdin --engine dumb --output /new/private-report
+antenna mcs --config /path/openclaw.json test --file one.txt --engine dumb
+```
+
+Use `antenna-plugin` from the archive, or the companion `antenna` dispatcher with
+an explicit host config. `evaluate` defaults to Smart; `test` defaults to Dumb.
+Smart is model-only, Both is Dumb-first with short-circuit, and `model` is a
+model-only diagnostic alias. These names follow the four-mode policy; the older
+proposal's combined “smart” spelling is not used. Off is not a diagnostic engine.
+
+Smart/model/Both can upload selected bodies to the already validated endpoint.
+Before requests, stderr displays its endpoint/model/locality and maximum request
+count. `--preview` performs no scan or model request and never consumes stdin.
+There is no additional confirmation prompt, provider fallback, retry, model
+installation, selection activation, or automatic acceptance threshold. Tests of
+multiple models are separate explicit selections/runs; reports carry fingerprints
+for comparison. Evaluation itself never switches the selected model.
+
+The bundled versioned corpus has 40 malicious, 40 benign and four ambiguous
+controls. Its JSON contains intent rationales, development/held-out-family splits
+and source/license provenance. Labels were authored without scanner results;
+these are locally authored synthetic controls, **not an independently sourced
+quality certification**. No rules/rubric were tuned against these held-out-family
+cases. Expected labels never enter model requests. Ambiguous controls do not
+enter binary denominators; incomplete scans remain in the relevant denominators.
+Reports distinguish misses, false flags, incomplete holds and operational failures,
+including benign hold burden. Repetitions show disagreement without inflating
+unique-case counts. Usage is reported when returned; cost is unknown without a
+qualified price source. Provider-returned model names do not pin immutable weights.
+
+Inputs are literal UTF-8 text, explicit regular files, or explicit stdin; forms
+cannot be mixed except repeated files. BOMs and terminal newlines are preserved.
+Empty, invalid UTF-8, binary/control, oversized, symlink, device, directory and FIFO
+inputs are rejected rather than cropped. Failed files remain visible in batch
+reports. Stdin has a 30-second read deadline. Use files/stdin to avoid placing
+private text in process arguments or shell history. No URL fetching or globbing
+is performed by the scanner. Shell expansion is the caller's responsibility.
+
+`--expect benign|malicious` supplies an operator **batch-wide** label, never an
+inferred correct answer. Unlabelled custom tests have no correctness score.
+`--output` must name a new directory under an existing parent: permissions 0700,
+reports 0600, no overwrites. Both JSON and escaped plain-text reports are saved.
+Bodies, raw responses and finding explanations are omitted by default. `--details`
+includes bounded scanner findings; reasons may quote submitted sensitive text.
+Human output escapes untrusted values; do not interpret report content as commands
+or HTML. Reports include corpus hash, implementation-file hashes, scanner versions,
+endpoint fingerprint, timings, request counts, order and per-case body digests.
+
+Exit codes: evaluation report generated = 0 (not quality acceptance); custom pass
+= 0, would hold = 2, incomplete/configuration failure = 3, invalid invocation/input
+= 64. Mixed custom batches retain every error and return 64 if any input failed.
+
+## Shared resource limits and retention
+
+`limits.mjs` is the versioned hard-ceiling contract. Scan input is 64 KiB; derived
+inspection text is bounded to min(4× bytes, 256 KiB) and two decoding levels.
+Dumb has a 250 ms wall-time deadline, bounded 64/16 MiB old/young worker heaps,
+and at most two process-local workers; idle workers expire after one second.
+Timeout or worker failure terminates that worker and yields incomplete.
+
+Gateway and CLI share two kernel-owned `flock` slots per engine beneath the
+configured inbox directory (`antenna-scan-slots/`). They use the existing Bash/flock
+dependencies; no daemon, owner database, polling queue or automatic stale-lock
+stealing. Parent EOF/exit releases leases, with bounded lease lifetime. Default
+Smart concurrency is two; `maxActiveSmart: 1` can lower a runtime/command's local
+limit. The cross-process hard ceiling remains two; separate inbox installations
+are separate capacity domains. Busy scans become incomplete, with no delayed
+surprise request. Production durable inbox capacity still governs acceptance.
+
+Smart's 30-second total includes scheduling; connect cap is five seconds, response
+64 KiB, serialized request 16 KiB, requested output 1,024 tokens, at most 16 findings
+and 512 characters per reason. Oversize context/requests hold incomplete, never crop.
+Slow/cold providers time out rather than receiving an automatic retry. HTTP ingress
+also has a five-second total body-read deadline and the existing two-request cap.
+
+Pending scans are bounded by the durable inbox, capped at 100 items / 16 MiB,
+including terminal items. Capacity is not renewed by silently deleting old records:
+**no automatic retention purge, held-payload eviction or pressure-driven release**.
+At capacity, further durable admission fails closed. Archive/retire state only by
+an explicit stopped-writer operator procedure; no automatic cleanup command is
+introduced. Read-only status includes state counts and hard limits. Per-message
+scan metadata and diagnostic reports provide timing/outcome/usage counters without
+ordinary raw-body logging. Evaluation/custom batches are serial, at most 500 cases
+and five repetitions.
+
+Local failure and load evidence does not establish broad support-host performance.
+The initial local receive benchmark missed the proposed 50 ms p95 target, including
+after worker reuse; resource/performance acceptance remains open. Loaded gateway,
+provider, public-network, and long-running soak scopes must be reported separately.

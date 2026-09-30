@@ -1,3 +1,4 @@
+import {LIMITS} from './limits.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash, randomUUID} from 'node:crypto';
@@ -10,9 +11,10 @@ export class InboxError extends Error {}
 // Prototype schema deliberately cannot be consumed as the legacy array queue.
 // One file holds one payload per item; no receipt store or automatic drain.
 export class Inbox {
- constructor(file, {maxItems=100,maxBytes=16*1024*1024}={}) {
-  this.file=file; this.maxItems=maxItems; this.maxBytes=maxBytes;
-  fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});
+ constructor(file, {maxItems=LIMITS.inboxItems,maxBytes=LIMITS.inboxBytes,pendingLimit=LIMITS.pending,readOnly=false}={}) {
+  if(!Number.isInteger(maxItems)||maxItems<1||maxItems>LIMITS.inboxItems||!Number.isInteger(maxBytes)||maxBytes<1||maxBytes>LIMITS.inboxBytes||!Number.isInteger(pendingLimit)||pendingLimit<1||pendingLimit>LIMITS.pending)throw new InboxError('invalid inbox limits');
+  this.file=file; this.maxItems=maxItems; this.maxBytes=maxBytes;this.pendingLimit=pendingLimit;this.readOnly=readOnly;
+  if(!readOnly)fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});
  }
  read() {
   if(!fs.existsSync(this.file))return {schema:2,items:[]};
@@ -28,6 +30,7 @@ export class Inbox {
   return db;
  }
  transaction(fn) {
+  if(this.readOnly)throw new InboxError('read-only inbox');
   // Cross-process exclusion without a lock spanning scanner or runtime awaits.
   // A stale lock fails closed; no automatic lock stealing/recovery service.
   const lock=this.file+'.lock'; fs.mkdirSync(lock,{mode:0o700});
@@ -55,6 +58,7 @@ export class Inbox {
   return this.transaction(db=>{
    if(db.items.some(r=>r.fields.from===fields.from&&r.fields.message_id===fields.message_id))throw new InboxError('duplicate inbox item');
    const r={id:randomUUID(),fields:structuredClone(fields),target,bodyDigest:digest(fields.body),envelopeDigest:digest(JSON.stringify(fields)),policy:structuredClone(policy),state:'scanning',reasons:policy.approval?[reasons.approval]:[],createdAt:new Date().toISOString()};
+   if(db.items.filter(x=>x.state==='scanning').length>=this.pendingLimit){r.state='held';r.reasons.push(reasons.incomplete);r.scan={verdict:'incomplete',reason:'pending_capacity'};}
    db.items.push(r);return structuredClone(r);
   });
  }
@@ -80,15 +84,18 @@ function verdict(result) {
  const safe={verdict:result.verdict,version:typeof result.version==='string'?result.version.slice(0,128):'unqualified'};
  for(const k of ['reason','stage','profile','model','endpoint','locality'])if(typeof result[k]==='string')safe[k]=result[k].slice(0,512);
  if(Number.isFinite(result.elapsedMs))safe.elapsedMs=result.elapsedMs;
+ if(Number.isSafeInteger(result.requests))safe.requests=result.requests;
+ if(result.usage)safe.usage=Object.fromEntries(['prompt_tokens','completion_tokens','total_tokens'].filter(k=>Number.isSafeInteger(result.usage[k])&&result.usage[k]>=0).map(k=>[k,result.usage[k]]));
+ if(typeof result.returnedModel==='string')safe.returnedModel=result.returnedModel.slice(0,128);
  if(Array.isArray(result.findings))safe.findings=result.findings.slice(0,16).map(f=>({id:typeof f.id==='string'?f.id.slice(0,64):undefined,category:String(f.category).slice(0,64),reason:String(f.reason).slice(0,512),start:f.start,end:f.end,projection:f.projection}));
  return safe;
 }
 export class ReceiveFlow {
  constructor({inbox,authorize,resolve,submit,dumb,smart}) {Object.assign(this,{inbox,authorize,resolve,submit,dumb,smart});}
  async scan(fields,policy) {
-  const deadlineAt=Date.now()+30000;
+  const deadlineAt=Date.now()+LIMITS.smartMs;
   if(policy.mode==='off')return {verdict:'skipped'};
-  if(Buffer.byteLength(fields.body)>65536)return {verdict:'incomplete',reason:'scan_size'};
+  if(Buffer.byteLength(fields.body)>LIMITS.bodyBytes)return {verdict:'incomplete',reason:'scan_size'};
   try{
    // An absent engine is incomplete, never a pretend pass. Engine adapters must
    // enforce their own hard deadlines; fixture adapters are test-only.
@@ -119,6 +126,7 @@ export class ReceiveFlow {
   // Called only after signed admission + rate/replay reservation + preflight.
   if(policy.mode==='off'&&!policy.approval)return this.dispatch(fields,target);
   const r=this.inbox.create(fields,target,policy);
+  if(r.state==='held')return {status:'held',id:r.id,reasons:r.reasons};
   const scan=await this.scan(fields,policy);
   const item=this.inbox.change(r.id,x=>{x.scan=scan;x.state='held';
    if(scan.verdict==='flagged')x.reasons.push(reasons.flagged);

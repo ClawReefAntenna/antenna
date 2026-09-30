@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {LIMITS} from './limits.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -6,7 +7,7 @@ import {validateConfig,migrate,modes,resolveProfile,readyProfile,credentialFor} 
 import {createSmart,profileIdentity} from './scanners.mjs';
 import {Inbox} from './inbox.mjs';
 const args=process.argv.slice(2),configPath=args.shift(),command=args.shift();
-const help='Usage: antenna-plugin <openclaw.json> status|init <policy.json>|mode <off|dumb|smart|both> [peer]|check <profile.json>|select <profile.json>|migrate [--apply]|inbox list|show|release|discard|approve-ordinary [id] [acknowledgements JSON]';
+const help='Usage: antenna-plugin <openclaw.json> mcs evaluate|test [options]|status|init <policy.json>|mode <off|dumb|smart|both> [peer]|check <profile.json>|select <profile.json>|migrate [--apply]|inbox list|show|release|discard|approve-ordinary [id] [acknowledgements JSON]';
 try{
  if(!configPath||!command)throw Error(help);
  const original=fs.readFileSync(configPath,'utf8'),host=JSON.parse(original);
@@ -39,9 +40,14 @@ try{
   else console.log(JSON.stringify({from:c.schemaVersion,to:next.schemaVersion,mcs:next.mcs,peers:Object.fromEntries(Object.entries(next.peers).map(([k,v])=>[k,v.mcs??'default'])),inbox:'preserved',apply:false}));
  }else{
   c=validateConfig(c);
-  if(command==='status'){
+  if(command==='mcs'){
+   const {runDiagnostic}=await import('./evaluation.mjs');
+   process.exitCode=await runDiagnostic(args.shift(),args,c,host,{configPath});
+  }else if(command==='status'){
    const p=c.scannerProfile&&readyProfile(c.scannerProfile,host);
-   console.log(JSON.stringify({schemaVersion:2,mcs:c.mcs,inbox:c.inbox,peers:Object.fromEntries(Object.entries(c.peers).map(([k,v])=>[k,{configured:v.mcs??'default',effective:!v.mcs||v.mcs==='default'?c.mcs:v.mcs}])),scanner:p?{model:p.model,endpoint:p.baseUrl,locality:p.locality,ready:!!p.validatedIdentity}:null}));
+   const items=new Inbox(c.inboxFile,{readOnly:true}).read().items;
+   const stateCounts=Object.fromEntries(['scanning','held','dispatching','submitted','unknown','discarded'].map(state=>[state,items.filter(r=>r.state===state).length]));
+   console.log(JSON.stringify({stateCounts,limits:LIMITS,maxActiveSmart:c.maxActiveSmart,schemaVersion:2,mcs:c.mcs,inbox:c.inbox,peers:Object.fromEntries(Object.entries(c.peers).map(([k,v])=>[k,{configured:v.mcs??'default',effective:!v.mcs||v.mcs==='default'?c.mcs:v.mcs}])),scanner:p?{model:p.model,endpoint:p.baseUrl,locality:p.locality,ready:!!p.validatedIdentity}:null}));
   }else if(command==='mode'){
    const [mode,peer]=args;
    if(!modes.includes(mode)&&!(peer&&mode==='default'))throw Error('invalid mode');

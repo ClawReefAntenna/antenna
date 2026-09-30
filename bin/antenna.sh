@@ -16,6 +16,18 @@ SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 SCRIPTS_DIR="$SKILL_DIR/scripts"
 
+# MCS diagnostics bypass legacy initialization/permission repair and require an
+# explicit host config; they never infer a live destination or create an inbox.
+if [[ "${1:-}" == "mcs" ]]; then
+  shift
+  if [[ "${1:-}" != "--config" || -z "${2:-}" ]]; then
+    printf '%s\n' 'Usage: antenna mcs --config /absolute/openclaw.json evaluate|test [options]' >&2
+    exit 64
+  fi
+  mcs_host="$2"; shift 2
+  exec node "$SKILL_DIR/plugin/cli.mjs" "$mcs_host" mcs "$@"
+fi
+
 # Discovery/preparation must also work before setup and must not heal permissions,
 # emit ANSI, load credentials, or mutate installed state.
 if [[ "${1:-}" == "clawreef" ]]; then

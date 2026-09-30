@@ -18,7 +18,7 @@ class DiscoveryTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory(); self.root=Path(self.tmp.name)/'skill'
         for directory in ['bin','scripts','lib']:
             (self.root/directory).mkdir(parents=True)
-        for file in ['bin/antenna.sh','scripts/antenna-clawreef.py','lib/session-policy.py','lib/clawreef-contract.json']:
+        for file in ['bin/antenna.sh','scripts/antenna-clawreef.py','lib/session_policy.py','lib/clawreef-contract.json']:
             shutil.copyfile(SOURCE/file,self.root/file)
         self.calls=[]; outer=self
         self.body=CONTRACT;self.http=200;self.raw=None

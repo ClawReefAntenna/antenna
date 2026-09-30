@@ -26,7 +26,7 @@ new_skill() {
   local sk="$TMP/skill-$1"
   mkdir -p "$sk/scripts" "$sk/lib/relay-policy/agent" "$sk/agent"
   cp "$DOCTOR" "$sk/scripts/"
-  cp "$ROOT"/lib/*.sh "$ROOT/lib/session-policy.py" "$sk/lib/"
+  cp "$ROOT"/lib/*.sh "$ROOT/lib/session_policy.py" "$sk/lib/"
   cp "$ROOT/lib/relay-policy/agent/AGENTS.md" "$sk/lib/relay-policy/agent/"
   cp "$ROOT/lib/relay-policy/manifest.txt" "$sk/lib/relay-policy/"
   printf '%s\n' "$sk"

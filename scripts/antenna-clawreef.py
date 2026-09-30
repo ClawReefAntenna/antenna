@@ -2,7 +2,6 @@
 """ClawReef discovery, protected enrollment and standing host permissions."""
 import argparse
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import re
@@ -14,6 +13,9 @@ import urllib.request
 import uuid
 
 ROOT = Path(__file__).resolve().parent.parent
+# Resolve bundled modules before CWD/PYTHONPATH; keep read-only commands write-free.
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(ROOT / 'lib'))
 CONTRACT = json.loads((ROOT / 'lib/clawreef-contract.json').read_text())
 
 class Failure(Exception):
@@ -92,12 +94,8 @@ def discover(service):
             'enrollment_checked': False}
 
 def policy_module():
-    spec = importlib.util.spec_from_file_location('session_policy', ROOT / 'lib/session-policy.py')
-    module = importlib.util.module_from_spec(spec)
-    # Avoid writing __pycache__ into installed state during read-only preparation.
-    sys.dont_write_bytecode = True
-    spec.loader.exec_module(module)
-    return module
+    import session_policy
+    return session_policy
 
 def local_state():
     fail((ROOT / 'antenna-config.json').is_file() and (ROOT / 'antenna-peers.json').is_file(),
@@ -190,16 +188,13 @@ def run(args):
     policy, config, peer, host, candidates = local_state()
     registration_path = ROOT / '.clawreef' / (hashlib.sha256(service.encode()).hexdigest()+'.json')
     if opts.command in ('enroll','whoami','capabilities','groups','reports') or (opts.command == 'status' and (registration_path.exists() or registration_path.is_symlink())):
-        spec=importlib.util.spec_from_file_location('clawreef_registration',ROOT/'lib/clawreef-registration.py')
-        registration=importlib.util.module_from_spec(spec);sys.dont_write_bytecode=True;spec.loader.exec_module(registration)
+        import clawreef_registration as registration
         client=registration.Registration(sys.modules[__name__],service,(policy,config,peer,host,candidates))
         if opts.command=='reports':
-            spec=importlib.util.spec_from_file_location('clawreef_reports',ROOT/'lib/clawreef-reports.py')
-            reports=importlib.util.module_from_spec(spec);spec.loader.exec_module(reports)
+            import clawreef_reports as reports
             return reports.run(client,opts)
         if opts.command=='groups':
-            spec=importlib.util.spec_from_file_location('clawreef_groups',ROOT/'lib/clawreef-groups.py')
-            groups=importlib.util.module_from_spec(spec);spec.loader.exec_module(groups)
+            import clawreef_groups as groups
             return groups.run(client,opts)
         return client.enroll(opts) if opts.command=='enroll' else client.status(opts)
     if opts.command == 'status':

@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*v1.6.7 private candidate guide — not yet published. See [backup, restore and readiness](BACKUP-AND-READINESS.md) for the new commands; older installation examples do not install this candidate.*
+*1.6.8-dev.4 private candidate: start with [the plugin/companion handoff](PLUGIN-CANDIDATE.md). The relay installation walkthrough below is retained legacy reference, not plugin setup. Not published.*
 
 ---
 
@@ -315,6 +315,14 @@ antenna peers test myserver
 # Send
 antenna msg myserver "Hello!"
 ```
+
+**HTTP opt-in:** Setup and peer add/update accept `--allow-insecure` to permit
+an explicitly selected `http://` endpoint. HTTP provides no transport encryption:
+bearer tokens and messages may be exposed unless an encrypted Tailscale/SSH tunnel
+protects that connection. A private IP does not itself establish encryption;
+loopback relies on local host security. Signatures authenticate, not encrypt.
+Accepted HTTP configuration emits one warning on stderr. HTTPS is unchanged;
+existing HTTP peers are not rewritten or subjected to a new sending gate.
 
 > **Why `--force` for existing peers?** Without it, `antenna peers add` refuses to touch a peer you've already paired with - so a stray second invocation can't silently clobber your trust material. With `--force`, only the fields you explicitly pass are updated; everything else (including the peer's exchange public key, identity secret file, display name, and any `self` / unknown-future-field metadata from encrypted exchange) is preserved.
 

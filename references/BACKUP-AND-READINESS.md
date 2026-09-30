@@ -1,5 +1,11 @@
 # Backup, restore and readiness — v1.6.7 private candidate
 
+> Retained v1.6.7 legacy recovery guidance. For the 1.6.8-dev.4 plugin candidate,
+> start with [the candidate handoff](PLUGIN-CANDIDATE.md) and manual migration.
+> Legacy restore/readiness cannot qualify or restore migrated plugin state; preserve
+> plugin inbox/replay separately and never restore a peer-known general-hook token.
+
+
 These commands are implemented in the local candidate, not yet published.
 They do not change the messaging transport or implement v1.6.8 staging/MCS.
 

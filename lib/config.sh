@@ -88,7 +88,7 @@ config_get() {
 #   in place. Returns non-zero (and preserves the original file) if jq fails
 #   or $CONFIG_FILE is missing.
 # Shared Python writer locks, validates the prospective policy, and swaps atomically.
-_ANTENNA_POLICY_HELPER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/session-policy.py"
+_ANTENNA_POLICY_HELPER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/session_policy.py"
 config_policy() { python3 "$_ANTENNA_POLICY_HELPER" "$CONFIG_FILE" "$@"; }
 config_mutate() {
   local filter="$1"; shift

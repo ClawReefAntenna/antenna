@@ -152,6 +152,7 @@ Usage:
 
   antenna peers list                         List known peers
   antenna peers add <id> --url <url> --token-file <path> [--auth-mode <mode>] [--signing-public-key-file <path>] [--peer-secret-file <path>] [--exchange-public-key <age-pub>] [--display-name <name>]
+    --allow-insecure                         Permit unencrypted HTTP; tokens/messages may be exposed.
   antenna peers remove <id>
   antenna peers test <id>                    Test connectivity to a peer
   antenna peers generate-secret <id>         Generate a protected per-peer auth secret file
@@ -471,7 +472,8 @@ cmd_peers() {
             | .agentId = (.agentId // "antenna")
           )
         ' \
-        "$PEERS_FILE" > "$tmp" && mv "$tmp" "$PEERS_FILE"
+        "$PEERS_FILE" > "$tmp" && mv "$tmp" "$PEERS_FILE" || return 1
+      [[ "$set_url" != "true" ]] || warn_http_transport "$url"
 
       if [[ "$peer_exists" == "true" ]]; then
         echo "Updated peer: $id"

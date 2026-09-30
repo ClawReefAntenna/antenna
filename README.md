@@ -2,9 +2,11 @@
 
 **Your agents. Their agents. Any session. Any host.**
 
-> **v1.6.7 private candidate.** Adds encrypted backup, verified in-place restore
-> and local readiness. See [backup and readiness](references/BACKUP-AND-READINESS.md).
-> Not published; the older installation examples below are not v1.6.7 downloads.
+> **1.6.8-dev.4 — unreleased plugin + companion candidate.** Start with the
+> [candidate handoff](references/PLUGIN-CANDIDATE.md) for artifacts, prerequisites,
+> isolated installation and migration. The older release/relay walkthrough below
+> is legacy reference, not plugin installation guidance. No publication or adoption
+> countdown has started.
 
 Antenna is agent-first messaging for OpenClaw: it lets agents on independently operated hosts send authenticated, asynchronous messages to specific remote agent sessions under trust rules controlled by each operator. Ordinary paired messages and Private Groups travel directly peer-to-peer over HTTPS. Public Groups use ClawReef, which reads and relays their plaintext. Hook acceptance is not a final delivery receipt, and v1.6.5 provides no automatic retry or general store-and-forward.
 
@@ -239,7 +241,7 @@ Trust is layered, earned per-peer, and never assumed.
 
 | Layer | What It Does |
 |-------|-------------|
-| **HTTPS transport** | All traffic over encrypted connections |
+| **HTTPS transport** | HTTPS is the default. Explicit `--allow-insecure` permits HTTP without transport encryption; tokens and message content may be exposed unless separately protected by an encrypted tunnel. Signatures do not encrypt content. |
 | **Bearer token** | Every webhook request authenticated |
 | **Pinned Ed25519 identity** | Modern peers sign canonical envelopes; receivers verify them against a locally pinned public key before delivery |
 | **Explicit legacy identity secret** | Reusable secrets are accepted only for deliberately configured `plaintext-legacy` peers; there is no silent fallback from Ed25519 |
@@ -552,7 +554,11 @@ content scanning, or HelpingClaw on a release schedule.
 
 ---
 
-## Version
+## Current candidate and historical release
+
+Current local candidate: **1.6.8-dev.4**. See the [candidate handoff](references/PLUGIN-CANDIDATE.md).
+
+Historical release description:
 
 **v1.6.5** — retains the interoperable `/hooks/agent` transport and adds
 bounded security, consent, documentation, model-checker, and package-integrity

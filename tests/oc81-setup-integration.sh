@@ -22,7 +22,7 @@ make_case() {
   mkdir -p "$skill/scripts" "$skill/lib/relay-policy/agent" "$skill/bin" "$skill/agent" \
     "$home/.openclaw" "$home/.local/bin" "$home/bin"
   cp "$ROOT/scripts/antenna-setup.sh" "$skill/scripts/"
-  cp "$ROOT/lib/peers.sh" "$ROOT/lib/session-policy.py" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
+  cp "$ROOT/lib/peers.sh" "$ROOT/lib/session_policy.py" "$ROOT/lib/gateway-roster.sh" "$ROOT/lib/relay-policy.sh" "$ROOT/lib/cli-link.sh" "$ROOT/lib/secret-file.sh" \
     "$ROOT/lib/change-plan.sh" \
     "$ROOT/lib/v163-staging-cleanup.sh" "$skill/lib/"
   cp "$ROOT/lib/relay-policy/manifest.txt" "$skill/lib/relay-policy/"
@@ -60,9 +60,27 @@ run_setup() {
   PATH="$home/bin:$home/.local/bin:$PATH" HOME="$home" USER=fixture OC_CASE_DIR="$case_dir" \
     bash "$skill/scripts/antenna-setup.sh" \
       --host-id fixture --display-name Fixture \
-      --url https://fixture.example.com --agent-id betty \
+      --url "${HTTP_TEST_URL:-https://fixture.example.com}" ${HTTP_TEST_FLAGS:-} --agent-id betty \
       --model fixture/relay --token-file "$home/hooks.token" --inbox false --yes
 }
+
+# Reuse the isolated setup harness for actual successful HTTP configuration.
+IFS=$'\t' read -r http_case http_skill http_home < <(
+  make_case http 2026.8.1 '{"agents":{"entries":{"betty":{}}},"hooks":{"token":"fixture-token-012345678901234567890123456789"}}'
+)
+HTTP_TEST_URL=http://fixture.example.com HTTP_TEST_FLAGS=--allow-insecure run_setup "$http_case" "$http_skill" "$http_home" >"$TMP/http.out" 2>"$TMP/http.err"
+check "HTTP setup warns exactly once on stderr" test "$(grep -c 'HTTP provides no transport encryption.' "$TMP/http.err")" = 1
+check "HTTP setup retains configured URL" jq -e '.fixture.url=="http://fixture.example.com"' "$http_skill/antenna-peers.json"
+check "HTTP setup warning absent from stdout" bash -c '! grep -q "HTTP provides no transport encryption." "$1"' bash "$TMP/http.out"
+
+IFS=$'\t' read -r wizard_case wizard_skill wizard_home < <(
+  make_case wizard 2026.8.1 '{"agents":{"entries":{"betty":{}}},"hooks":{"token":"fixture-token-012345678901234567890123456789"}}'
+)
+printf 'fixture\nFixture\nhttp://fixture.example.com\nbetty\nfixture/relay\nn\ny\nn\n' | \
+  PATH="$wizard_home/bin:$wizard_home/.local/bin:$PATH" HOME="$wizard_home" USER=fixture OC_CASE_DIR="$wizard_case" \
+  bash "$wizard_skill/scripts/antenna-setup.sh" --allow-insecure --yes >"$TMP/wizard.out" 2>"$TMP/wizard.err"
+check "interactive HTTP setup warns exactly once" test "$(grep -c 'HTTP provides no transport encryption.' "$TMP/wizard.err")" = 1
+check "interactive HTTP URL retained" jq -e '.fixture.url=="http://fixture.example.com"' "$wizard_skill/antenna-peers.json"
 
 IFS=$'\t' read -r list_case list_skill list_home < <(
   make_case list 2026.7.1 '{

@@ -3,16 +3,16 @@
 Run only while dispatch is stopped; export is NOT a live downgrade command.
 """
 import argparse
-import importlib.util
+import sys
 import json
 import os
 from pathlib import Path
 import shutil
 import tempfile
 
-spec = importlib.util.spec_from_file_location('session_policy', Path(__file__).resolve().parents[1] / 'lib/session-policy.py')
-p = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(p)
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+import session_policy as p
 
 
 def export(config_path, output):

@@ -22,7 +22,7 @@ def check(condition, label):
 with tempfile.TemporaryDirectory(prefix='antenna-review-r5-r6-') as temp:
     base = Path(temp)
     skill = base / 'skill'
-    for relative in ('scripts/antenna-inbox.sh', 'lib/config.sh', 'lib/session-policy.py'):
+    for relative in ('scripts/antenna-inbox.sh', 'lib/config.sh', 'lib/session_policy.py'):
         target = skill / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(root / relative, target)

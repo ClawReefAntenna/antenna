@@ -1,6 +1,5 @@
 """Private member removal requests. Reasons travel via stdin, never retry files."""
 import hashlib
-import importlib.util
 import re
 import sys
 import unicodedata
@@ -34,8 +33,7 @@ def run(r,o):
         r.fail(len(raw)<=16384 and 0<len(reason)<=4000 and reason.strip() and
                all(c in '\r\n\t' or unicodedata.category(c) not in ('Cc','Cf','Cs') for c in reason),
                'INVALID_REPORT_TEXT','Use 1–4,000 characters, at most 16 KiB, without unsafe control characters.',2)
-        spec=importlib.util.spec_from_file_location('clawreef_group_storage',r.cli.ROOT/'lib/clawreef-groups.py')
-        storage=importlib.util.module_from_spec(spec);spec.loader.exec_module(storage)
+        import clawreef_groups as storage
         path=r.directory/('report-'+hashlib.sha256((r.service+host+o.group_id).encode()).hexdigest()+'.json')
         old=storage.private_json(r,path)
         digest=hashlib.sha256(raw).hexdigest()

@@ -1,5 +1,4 @@
 import base64
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,8 +9,9 @@ import tempfile
 import unittest
 sys.dont_write_bytecode = True
 ROOT=Path(__file__).resolve().parent.parent
-spec=importlib.util.spec_from_file_location('http_signing',ROOT/'lib/clawreef-http.py')
-http=importlib.util.module_from_spec(spec);spec.loader.exec_module(http)
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(ROOT / 'lib'))
+import clawreef_http as http
 VECTORS=json.loads((ROOT/'tests/fixtures/clawreef-http-v1.json').read_text())['vectors']
 
 class SigningTests(unittest.TestCase):

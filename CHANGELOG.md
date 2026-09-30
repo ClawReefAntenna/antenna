@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.6.8-dev.4] — Unreleased local candidate
+
+- Replace fixed file-based Python loaders with conventional bundled imports;
+  rename internal modules and reconcile companion/fixture callers.
+- Disclose unencrypted HTTP in setup/peer help, emit one warning after accepted
+  HTTP configuration, and qualify transport claims without changing opt-in.
+- Reconcile plugin/companion candidate metadata and entry-point guidance.
+- Inherits dev.3 scanner/runtime behavior unchanged; no new scanner-quality,
+  universal support, publication or production-cutover claim.
+
+
 ## [1.6.7] — Unreleased private candidate
 
 - Encrypted Antenna-state backup with protected operator passphrase entry and verification.

@@ -1,4 +1,4 @@
-# Antenna OpenClaw plugin — development candidate
+# Antenna OpenClaw plugin — 1.6.8-dev.4 development candidate
 
 Inbound signed v2 delivery with Off / Dumb / Smart / Both content scanning.
 Default: Dumb. Both runs Dumb first and only calls Smart after a pass.
@@ -8,12 +8,15 @@ in every mode. Ordinary approval and MCS holds remain independent.
 This is the packaged inbound vertical slice, not a released replacement for
 the legacy Antenna skill. Manual legacy migration, new direct/list transport and contact exchange now have
 a development implementation; see [MIGRATION.md](MIGRATION.md). Full release,
-live cutover and native subscription qualification remain separate work. No atomic session-incarnation or exactly-once
+live cutover and final release qualification remain separate work. Earlier native
+subscription evidence is scoped to its tested artifact/runtime, not every candidate. No atomic session-incarnation or exactly-once
 delivery guarantee is made.
 
 ## Install in an isolated OpenClaw instance
 
-Requires Node supported by OpenClaw 2026.9.5+, Bash, jq and flock.
+Requires Node supported by OpenClaw, Bash, jq and flock. Local qualification uses
+Linux x64 / Node 26.8.2 / OpenClaw 2026.9.5. The manifest floor `>=2026.9.5`
+is not certification of all later releases or platforms.
 Package with `npm pack ./plugin`; install the resulting archive with
 `openclaw plugins install /absolute/path/to/archive.tgz` using the intended
 isolated OpenClaw state/config environment. Do not point qualification at
@@ -189,3 +192,11 @@ Local failure and load evidence does not establish broad support-host performanc
 The initial local receive benchmark missed the proposed 50 ms p95 target, including
 after worker reuse; resource/performance acceptance remains open. Loaded gateway,
 provider, public-network, and long-running soak scopes must be reported separately.
+
+## Companion packaging
+
+This npm archive includes the plugin and its own operators, not the companion
+`antenna` shell CLI or Python helpers. Keep companion `bin/`, `scripts/`, `lib/`
+and `plugin/` together at the same development version. The repository's
+`references/PLUGIN-CANDIDATE.md` describes the two-artifact handoff; it is not
+included in this plugin-only archive. Legacy setup is not plugin initialization.

@@ -7,7 +7,6 @@ import contextlib
 import fcntl
 import getpass
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -28,8 +27,8 @@ class Registration:
         self.directory=cli.ROOT/'.clawreef'
         self.path=self.directory/(hashlib.sha256(service.encode()).hexdigest()+'.json')
         self.key_id='ed25519-'+cli.fingerprint(self.peer)
-        spec=importlib.util.spec_from_file_location('clawreef_http',cli.ROOT/'lib/clawreef-http.py')
-        self.http=importlib.util.module_from_spec(spec);sys.dont_write_bytecode=True;spec.loader.exec_module(self.http)
+        import clawreef_http
+        self.http = clawreef_http
 
     def fail(self,condition,code,message,exit_code=3,**kw):
         self.cli.fail(condition,code,message,exit_code,**kw)

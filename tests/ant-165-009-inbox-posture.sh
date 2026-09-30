@@ -81,7 +81,7 @@ fi
 
 assert_fixed "$RELAY" 'config_policy admit "$FROM" "$SIGNED_TARGET_SESSION"' \
   "relay delegates canonical review selection to shared policy"
-assert_fixed "$(dirname "$RELAY")/../lib/session-policy.py" "mode == 'on' and sender not in" \
+assert_fixed "$(dirname "$RELAY")/../lib/session_policy.py" "mode == 'on' and sender not in" \
   "trusted-peer bypass remains confined to On mode"
 assert_absent "$EXAMPLE" 'inbox_(peers|quarantine_peers)' \
   "v1.6.5 adds no selective quarantine field"

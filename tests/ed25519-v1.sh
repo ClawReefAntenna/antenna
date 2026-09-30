@@ -133,7 +133,7 @@ for host in sender receiver; do
   mkdir -p "$TMP/$host/lib" "$TMP/$host/scripts" "$TMP/$host/secrets" "$TMP/$host/keys"
   chmod 0700 "$TMP/$host/secrets" "$TMP/$host/keys"
   cp -R "$ROOT/scripts/." "$TMP/$host/scripts/"
-  cp "$ROOT/lib/peers.sh" "$ROOT/lib/config.sh" "$ROOT/lib/session-policy.py" "$ROOT/lib/antenna-signature.sh" \
+  cp "$ROOT/lib/peers.sh" "$ROOT/lib/config.sh" "$ROOT/lib/session_policy.py" "$ROOT/lib/antenna-signature.sh" \
     "$ROOT/lib/antenna-replay.sh" "$ROOT/lib/antenna-envelope-parse.py" "$TMP/$host/lib/"
   printf token >"$TMP/$host/secrets/token"
 done

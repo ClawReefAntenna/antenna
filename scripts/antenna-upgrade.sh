@@ -334,11 +334,11 @@ jq --arg install_path "$SKILL_DIR" '.install_path = $install_path' \
 chmod --reference="$stage/antenna-config.json" "$config_tmp" 2>/dev/null || chmod 600 "$config_tmp"
 mv -- "$config_tmp" "$stage/antenna-config.json"
 
-python3 "$SKILL_DIR/lib/session-policy.py" "$SOURCE_CONFIG" stage-queue "$stage" "$SKILL_DIR" \
+python3 "$SKILL_DIR/lib/session_policy.py" "$SOURCE_CONFIG" stage-queue "$stage" "$SKILL_DIR" \
   || die "Configured inbox cannot be safely preserved; activation refused"
-python3 "$SKILL_DIR/lib/session-policy.py" "$stage/antenna-config.json" validate >/dev/null \
+python3 "$SKILL_DIR/lib/session_policy.py" "$stage/antenna-config.json" validate >/dev/null \
   || die "Staged session/inbox policy is invalid; activation refused"
-python3 "$SKILL_DIR/lib/session-policy.py" "$stage/antenna-config.json" validate-queue \
+python3 "$SKILL_DIR/lib/session_policy.py" "$stage/antenna-config.json" validate-queue \
   || die "Staged inbox binding data is invalid; activation refused"
 
 gateway_dir="$(dirname "$GATEWAY_CONFIG")"

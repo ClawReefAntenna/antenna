@@ -120,7 +120,7 @@ def summary(m,fingerprints):
 
 def package_target(root):
     state.need(root.is_dir() and root==root.resolve(),'INVALID_TARGET','Select a regular existing Antenna installation directory.')
-    for n in ('bin/antenna.sh','lib/session-policy.py','lib/antenna_state.py','scripts/antenna-backup.py'):
+    for n in ('bin/antenna.sh','lib/session_policy.py','lib/antenna_state.py','scripts/antenna-backup.py'):
         state.read_file(root/n)
     # v1.6.7 initially supports its own state schema, not arbitrary future packages.
     state.need((root/'lib/antenna_state.py').read_bytes()==(ROOT/'lib/antenna_state.py').read_bytes(),

@@ -10,12 +10,14 @@ import json
 import os
 from pathlib import Path
 import re
-import runpy
+import sys
 import stat
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = runpy.run_path(str(ROOT / 'lib/session-policy.py'))
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(ROOT / 'lib'))
+import session_policy as policy
 MAX_FILE = 128 * 1024 * 1024
 MAX_TOTAL = 512 * 1024 * 1024
 MAX_MEMBERS = 10000
@@ -44,7 +46,7 @@ def digest(data):
 
 def decode(raw):
     try:
-        return POLICY['decode'](raw)
+        return policy.decode(raw)
     except (ValueError, UnicodeError):
         raise StateError('INVALID_JSON', 'Invalid or duplicate JSON fields; contents withheld.') from None
 
@@ -141,7 +143,7 @@ def destination(root, value, credential=False, public=False):
 
 def config_valid(config):
     try:
-        POLICY['validate'](config)
+        policy.validate(config)
         for field in ('local_agent_id','relay_agent_id'):
             value=config.get(field,'antenna' if field=='relay_agent_id' else 'agent')
             need(isinstance(value,str) and re.fullmatch(r'[A-Za-z0-9_-]+',value))
@@ -269,7 +271,7 @@ def validate_snapshot(root, files):
         need(not any(p.get('exchange_public_key') for p in peers.values()),'MISSING_CREDENTIAL','Exchange identity files missing.')
     if queue in files:
         try:
-            items=POLICY['validate_queue'](decode(files[queue]))
+            items=policy.validate_queue(decode(files[queue]))
             need(all(i.get('status') in ('pending','approved','denied','delivered','failed') for i in items))
         except (ValueError,TypeError,KeyError): raise StateError('INVALID_INBOX','Inbox schema invalid.') from None
     for name,raw in files.items():

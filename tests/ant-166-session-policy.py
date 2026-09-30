@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Isolated policy + signed relay/queue tests; gateway is a recording fixture."""
-import importlib.util
 import json
+import sys
 import os
 from pathlib import Path
 import shutil
@@ -12,9 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('policy', ROOT / 'lib/session-policy.py')
-p = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(p)
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(ROOT / 'lib'))
+import session_policy as p
 A = 'agent:betty:dashboard:11111111-1111-4111-8111-111111111111'
 B = 'agent:betty:dashboard:22222222-2222-4222-8222-222222222222'
 C = 'agent:vivian:dashboard:33333333-3333-4333-8333-333333333333'
@@ -88,7 +88,7 @@ else:
         return r
 
     def helper(self, *args, data=None, ok=True):
-        r = subprocess.run(['python3', str(self.skill / 'lib/session-policy.py'), str(self.cfg), *args],
+        r = subprocess.run(['python3', str(self.skill / 'lib/session_policy.py'), str(self.cfg), *args],
                            input=data, env=self.env, capture_output=True, text=True)
         self.assertEqual(r.returncode == 0, ok, (args, r.stdout, r.stderr))
         return r

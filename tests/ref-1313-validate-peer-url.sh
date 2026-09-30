@@ -179,11 +179,22 @@ else
 fi
 
 # CLI accept: --url http://localhost:8080 with --allow-insecure (peer "carol")
-if run_peers_add carol --url http://localhost:8080 --token-file secrets/hooks_token_carol --allow-insecure >/dev/null 2>&1; then
+if run_peers_add carol --url http://localhost:8080 --token-file secrets/hooks_token_carol --allow-insecure >"$TEST_ROOT/add.out" 2>"$TEST_ROOT/add.err"; then
   pass "peers add http://localhost:8080 --allow-insecure: accepted"
 else
   fail "peers add http://localhost:8080 --allow-insecure: should have succeeded"
 fi
+
+# HTTP disclosure belongs to accepted configuration, not validation or sends.
+warning='HTTP provides no transport encryption.'
+[[ $(grep -c "$warning" "$TEST_ROOT/add.err") == 1 ]] && pass "HTTP new peer warns once" || fail "new peer warning missing/duplicated"
+run_peers_add carol --force --url http://localhost:8081 --allow-insecure >"$TEST_ROOT/http.out" 2>"$TEST_ROOT/http.err"
+[[ $(grep -c "$warning" "$TEST_ROOT/http.err") == 1 ]] && pass "HTTP update warns once on stderr" || fail "HTTP warning missing/duplicated"
+! grep -q "$warning" "$TEST_ROOT/http.out" && pass "HTTP warning does not alter stdout" || fail "warning leaked to stdout"
+run_peers_add carol --force --display-name Renamed >"$TEST_ROOT/edit.out" 2>"$TEST_ROOT/edit.err"
+! grep -q "$warning" "$TEST_ROOT/edit.err" && pass "unrelated existing HTTP edit does not warn" || fail "unrelated edit warned"
+run_peers_add bob --force --url https://bob.example --allow-insecure >"$TEST_ROOT/https.out" 2>"$TEST_ROOT/https.err"
+! grep -q "$warning" "$TEST_ROOT/https.err" && pass "HTTPS with unused opt-in does not warn" || fail "HTTPS warned"
 
 # CLI reject on --force update with bad --url
 if run_peers_add bob --force --url main >/dev/null 2>&1; then
@@ -215,9 +226,8 @@ run_setup() {
   (
     cd "$SETUP_DIR"
     SKILL_DIR="$SETUP_DIR" bash "$SETUP_DIR/scripts/antenna-setup.sh" \
-      --non-interactive \
       --host-id testhost \
-      --display "Test Host" \
+      --display-name "Test Host" \
       --agent-id antenna \
       --model "noop/noop" \
       "$@"

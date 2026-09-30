@@ -11,7 +11,7 @@ expect(){ n="$1"; shift; "$@" && ok "$n" || no "$n"; }
 SKILL="$ROOT/skill"
 mkdir -p "$SKILL"/{scripts,lib,secrets,bin}
 cp "$REPO/scripts/antenna-list-send.sh" "$SKILL/scripts/"
-cp "$REPO/lib/peers.sh" "$REPO/lib/config.sh" "$REPO/lib/session-policy.py" "$REPO/lib/antenna-signature.sh" "$REPO/lib/secret-file.sh" \
+cp "$REPO/lib/peers.sh" "$REPO/lib/config.sh" "$REPO/lib/session_policy.py" "$REPO/lib/antenna-signature.sh" "$REPO/lib/secret-file.sh" \
   "$REPO/lib/antenna-list-meta.py" "$SKILL/lib/"
 cp "$REPO/bin/antenna.sh" "$SKILL/bin/"
 cat >"$SKILL/antenna-peers.json" <<'JSON'

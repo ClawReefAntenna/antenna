@@ -1,5 +1,12 @@
 # Security Policy
 
+> **Development candidate 1.6.8-dev.4:** not a supported public release. The
+> [candidate handoff](references/PLUGIN-CANDIDATE.md) governs signed plugin ingress,
+> isolated installation and manual credential-retiring migration. Legacy hook/relay
+> descriptions and release support entries below are historical; they do not
+> establish support or security qualification for the candidate.
+
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability in Antenna, **please report it privately** rather than opening a public GitHub issue.

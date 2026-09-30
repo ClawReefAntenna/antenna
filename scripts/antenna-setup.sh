@@ -131,6 +131,10 @@ Non-interactive:
     [--force] \
     [--replace-cli-link /absolute/path/to/antenna]
 
+HTTP opt-in (interactive or non-interactive):
+  --allow-insecure permits HTTP without transport encryption. Bearer tokens and
+  message content may be exposed unless protected by an encrypted tunnel.
+
 Creates:
   - antenna-config.json (local runtime settings; gitignored)
   - antenna-peers.json (local peer registry with self-peer entry; gitignored)
@@ -746,7 +750,7 @@ jq -n \
     allowed_inbound_sessions: [("agent:" + $agent + ":main"), ("agent:" + $agent + ":antenna"), "agent:antenna:modeltest"],
     allowed_inbound_peers: [$host],
     allowed_outbound_peers: [$host]
-  }' | python3 "$SKILL_DIR/lib/session-policy.py" "$CONFIG_FILE" initialize
+  }' | python3 "$SKILL_DIR/lib/session_policy.py" "$CONFIG_FILE" initialize
 chmod 644 "$CONFIG_FILE"
 ok "Created $CONFIG_FILE"
 
@@ -789,6 +793,7 @@ jq -n \
   }' > "$PEERS_FILE"
 chmod 644 "$PEERS_FILE"
 ok "Created $PEERS_FILE (self-peer: $HOST_ID)"
+warn_http_transport "$HOST_URL"
 
 # ── Generate identity secret ────────────────────────────────────────────────
 

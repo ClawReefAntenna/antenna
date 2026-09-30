@@ -218,3 +218,10 @@ validate_peer_url_capture() (
   cat -- "$scratch"
   return "$rc"
 )
+
+# Called only after accepting an explicitly configured endpoint, never on send.
+warn_http_transport() {
+  if [[ "$1" == http://* ]]; then
+    echo "Warning: HTTP provides no transport encryption. Bearer tokens and message content may be exposed unless this connection is protected by an encrypted tunnel." >&2
+  fi
+}

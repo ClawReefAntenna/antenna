@@ -19,7 +19,7 @@ try{
   if(host.hooks?.enabled!==false&&(typeof host.hooks?.token!=='string'||host.hooks.token===legacyBearer||host.hooks.token===c.bearer))problems.push('general-hook credential retirement not established');
   if(typeof host.gateway?.auth?.token!=='string'||[legacyBearer,c.bearer].includes(host.gateway.auth.token))problems.push('operator credential separation not established');
   const relay=old.relay_agent_id??'antenna';
-  if(host.agents?.list?.some(a=>a.id===relay))problems.push('legacy relay agent still provisioned; review ownership before removal');
+  if(host.agents?.list?.some(a=>a.id===relay)||Object.hasOwn(host.agents?.entries??{},relay))problems.push('legacy relay agent still provisioned; review ownership before removal');
   if(host.hooks?.mappings?.some(m=>JSON.stringify(m).includes('antenna')))problems.push('possible old Antenna mapping remains; review manually');
   if(['smart','both'].includes(c.mcs)&&!c.scannerProfile?.validatedIdentity)problems.push('scanner selection not validated');
   console.log(JSON.stringify({staticChecksPassed:problems.length===0,liveIngressVerified:false,problems,required:'After explicit restart, verify plugin admission and denial of old hook/operator paths using the retired peer credential.'}));if(problems.length)process.exitCode=1;

@@ -2,16 +2,16 @@
 name: "antenna"
 description: "Session-targeted, cross-host, agent-native messaging. Your agents, their agents, any host, any session."
 metadata:
-  version: 1.6.8-dev.6
+  version: 1.6.8
   repository: "https://github.com/ClawReefAntenna/antenna"
   homepage: "https://github.com/ClawReefAntenna/antenna"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (1.6.8-dev.6 private candidate)
+# Antenna — Inter-Host OpenClaw Messaging (1.6.8 — publication pending)
 
-## Current candidate: read first
+## Plugin release: read first
 
-This checkout contains the unreleased signed-plugin and companion candidate.
+This checkout contains the final-version signed plugin and companion. Publication is pending.
 Use [PLUGIN-CANDIDATE.md](references/PLUGIN-CANDIDATE.md) for the current package,
 installation, receiver policy and migration instructions. New ingress is
 `/antenna/v1/receive`, not `/hooks/agent`; there is no messaging relay model.
@@ -22,7 +22,7 @@ transport profile before choosing a path. Never restore retired peer-known hook
 authority during rollback. No publication or production activation is implied.
 
 The remainder of this file describes the legacy skill behavior unless explicitly
-marked otherwise; it does not override the current candidate handoff.
+marked otherwise; it does not override the plugin installation handoff.
 
 Send messages between OpenClaw instances over reachable HTTPS via Antenna's
 built-in `/hooks/agent` endpoint.

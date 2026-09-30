@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*1.6.8-dev.6 private candidate: start with [the plugin/companion handoff](PLUGIN-CANDIDATE.md). The relay installation walkthrough below is retained legacy reference, not plugin setup. Not published.*
+*1.6.8 — publication pending: start with [the plugin/companion handoff](PLUGIN-CANDIDATE.md). The relay installation walkthrough below is retained legacy reference, not plugin setup. Not published.*
 
 ---
 

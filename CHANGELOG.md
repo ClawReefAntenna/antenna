@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.8] — Prepared; publication pending
+
+- Signed, receiver-addressed plugin ingress and direct local dispatch without a relay model.
+- Off/Dumb/Smart/Both scanning, independent approval holds, explicit release and replay checks.
+- Registered-model Smart scans with fresh zero-tool context; custom rulesets and corpora, concise and verbose diagnostics.
+- Plugin plus version-matched companion packaging; documented manual migration and fail-closed rollback.
+- Promotion from dev.6 changes metadata and guidance only, not runtime, scanner rules or corpus.
+- See [release notes](RELEASE-NOTES.md) for support, quality limits and coordinated notice policy. No publication or countdown has begun.
+
 ## [1.6.8-dev.6] — Unreleased local candidate
 
 - Package invocation-local custom evaluation corpora, concise summaries, verbose

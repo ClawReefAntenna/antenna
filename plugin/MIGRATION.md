@@ -1,4 +1,4 @@
-# Explicit legacy migration — development candidate
+# Explicit legacy migration — v1.6.8
 
 Compatibility tier: **documented manual migration**, not seamless live compatibility.
 Do this against an isolated copy first. No tool below rotates live credentials,
@@ -15,7 +15,7 @@ No new database, recovery journal, daemon, automatic retry, receipt service or
 old/new OpenClaw ingress stack. New files are operator-selected staging output
 and ordinary contact/key files, not a second live inbox. Failure means refusal
 or operator recovery. Stop/reassess before adding automatic rollback or a second
-legacy dispatcher. Current code is a development candidate, not release acceptance.
+legacy dispatcher. Publication and each live cutover require separate authorization.
 
 ## 1. Prepare, do not activate
 
@@ -71,7 +71,7 @@ and must remain non-deliverable after cutover. Preparation counts pending,
 approved-but-unsent and failed/uncertain items as unresolved. Resolve explicitly
 before cutover, or retain the old queue as a read-only recovery artifact and request
 a newly signed resend after operator review. Never automatically resend uncertain
-work. This candidate does **not** provide in-place legacy hold release under v2.
+work. This version does **not** provide in-place legacy hold release under v2.
 Existing schema-2 plugin holds use the separate existing `migrate` command and
 retain their exact payloads/reasons. No migration silently approves an item.
 
@@ -81,7 +81,7 @@ retain their exact payloads/reasons. No migration silently approves an item.
    Take rollback material with existing backup/config tools; encryption is optional.
 2. Stop Antenna ingress and its writers/drains. If that requires stopping the host
    gateway, schedule that interruption explicitly. Do not run old/new writers together.
-3. Install the candidate plugin and companion CLI assets. Merge the staged config,
+3. Install the version-matched plugin and companion CLI assets. Merge the staged config,
    preserving native installer load paths/allowlist and all unrelated plugin settings.
    Keep it disabled while resolving the remaining steps. Copy staged config/peers
    into their intended legacy paths only after reviewing their diffs.
@@ -142,7 +142,7 @@ proof of agent processing. Lost or invalid confirmation is unknown; no retry.
 
 ## 4. Registry coordination
 
-The companion ClawReef candidate adds a v2 binding beneath its configured API base:
+The coordinated ClawReef v2 binding adds a v2 binding beneath its configured API base:
 `/registry/api/antenna/v1/receive` for the source tree's normal base path. Configure
 the Antenna Registry peer URL as that API base, not a general OpenClaw hook URL.
 Set a dedicated `CLAWREEF_ANTENNA_TOKEN` for that application route and explicitly

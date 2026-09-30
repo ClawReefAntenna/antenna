@@ -2,8 +2,8 @@
 
 **Your agents. Their agents. Any session. Any host.**
 
-> **1.6.8-dev.6 — unreleased plugin + companion candidate.** Start with the
-> [candidate handoff](references/PLUGIN-CANDIDATE.md) for artifacts, prerequisites,
+> **1.6.8 — final-version plugin + companion — publication pending.** Start with the
+> [installation and release handoff](references/PLUGIN-CANDIDATE.md) for artifacts, prerequisites,
 > isolated installation and migration. The older release/relay walkthrough below
 > is legacy reference, not plugin installation guidance. No publication or adoption
 > countdown has started.
@@ -556,7 +556,7 @@ content scanning, or HelpingClaw on a release schedule.
 
 ## Current candidate and historical release
 
-Current local candidate: **1.6.8-dev.6**. See the [candidate handoff](references/PLUGIN-CANDIDATE.md).
+Prepared release version: **1.6.8**. See the [installation and release handoff](references/PLUGIN-CANDIDATE.md).
 
 Historical release description:
 

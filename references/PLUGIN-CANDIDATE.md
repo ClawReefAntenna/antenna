@@ -1,28 +1,28 @@
-# Antenna 1.6.8-dev.6 — local candidate handoff
+# Antenna 1.6.8 — installation and release handoff
 
-**Unreleased development candidate. Not a production-upgrade instruction.**
+**Final-version preparation; publication pending. No live upgrade is authorized by this file.**
 The plugin is the signed ingress and direct-dispatch adapter. The companion CLI
 retains sender, contact, list/group and recovery helpers. There is no relay model
 in the new ingress path. Read this before the retained legacy guides.
 
-## Two artifacts, one candidate
+## Two artifacts, one version
 
 | Artifact | Contents / role |
 | --- | --- |
-| `clawreefantenna-antenna-plugin-1.6.8-dev.6.tgz` | `npm pack ./plugin`: OpenClaw manifest, `.mjs` operators/runtime, replay shell helper, bundled corpus/default rules, ruleset/corpus guides, README and migration guide. Install this archive with OpenClaw. |
-| `antenna-companion-1.6.8-dev.6.tar.gz` | Companion source payload: `bin`, `scripts`, `lib`, `plugin`, references and root metadata/examples. Keep this directory layout intact. Not a second OpenClaw plugin archive. |
+| `clawreefantenna-antenna-plugin-1.6.8.tgz` | `npm pack ./plugin`: OpenClaw manifest, `.mjs` operators/runtime, replay shell helper, bundled corpus/default rules, ruleset/corpus guides, README and migration guide. Install this archive with OpenClaw. |
+| `antenna-companion-1.6.8.tar.gz` | Companion source payload: `bin`, `scripts`, `lib`, `plugin`, references and root metadata/examples. Keep this directory layout intact. Not a second OpenClaw plugin archive. |
 
 The plugin archive alone does **not** include the legacy companion CLI or its
 Python helpers. The companion retains `plugin/` because `antenna mcs`, migrated
 send/contact commands and migration helpers use those relative paths. Keep both
-artifacts at the same candidate version; use recorded hashes, not filenames alone.
+artifacts at the same version; use recorded hashes, not filenames alone.
 Renamed Python modules use underscores (`session_policy.py`, `clawreef_http.py`,
 `clawreef_registration.py`, `clawreef_reports.py`, `clawreef_groups.py`). Replace
 program files coherently; do not overlay just a caller onto old libraries.
 
 ## Prerequisites and tested scope
 
-- Local evidence: Linux x64, Node 26.8.2 and OpenClaw 2026.9.5.
+- Observed evidence: Linux x64, Node 26.8.2 and 24.19.0, OpenClaw 2026.9.5.
 - Plugin: Node compatible with the selected OpenClaw, Bash, jq and flock;
   standalone operators need the OpenClaw SDK peer dependency.
 - Companion: Python 3, Bash, jq, OpenSSL, curl and ordinary GNU/Linux helpers.
@@ -33,14 +33,14 @@ program files coherently; do not overlay just a caller onto old libraries.
 
 ## Isolated installation and operation
 
-1. Unpack the companion into a separate candidate directory; never extract it over
+1. Unpack the companion into a separate installation directory; never extract it over
    live state. Do not run the retained legacy `install.sh` / `antenna setup` to
    initialize plugin ingress: they configure the old relay/hooks path.
 2. With disposable `OPENCLAW_STATE_DIR` and `OPENCLAW_CONFIG_PATH`, install the
    exact plugin archive:
 
    ```sh
-   openclaw plugins install --force --accept-capabilities /absolute/path/to/clawreefantenna-antenna-plugin-1.6.8-dev.6.tgz
+   openclaw plugins install --force --accept-capabilities /absolute/path/to/clawreefantenna-antenna-plugin-1.6.8.tgz
    ```
 
    These flags accept the reviewed local archive and declared capabilities.
@@ -85,13 +85,17 @@ scanner clearance is not proof that content is safe.
 
 ## Publication hold
 
-No release tag, remote push, ClawHub/npm publication, live migration, announcement
-or seven-day adoption countdown is started by these artifacts. Remaining handoff:
-deployment-specific public DNS/CA/proxy qualification, final owner quality/release
-acceptance and coordinated publication approval. Support/recovery scope is below. The
-separate v1.6.7 recovery candidate is preserved; it is not replaced or published
-by this development version. Reuse existing evidence by component and artifact;
-do not repeat the full failure matrix without a relevant change or new concern.
+Final-version files are prepared privately. No release tag, remote push,
+ClawHub/npm publication, live migration, announcement or seven-day countdown is
+started by these artifacts. The selected BETTYXVIII public DNS/CA/proxy ingress
+check passed; its temporary endpoint was removed. This is not qualification of
+every production binding or a public Registry group fan-out test.
+
+The separate v1.6.7 recovery build is preserved. Both builds must be ready before
+an announcement, with v1.6.8 publication planned seven days afterward. The notice
+remains undated until a schedule is approved. See [release notes](../RELEASE-NOTES.md).
+Production host inventory and authorization remain separate. Reuse evidence by
+component and artifact; do not repeat broad tests without a relevant change.
 
 ## dev.5 scanner changes
 
@@ -108,7 +112,7 @@ works. The host's output-token hint is advisory for some runtimes; Antenna enfor
 input/accepted-response bounds and deadlines, not a universal provider generation
 cap. Existing holds, receiver permissions and release approval remain unchanged.
 
-## dev.6 scanner-quality review and supported scope
+## Scanner-quality review and supported scope
 
 The bundled development-reviewed synthetic corpus contains 40 malicious, 40
 benign and four ambiguous controls. One real GPT-5.6 Terra / native Codex / OAuth
@@ -127,7 +131,7 @@ warning, public-versus-private wording and protective negation. Smart's sole fal
 flag was an explicitly quoted password-disclosure training exercise. Both retains
 Dumb flags without model review; fewer calls does not mean fewer false positives.
 
-Engineering review recommends retaining these measured bytes for the candidate,
+Engineering review recommends retaining these measured scanner bytes for v1.6.8,
 not exempting all quotations or tuning to this already-reviewed corpus. No label,
 rule, rubric or default is changed. Smart has the better observed quality in this
 comparison, but operators choose their mode/model. This is not independent or

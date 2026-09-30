@@ -1,21 +1,21 @@
-# Antenna OpenClaw plugin — 1.6.8-dev.6 development candidate
+# Antenna OpenClaw plugin — 1.6.8 — publication pending
 
 Inbound signed v2 delivery with Off / Dumb / Smart / Both content scanning.
 Default: Dumb. Both runs Dumb first and only calls Smart after a pass.
 Authentication, replay checks and receiver-selected existing destinations apply
 in every mode. Ordinary approval and MCS holds remain independent.
 
-This is the packaged inbound vertical slice, not a released replacement for
-the legacy Antenna skill. Manual legacy migration, new direct/list transport and contact exchange now have
-a development implementation; see [MIGRATION.md](MIGRATION.md). Full release,
-live cutover and final release qualification remain separate work. Earlier native
-subscription evidence is scoped to its tested artifact/runtime, not every candidate. No atomic session-incarnation or exactly-once
-delivery guarantee is made.
+This package provides signed ingress and direct local dispatch without a messaging
+relay model. Manual migration, direct/list transport and contact exchange are
+covered in [MIGRATION.md](MIGRATION.md). Final-version artifacts are prepared
+privately; publication and production cutover remain separate. Qualification is
+scoped to the tested components and runtime, not every model or deployment.
+No atomic session-incarnation or exactly-once delivery guarantee is made.
 
 ## Install in an isolated OpenClaw instance
 
 Requires Node supported by OpenClaw, Bash, jq and flock. Local qualification uses
-Linux x64 / Node 26.8.2 / OpenClaw 2026.9.5. The manifest floor `>=2026.9.5`
+Linux x64 / Node 26.8.2 and 24.19.0 / OpenClaw 2026.9.5. The manifest floor `>=2026.9.5`
 is not certification of all later releases or platforms.
 Package with `npm pack ./plugin`; install the resulting archive with
 `openclaw plugins install /absolute/path/to/archive.tgz` using the intended
@@ -107,7 +107,7 @@ a provider-side generation cap on a backend that ignores the hint. Oversized,
 malformed or unsupported responses hold incomplete. No cost estimate, budget feature,
 pre-run request display, automatic retry, model download or fallback.
 
-Old `scannerProfile` selections do not authorize Smart in this candidate. Run
+Old `scannerProfile` selections do not authorize Smart in v1.6.8. Run
 `select` with a registered model; success removes that obsolete field. Existing
 held messages remain held. No automatic credential/profile migration is attempted.
 
@@ -131,7 +131,7 @@ they are rejected rather than guessed at or discarded. Existing schema-2
 inbox payloads and hold reasons are never rewritten by configuration migration.
 Back up config/state before operator edits. No automatic rollback conversion.
 
-## MCS evaluation and custom-body diagnostics (development candidate)
+## MCS evaluation and custom-body diagnostics
 
 With Dumb or Both, `evaluate` and `test` accept `--ruleset /absolute/candidate.json` for candidate
 rule evaluation without changing the active file. These commands share the production scanner and do **not** send peer messages,

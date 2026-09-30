@@ -1,6 +1,6 @@
 {
   "name": "@clawreefantenna/antenna-plugin",
-  "version": "1.6.8-dev.4",
+  "version": "1.6.8-dev.5",
   "type": "module",
   "private": true,
   "license": "MIT",
@@ -13,7 +13,9 @@
     "openclaw.plugin.json",
     "README.md",
     "MIGRATION.md",
-    "corpus/*.json"
+    "corpus/*.json",
+    "rules/*.json",
+    "RULESETS.md"
   ],
   "openclaw": {
     "extensions": [

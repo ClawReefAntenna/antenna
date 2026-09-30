@@ -2,12 +2,12 @@
 name: "antenna"
 description: "Session-targeted, cross-host, agent-native messaging. Your agents, their agents, any host, any session."
 metadata:
-  version: 1.6.8-dev.4
+  version: 1.6.8-dev.5
   repository: "https://github.com/ClawReefAntenna/antenna"
   homepage: "https://github.com/ClawReefAntenna/antenna"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (1.6.8-dev.4 private candidate)
+# Antenna — Inter-Host OpenClaw Messaging (1.6.8-dev.5 private candidate)
 
 ## Current candidate: read first
 

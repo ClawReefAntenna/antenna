@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.6.8-dev.5] — Unreleased local candidate
+
+- External JSON Dumb rulesets: one selected file, bundled nine-rule default,
+  bounded validation/scanning, immutable startup snapshot and editing guide.
+- Registered-model Smart scanning through the host's isolated, zero-tool LLM
+  API; no Antenna-specific endpoint/authentication setup or HTTP adapter.
+- Existing shared corpus/tests accept candidate rulesets; no cost estimation or
+  mandatory pre-run request display. Smart CLI checks require the local gateway.
+- Old Smart profiles require explicit registered-model selection; holds persist.
+  Runtime output-token hints are not hard guarantees on every backend.
+
 ## [1.6.8-dev.4] — Unreleased local candidate
 
 - Replace fixed file-based Python loaders with conventional bundled imports;

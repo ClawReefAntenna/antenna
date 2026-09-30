@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {resolveScanner} from './smart.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -21,7 +22,7 @@ try{
   const relay=old.relay_agent_id??'antenna';
   if(host.agents?.list?.some(a=>a.id===relay)||Object.hasOwn(host.agents?.entries??{},relay))problems.push('legacy relay agent still provisioned; review ownership before removal');
   if(host.hooks?.mappings?.some(m=>JSON.stringify(m).includes('antenna')))problems.push('possible old Antenna mapping remains; review manually');
-  if(['smart','both'].includes(c.mcs)&&!c.scannerProfile?.validatedIdentity)problems.push('scanner selection not validated');
+  if([c.mcs,...Object.values(c.peers).map(p=>p.mcs)].some(m=>['smart','both'].includes(m))){try{if(resolveScanner(c.scannerModel,host).identity!==c.scannerIdentity)throw Error();}catch{problems.push('registered scanner selection not validated');}}
   console.log(JSON.stringify({staticChecksPassed:problems.length===0,liveIngressVerified:false,problems,required:'After explicit restart, verify plugin admission and denial of old hook/operator paths using the retired peer credential.'}));if(problems.length)process.exitCode=1;
  }else throw Error('sources REPORT | doctor HOST LEGACY_ROOT');
 }catch(e){console.error(JSON.stringify({status:'blocked',reason:e.message}));process.exitCode=1;}

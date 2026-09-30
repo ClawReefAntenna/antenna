@@ -1,4 +1,4 @@
-# Antenna 1.6.8-dev.4 — local candidate handoff
+# Antenna 1.6.8-dev.5 — local candidate handoff
 
 **Unreleased development candidate. Not a production-upgrade instruction.**
 The plugin is the signed ingress and direct-dispatch adapter. The companion CLI
@@ -9,8 +9,8 @@ in the new ingress path. Read this before the retained legacy guides.
 
 | Artifact | Contents / role |
 | --- | --- |
-| `clawreefantenna-antenna-plugin-1.6.8-dev.4.tgz` | `npm pack ./plugin`: OpenClaw manifest, `.mjs` operators/runtime, replay shell helper, bundled corpus, README and migration guide. Install this archive with OpenClaw. |
-| `antenna-companion-1.6.8-dev.4.tar.gz` | Companion source payload: `bin`, `scripts`, `lib`, `plugin`, references and root metadata/examples. Keep this directory layout intact. Not a second OpenClaw plugin archive. |
+| `clawreefantenna-antenna-plugin-1.6.8-dev.5.tgz` | `npm pack ./plugin`: OpenClaw manifest, `.mjs` operators/runtime, replay shell helper, bundled corpus/default rules, ruleset guide, README and migration guide. Install this archive with OpenClaw. |
+| `antenna-companion-1.6.8-dev.5.tar.gz` | Companion source payload: `bin`, `scripts`, `lib`, `plugin`, references and root metadata/examples. Keep this directory layout intact. Not a second OpenClaw plugin archive. |
 
 The plugin archive alone does **not** include the legacy companion CLI or its
 Python helpers. The companion retains `plugin/` because `antenna mcs`, migrated
@@ -40,7 +40,7 @@ program files coherently; do not overlay just a caller onto old libraries.
    exact plugin archive:
 
    ```sh
-   openclaw plugins install --force --accept-capabilities /absolute/path/to/clawreefantenna-antenna-plugin-1.6.8-dev.4.tgz
+   openclaw plugins install --force --accept-capabilities /absolute/path/to/clawreefantenna-antenna-plugin-1.6.8-dev.5.tgz
    ```
 
    These flags accept the reviewed local archive and declared capabilities.
@@ -91,3 +91,18 @@ final support/recovery inventory and coordinated version/release approval. The
 separate v1.6.7 recovery candidate is preserved; it is not replaced or published
 by this development version. Reuse existing evidence by component and artifact;
 do not repeat the full failure matrix without a relevant change or new concern.
+
+## dev.5 scanner changes
+
+See [scanner setup](../plugin/README.md#registered-model-smart-scanning) and
+[ruleset authoring](../plugin/RULESETS.md). Smart now selects a registered host
+model and uses runtime authentication through isolated zero-tool completion.
+No separate endpoint/authentication profile. Old scannerProfile selections do not
+authorize Smart; explicitly check/select a registered model. OpenClaw plugin LLM
+permissions are required; no new credentials are created. CLI Smart checks need
+the running local gateway. External ruleset edits require restart.
+
+Local fixture qualification is not proof that every model/runtime/subscription
+works. The host's output-token hint is advisory for some runtimes; Antenna enforces
+input/accepted-response bounds and deadlines, not a universal provider generation
+cap. Existing holds, receiver permissions and release approval remain unchanged.

@@ -1,15 +1,8 @@
 import {LIMITS} from './limits.mjs';
 import {parentPort,workerData} from 'node:worker_threads';
-export const VERSION='antenna-dumb-0.2';
-// Locally authored candidate rules; no downloaded feeds or executable configuration.
-const rules=[
- ['D001','authority','Instruction takeover',/\b(?:ignore|disregard|override)\b[^.!?\n]{0,64}\b(?:previous|prior|system|developer)\b[^.!?\n]{0,40}\b(?:instructions?|rules?|prompts?)\b/giu],
- ['D002','disclosure','Sensitive target plus disclosure intent',/\b(?:send|reveal|upload|exfiltrate|print)\b[^.!?\n]{0,80}\b(?:api[ _-]?keys?|passwords?|private[ _-]?keys?|credentials?|system prompt)\b/giu],
- ['D003','bypass','Safeguard bypass intent',/\b(?:disable|bypass|turn off)\b[^.!?\n]{0,64}\b(?:safety checks?|security checks?|audit logging|safeguards?)\b/giu],
- ['D004','execution','Remote content piped to a shell',/\b(?:curl|wget)\b[^\n]{0,160}\|\s{0,8}(?:bash|sh|zsh)\b/giu],
- ['D005','concealment','Conceal actions from the owner',/\b(?:hide|conceal)\b[^.!?\n]{0,48}\b(?:activity|actions?|execution)\b[^.!?\n]{0,48}\b(?:owner|user|administrator)\b/giu]
-];
-function scan(body){
+export const VERSION='antenna-dumb-0.3';
+function scan({body,ruleset}){
+ const rules=ruleset.rules.map(r=>[r.id,'pattern',r.explanation,new RegExp(r.pattern,r.flags+'g')]);
  const budget=Math.min(LIMITS.derivedMultiplier*Buffer.byteLength(body),LIMITS.derivedBytes);let derived=0,incomplete=false;
  const findings=[],seen=new Set();
  function inspect(text,map,depth,projection){
@@ -25,6 +18,7 @@ function scan(body){
    while((m=re.exec(normalized))&&findings.length<LIMITS.findings){// Only direct clause-local negation; never exempt quotations or later matches.
     const prefix=normalized.slice(Math.max(0,m.index-48),m.index);
     if(/(?:^|[.!?;\n]\s*)(?:please\s+)?(?:never|do not|don't)\s+$/u.test(prefix)){re.lastIndex=m.index+1;continue;}
+    if(!m[0].length){re.lastIndex=m.index+1;continue;}
     const start=nm[m.index][0],end=nm[m.index+m[0].length-1][1],key=id+':'+start+':'+end;
     if(!seen.has(key)){seen.add(key);findings.push({id,category,reason,start,end,projection});}
    }

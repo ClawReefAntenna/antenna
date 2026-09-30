@@ -1,3 +1,7 @@
+import {createSmart,resolveScanner} from './smart.mjs';
+import {capacityDirectory} from './capacity.mjs';
+import path from 'node:path';
+import {LIMITS} from './limits.mjs';
 import {validateConfig} from './policy.mjs';
 import {callGatewayFromCli} from 'openclaw/plugin-sdk/gateway-runtime';
 import {execFile} from 'node:child_process';
@@ -11,7 +15,22 @@ const exec=promisify(execFile),helper=fileURLToPath(new URL('./antenna-replay.sh
 export default {id:'antenna',name:'Antenna',register(api){
  const c=validateConfig(api.pluginConfig);
  if(!['off','dumb','smart','both'].includes(c.mcs)||!['off','on'].includes(c.inbox)||!Number.isInteger(c.maxBodyChars)||c.maxBodyChars<1||c.maxBodyChars>1000000)throw new Error('Invalid prototype modes or body cap');
- const flow=makeFlow(c,api.config); flow.inbox.recover();
+ const complete=async params=>{
+  const current=api.runtime.config.current();
+  if(resolveScanner(params.model,current).identity!==resolveScanner(params.model,api.config).identity)throw Error('scanner configuration changed; restart required');
+  return api.runtime.llm.complete(params);
+ };
+ const flow=makeFlow(c,api.config,complete); flow.inbox.recover();
+ // Operator-only diagnostic RPC: no sessions, inbox writes, endpoint overrides or peer access.
+ api.registerGatewayMethod('antenna.scan',async({params,respond})=>{
+  try{
+   if(!params||Object.keys(params).some(k=>!['model','identity','body'].includes(k))||typeof params.body!=='string'||Buffer.byteLength(params.body)>LIMITS.bodyBytes)throw Error('invalid scan request');
+   const selection=resolveScanner(params.model,api.config);
+   if(selection.identity!==params.identity)throw Error('scanner selection changed');
+   const scan=createSmart(selection,{complete,resourceDir:capacityDirectory(path.dirname(c.inboxFile)),maxActive:c.maxActiveSmart});
+   respond(true,await scan(params.body));
+  }catch{respond(false,undefined,{code:'INVALID_REQUEST',message:'Registered scanner unavailable or selection changed; check host model and plugin LLM permissions.'});}
+ },{scope:'operator.admin'});
  let active=0;const arrivals=[];
  api.registerHttpRoute({path:'/antenna/v1/receive',auth:'plugin',handler:async(req,res)=>{
   let acquired=false,submissionAttempted=false,bodyTimer;

@@ -2,13 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {LIMITS} from './limits.mjs';
-import {scanDumb,createSmart,RUBRIC} from './scanners.mjs';
-import {readyProfile,credentialFor} from './policy.mjs';
+import {scanDumb,RUBRIC} from './scanners.mjs';
+import {loadRuleset} from './ruleset.mjs';
+import {resolveScanner,gatewayScan} from './smart.mjs';
 import {ReceiveFlow} from './inbox.mjs';
 import {capacityDirectory} from './capacity.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const usageKeys=['prompt_tokens','completion_tokens','total_tokens'];
-const knownSources=['evaluation.mjs','scanners.mjs','dumb-worker.mjs','inbox.mjs','limits.mjs','capacity.mjs','policy.mjs'];
+const knownSources=['evaluation.mjs','scanners.mjs','dumb-worker.mjs','inbox.mjs','limits.mjs','capacity.mjs','policy.mjs','smart.mjs','ruleset.mjs'];
 export const quantile=(xs,p)=>xs.length?[...xs].sort((a,b)=>a-b)[Math.max(0,Math.ceil(xs.length*p)-1)]:null;
 export function score(rows){
  const labelled=rows.filter(r=>['malicious','benign'].includes(r.expected));
@@ -21,11 +22,11 @@ export function score(rows){
 }
 export function summarize(rows){
  const ids=[...new Set(rows.map(r=>r.id))];
- return {uniqueCases:ids.length,observations:rows.length,ambiguousObservations:rows.filter(r=>r.expected==='ambiguous').length,incomplete:rows.filter(r=>r.verdict==='incomplete').length,operationalFailures:rows.filter(r=>r.error||r.reason&&r.verdict==='incomplete').length,requests:rows.reduce((n,r)=>n+(r.requests??0),0),usage:rows.some(r=>r.usage)?Object.fromEntries(usageKeys.map(k=>[k,rows.reduce((n,r)=>n+(r.usage?.[k]??0),0)])):null,usageReporting:{observationsWithUsage:rows.filter(r=>r.usage).length,requestedObservationsMissingUsage:rows.filter(r=>r.requests&&!r.usage).length},cost:{estimated:null,reason:'No qualified price source configured'},latencyMs:{p50:quantile(rows.map(r=>r.elapsedMs),.5),p95:quantile(rows.map(r=>r.elapsedMs),.95),p99:quantile(rows.map(r=>r.elapsedMs),.99)},score:score(rows),disagreements:ids.filter(id=>new Set(rows.filter(r=>r.id===id).map(r=>r.verdict)).size>1),byFamily:Object.fromEntries([...new Set(rows.map(r=>r.family).filter(Boolean))].map(f=>[f,score(rows.filter(r=>r.family===f))])),bySplit:Object.fromEntries([...new Set(rows.map(r=>r.split).filter(Boolean))].map(f=>[f,score(rows.filter(r=>r.split===f))]))};
+ return {uniqueCases:ids.length,observations:rows.length,ambiguousObservations:rows.filter(r=>r.expected==='ambiguous').length,incomplete:rows.filter(r=>r.verdict==='incomplete').length,operationalFailures:rows.filter(r=>r.error||r.reason&&r.verdict==='incomplete').length,requests:rows.reduce((n,r)=>n+(r.requests??0),0),usage:rows.some(r=>r.usage)?Object.fromEntries(usageKeys.map(k=>[k,rows.reduce((n,r)=>n+(r.usage?.[k]??0),0)])):null,usageReporting:{observationsWithUsage:rows.filter(r=>r.usage).length,requestedObservationsMissingUsage:rows.filter(r=>r.requests&&!r.usage).length},latencyMs:{p50:quantile(rows.map(r=>r.elapsedMs),.5),p95:quantile(rows.map(r=>r.elapsedMs),.95),p99:quantile(rows.map(r=>r.elapsedMs),.99)},score:score(rows),disagreements:ids.filter(id=>new Set(rows.filter(r=>r.id===id).map(r=>r.verdict)).size>1),byFamily:Object.fromEntries([...new Set(rows.map(r=>r.family).filter(Boolean))].map(f=>[f,score(rows.filter(r=>r.family===f))])),bySplit:Object.fromEntries([...new Set(rows.map(r=>r.split).filter(Boolean))].map(f=>[f,score(rows.filter(r=>r.split===f))]))};
 }
 function options(args){
  const o={files:[],repeat:1,engine:null,json:false,preview:false,details:false};
- const values=new Set(['--engine','--repeat','--text','--file','--expect','--suite','--output']);
+ const values=new Set(['--engine','--repeat','--text','--file','--expect','--suite','--output','--ruleset']);
  const seen=new Set();
  while(args.length){const key=args.shift();
   if(!values.has(key)&&!['--json','--preview','--stdin','--details'].includes(key))throw Error('unknown option');
@@ -66,11 +67,11 @@ async function readStdin(){
 }
 function safeError(e){if(e.code==='ELOOP')return 'not_regular_file';return ['empty_input','input_too_large','invalid_utf8','binary_input','not_regular_file','stdin_deadline'].includes(e.message)?e.message:'input_read_failed';}
 export function human(report){
- const lines=[`Antenna MCS ${report.command}${report.preview?' preview':''}`,`Engine: ${report.engine}; cases: ${report.plan.cases}; repetitions: ${report.plan.repetitions}; maximum model requests: ${report.plan.maxRequests}`,`Endpoint/locality: ${JSON.stringify(report.scanner??'offline')}`,report.disclosure];
+ const lines=[`Antenna MCS ${report.command}${report.preview?' preview':''}`,`Engine: ${report.engine}; cases: ${report.plan.cases}; repetitions: ${report.plan.repetitions}; maximum model requests: ${report.plan.maxRequests}`,`Model: ${JSON.stringify(report.scanner??'offline')}`,report.disclosure];
  if(report.summary){lines.push(JSON.stringify(report.summary));for(const r of report.results)lines.push(`${JSON.stringify(r.id)} #${r.repetition}: ${r.outcome}${r.error?' ('+r.error+')':''} ${JSON.stringify({source:r.source,bodyDigest:r.bodyDigest,elapsedMs:r.elapsedMs,findings:r.findings})}`);}
  return lines.join('\n')+'\n';
 }
-export async function runDiagnostic(command,args,c,host,{configPath,stdout=console.log,stderr=console.error}={}){
+export async function runDiagnostic(command,args,c,host,{configPath,stdout=console.log,stderr=console.error,scanModel=gatewayScan}={}){
  let o;try{o=options([...args]);if(!['evaluate','test'].includes(command))throw Error('evaluate or test required');
   if(command==='evaluate'&&(o.text!==undefined||o.files.length||o.stdin||o.expect))throw Error('evaluation takes bundled cases, not custom inputs');
   if(command==='test'&&(Number(o.text!==undefined)+Number(o.files.length>0)+Number(!!o.stdin)!==1||o.suite))throw Error('choose exactly one of text, files, stdin');
@@ -90,16 +91,15 @@ export async function runDiagnostic(command,args,c,host,{configPath,stdout=conso
   }
  }
  if(cases.length>LIMITS.batchCases){stderr(JSON.stringify({status:'input_error',reason:'case limit exceeded'}));return 64;}
- const model=engine!=='dumb',p=model&&c.scannerProfile?readyProfile(c.scannerProfile,host):null;
- const report={schema:1,command,engine,preview:o.preview,startedAt:new Date().toISOString(),plan:{cases:cases.length,repetitions:o.repeat,maxRequests:model?cases.length*o.repeat:0,order:'corpus/file order; serial; no randomization',limits:LIMITS},corpus:corpus??null,scanner:p?{model:p.model,endpoint:new URL(p.baseUrl).origin+new URL(p.baseUrl).pathname,locality:p.locality,identity:p.validatedIdentity??null,ready:!!p.validatedIdentity}:null,rules:'antenna-dumb-0.2',rubric:RUBRIC,verdictSchema:1,implementation:Object.fromEntries(knownSources.map(f=>[f,hash(fs.readFileSync(new URL(f,import.meta.url)))])),disclosure:model?'Smart/model/Both may send supplied bodies to the displayed configured endpoint. No delivery, policy change or inbox insertion.':'Offline Dumb scan. No delivery, policy change or inbox insertion.',details:o.details?'Detailed findings may include submitted text; exports are private.':'Bodies, raw responses and finding explanations omitted.',results:[]};
+ const model=engine!=='dumb';let p,ruleset;
+ try{ruleset=loadRuleset(o.ruleset??c.rulesetFile);if(model&&c.scannerModel)p=resolveScanner(c.scannerModel,host);}catch(e){stderr(JSON.stringify({status:'configuration_error',reason:e.message}));return 3;}
+ const report={schema:1,command,engine,preview:o.preview,startedAt:new Date().toISOString(),plan:{cases:cases.length,repetitions:o.repeat,maxRequests:model?cases.length*o.repeat:0,order:'corpus/file order; serial; no randomization',limits:LIMITS},corpus:corpus??null,scanner:p?{model:p.modelId,identity:p.identity,ready:p.identity===c.scannerIdentity}:null,rules:ruleset.hash,rubric:RUBRIC,verdictSchema:1,implementation:Object.fromEntries(knownSources.map(f=>[f,hash(fs.readFileSync(new URL(f,import.meta.url)))])),disclosure:model?'Smart/model/Both may send supplied bodies to the selected registered model. No delivery, policy change or inbox insertion.':'Offline Dumb scan. No delivery, policy change or inbox insertion.',details:o.details?'Detailed findings may include submitted text; exports are private.':'Bodies, raw responses and finding explanations omitted.',results:[]};
  if(o.preview){stdout(o.json?JSON.stringify(report):human(report));return 0;}
- if(model&&(!p?.validatedIdentity)){stderr(JSON.stringify({status:'configuration_error',reason:'selected scanner missing or unvalidated; use check/select',plan:report.plan}));return 3;}
- // Plan is emitted before requests, including in JSON mode (on stderr).
- stderr(JSON.stringify({plan:report.plan,scanner:report.scanner,disclosure:report.disclosure,details:report.details}));
+ if(model&&((!p||p.identity!==c.scannerIdentity))){stderr(JSON.stringify({status:'configuration_error',reason:'selected scanner missing or unvalidated; use check/select',plan:report.plan}));return 3;}
  if(o.output){try{fs.mkdirSync(o.output,{mode:0o700});}catch{stderr(JSON.stringify({status:'input_error',reason:'output must be a new directory under an existing parent'}));return 64;}}
  const resourceDir=capacityDirectory(path.dirname(c.inboxFile));
- const smart=model?createSmart(p,{credential:()=>credentialFor(p),resourceDir,maxActive:c.maxActiveSmart??LIMITS.active}):undefined;
- const flow=new ReceiveFlow({dumb:body=>scanDumb(body,{resourceDir}),smart});
+ const smart=model?body=>scanModel(host,p,body):undefined;
+ const flow=new ReceiveFlow({dumb:body=>scanDumb(body,{resourceDir,ruleset}),smart});
  const began=performance.now();
  for(let repetition=1;repetition<=o.repeat;repetition++)for(const item of cases){
   const start=performance.now();let result;

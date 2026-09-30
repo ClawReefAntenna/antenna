@@ -1,4 +1,4 @@
-# Antenna OpenClaw plugin — 1.6.8-dev.4 development candidate
+# Antenna OpenClaw plugin — 1.6.8-dev.5 development candidate
 
 Inbound signed v2 delivery with Off / Dumb / Smart / Both content scanning.
 Default: Dumb. Both runs Dumb first and only calls Smart after a pass.
@@ -48,8 +48,8 @@ message bodies as terminal commands, HTML or model instructions.
 antenna-plugin /path/openclaw.json status
 antenna-plugin /path/openclaw.json mode off|dumb|smart|both [peer]
 antenna-plugin /path/openclaw.json mode default peer
-antenna-plugin /path/openclaw.json check profile.json
-antenna-plugin /path/openclaw.json select profile.json
+antenna-plugin /path/openclaw.json check registered-model-or-alias
+antenna-plugin /path/openclaw.json select registered-model-or-alias
 antenna-plugin /path/openclaw.json inbox list
 antenna-plugin /path/openclaw.json inbox show ITEM_ID
 antenna-plugin /path/openclaw.json inbox release ITEM_ID '["Awaiting approval","MCS flagged"]'
@@ -57,28 +57,68 @@ antenna-plugin /path/openclaw.json inbox discard ITEM_ID
 antenna-plugin /path/openclaw.json inbox approve-ordinary
 ```
 
-Status is offline. Check makes one bounded synthetic request, does not save or
-activate anything, and makes no quality claim. Select checks and saves one
-shared Smart/Both profile without changing mode or enabling the plugin.
-No automatic retries, fallback, model downloads, scheduler or dashboard.
+Status is offline. `check` makes one synthetic request without saving a selection;
+`select` checks and saves one registered model/alias shared by Smart and Both.
+Neither changes mode or enables the plugin. Restart after selection/mode changes.
+Detection evaluation is optional and does not impose a passing-score gate.
 
-Profile fields: `baseUrl`, `model`, declared `locality`
-(local/remote/unknown), `tokenParameter` (max_tokens/max_completion_tokens),
-`jsonObject` boolean, `maxInputBytes` (1–65536), optional `strictSchema`
-and `reasoningEffort`. Current adapter also caps serialized requests at
-16 KiB and output at 1024 tokens; oversized input holds incomplete, never crops.
-Optional `credentialRef` is exactly `{"env":"VARIABLE"}` or
-`{"file":"/absolute/private/file"}`; file must be regular, private and bounded.
-No credential value is copied into the profile. Credential rotation at the
-same reference is supported.
+## Registered-model Smart scanning
 
-Optional `configuredModel` resolves an explicit configured provider/model or
-unambiguous alias from OpenClaw's explicit models configuration. Only
-openai-completions providers are supported here; implicit catalogs and native
-subscription credentials are not silently bridged. Supply the credential
-reference explicitly. Resolution changes invalidate validation. Smart/Both
-without a ready profile cannot be selected; later scanner failure holds
-incomplete. Remote endpoints require HTTPS; loopback HTTP is supported.
+Configure models and credentials in OpenClaw, including models used only for
+scanning. Antenna stores only `scannerModel` and a configuration-binding identity;
+it has no custom endpoint, credential-reference or parallel profile interface.
+The loaded plugin uses `api.runtime.llm.complete` with
+`execution.mode: isolated-agent-runtime`: one fresh user message, fixed scanner
+rubric, no tools, unrelated history, session creation or destination delivery.
+Unsupported runtime paths fail incomplete; no direct-provider fallback.
+
+OpenClaw requires host plugin LLM permission for an explicit model selection:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "antenna": {
+        "llm": {
+          "allowModelOverride": true,
+          "allowedModels": ["your-provider/your-model"],
+          "allowedCompletionModels": ["your-provider/your-model"]
+        }
+      }
+    }
+  }
+}
+```
+
+Merge this into existing host configuration, not the Antenna `config` object;
+do not overwrite other settings. This grants model-use authority, not new
+credentials. Use your registered canonical model ID in the permission lists.
+Start/restart the gateway with the plugin enabled in Off or Dumb mode, check/select
+the model, then enable Smart/Both and restart. Do not send real messages during an
+unqualified cutover. Check/select and Smart diagnostics require the running local
+gateway and operator-admin access to `antenna.scan`; the peer bearer cannot call it.
+The RPC only scans literal bodies: no endpoint overrides, sessions or inbox writes.
+
+The host resolves authentication and rotation; subscription support depends on the
+selected runtime's isolated-completion capability and is not universally promised.
+The SDK's `maxTokens` is advisory for some runtimes. Antenna requests 1,024 tokens,
+limits input and accepted response bytes, and enforces a deadline; it cannot promise
+a provider-side generation cap on a backend that ignores the hint. Oversized,
+malformed or unsupported responses hold incomplete. No cost estimate, budget feature,
+pre-run request display, automatic retry, model download or fallback.
+
+Old `scannerProfile` selections do not authorize Smart in this candidate. Run
+`select` with a registered model; success removes that obsolete field. Existing
+held messages remain held. No automatic credential/profile migration is attempted.
+
+## Editable Dumb rulesets
+
+See [ruleset format and agent-friendly editing guide](RULESETS.md). The bundled
+`rules/default.json` is selected by default. Optional `rulesetFile` selects one
+absolute local file, loaded at startup. Custom copies belong outside the plugin
+install directory. `rules validate FILE` checks structure and regex compilation;
+`rules select FILE` saves the selection and requires restart. Missing or invalid
+selected files fail visibly, never silently disable scanning.
 
 ## Explicit upgrade
 
@@ -93,7 +133,8 @@ Back up config/state before operator edits. No automatic rollback conversion.
 
 ## MCS evaluation and custom-body diagnostics (development candidate)
 
-These commands share the production scanner and do **not** send peer messages,
+`evaluate` and `test` accept `--ruleset /absolute/candidate.json` for offline candidate
+rule evaluation without changing the active file. These commands share the production scanner and do **not** send peer messages,
 create sessions, change policy, insert inbox records, or release held work.
 The small private kernel-lock files described below are their only scanner state.
 
@@ -113,25 +154,23 @@ Smart is model-only, Both is Dumb-first with short-circuit, and `model` is a
 model-only diagnostic alias. These names follow the four-mode policy; the older
 proposal's combined “smart” spelling is not used. Off is not a diagnostic engine.
 
-Smart/model/Both can upload selected bodies to the already validated endpoint.
-Before requests, stderr displays its endpoint/model/locality and maximum request
-count. `--preview` performs no scan or model request and never consumes stdin.
+Smart/model/Both can upload selected bodies to the selected registered model.
+`--preview` performs no scan or model request and never consumes stdin.
 There is no additional confirmation prompt, provider fallback, retry, model
 installation, selection activation, or automatic acceptance threshold. Tests of
-multiple models are separate explicit selections/runs; reports carry fingerprints
+multiple models are separate explicit selections/runs; reports carry model identities and fingerprints
 for comparison. Evaluation itself never switches the selected model.
 
 The bundled versioned corpus has 40 malicious, 40 benign and four ambiguous
 controls. Its JSON contains intent rationales, development/held-out-family splits
 and source/license provenance. Labels were authored without scanner results;
 these are locally authored synthetic controls, **not an independently sourced
-quality certification**. No rules/rubric were tuned against these held-out-family
-cases. Expected labels never enter model requests. Ambiguous controls do not
+quality certification**. All cases have now been inspected during development review; none are claimed
+as held-out evidence for this candidate. Bodies and labels are unchanged. Expected labels never enter model requests. Ambiguous controls do not
 enter binary denominators; incomplete scans remain in the relevant denominators.
 Reports distinguish misses, false flags, incomplete holds and operational failures,
 including benign hold burden. Repetitions show disagreement without inflating
-unique-case counts. Usage is reported when returned; cost is unknown without a
-qualified price source. Provider-returned model names do not pin immutable weights.
+unique-case counts. No pricing lookup or cost estimation is performed. Provider-returned model names do not pin immutable weights.
 
 Inputs are literal UTF-8 text, explicit regular files, or explicit stdin; forms
 cannot be mixed except repeated files. BOMs and terminal newlines are preserved.
@@ -149,7 +188,7 @@ Bodies, raw responses and finding explanations are omitted by default. `--detail
 includes bounded scanner findings; reasons may quote submitted sensitive text.
 Human output escapes untrusted values; do not interpret report content as commands
 or HTML. Reports include corpus hash, implementation-file hashes, scanner versions,
-endpoint fingerprint, timings, request counts, order and per-case body digests.
+model-selection fingerprint, timings, request counts, order and per-case body digests.
 
 Exit codes: evaluation report generated = 0 (not quality acceptance); custom pass
 = 0, would hold = 2, incomplete/configuration failure = 3, invalid invocation/input

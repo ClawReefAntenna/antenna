@@ -27,7 +27,7 @@ export function prepare(root,hostFile,selection){
  need(st.isFile()&&!(st.mode&0o077)&&st.size<=16384,'private local bearer file required');
  const bearer=fs.readFileSync(tokenPath,'utf8').trim();
  const c={schemaVersion:2,policyRevision:'four-modes-v2',receiver:self[0][0],bearer,peers:{},destinations:selection.destinations,mcs:selection.mcs,inbox:'off',maxBodyChars:old.max_message_length,inboxFile:selection.inboxFile,replayFile:selection.replayFile};
- if(selection.scannerProfile)c.scannerProfile=selection.scannerProfile;
+ if(selection.scannerModel)c.scannerModel=selection.scannerModel;
  const inputs=[resolve('antenna-config.json'),resolve('antenna-peers.json'),hostFile,tokenPath];
  for(const id of old.allowed_inbound_peers){
   const p=peers[id];need(p?.auth_mode==='ed25519-v1','legacy plaintext peer requires explicit re-pairing');
@@ -62,7 +62,7 @@ export function prepare(root,hostFile,selection){
  stagedHost.plugins.entries.antenna={enabled:false,config:c};
  const blockers=['Stop Antenna ingress and all legacy writers before cutover.', 'Retire peer-known general-hook authority and coordinate every other hook consumer.', 'Verify selected runtime destinations exist; preparation is offline.', 'Install/load plugin, restart explicitly, and probe old hook denial before advertising migration.'];
  if(pending)blockers.push(`${pending} unresolved legacy inbox items: preserve file read-only; resolve explicitly or request a newly signed resend. No conversion, drain or automatic release.`);
- if(['smart','both'].includes(c.mcs))blockers.push('Validate scanner profile before activation.');
+ if(['smart','both'].includes(c.mcs))blockers.push('Select and validate a registered scanner model before activation.');
  const report={profile:PROFILE,compatibility:'documented manual migration',activation:false,receiver:c.receiver,peers:Object.keys(c.peers),destinations:c.destinations,legacyPending:pending,httpPeers:Object.entries(outbound).filter(([,p])=>p.allow_http===true).map(([id])=>id),unmigratedOutbound:old.allowed_outbound_peers.filter(id=>outbound[id]?.transport_profile!==PROFILE),blockers,sourceHashes:Object.fromEntries(inputs.map(p=>[path.resolve(p),hash(p)]))};
  return {report,host:stagedHost,config:{...old,transport_profile:PROFILE},peers:outbound};
 }

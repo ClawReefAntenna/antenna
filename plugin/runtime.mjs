@@ -1,18 +1,22 @@
 import path from 'node:path';
 import {capacityDirectory} from './capacity.mjs';
-import {credentialFor,readyProfile} from './policy.mjs';
+import {createSmart,resolveScanner} from './smart.mjs';
+import {loadRuleset} from './ruleset.mjs';
 import {callGatewayFromCli} from 'openclaw/plugin-sdk/gateway-runtime';
 import {authenticate} from './envelope.mjs';
 import {Inbox,ReceiveFlow} from './inbox.mjs';
-import {scanDumb,createSmart} from './scanners.mjs';
-export function makeFlow(c,config) {
+import {scanDumb} from './scanners.mjs';
+export function makeFlow(c,config,complete) {
+ const ruleset=loadRuleset(c.rulesetFile);
+ let smart;
+ if(c.scannerModel){try{const selection=resolveScanner(c.scannerModel,config);if(selection.identity===c.scannerIdentity)smart=createSmart(selection,{complete,resourceDir:capacityDirectory(path.dirname(c.inboxFile)),maxActive:c.maxActiveSmart??2});}catch{ /* Stale selections remain incomplete. */ }}
  if(typeof config.gateway?.auth?.token!=='string')throw Error('Resolved local gateway token required');
  const opts={url:`ws://127.0.0.1:${config.gateway.port??18789}`,token:config.gateway.auth.token,timeout:'5000',json:true};
  const extra={scopes:['operator.read','operator.write'],progress:false};
  return new ReceiveFlow({
   inbox:new Inbox(c.inboxFile),
-  dumb:body=>scanDumb(body,{resourceDir:capacityDirectory(path.dirname(c.inboxFile))}),
-  smart:c.scannerProfile?createSmart(readyProfile(c.scannerProfile,config),{credential:()=>credentialFor(c.scannerProfile),resourceDir:capacityDirectory(path.dirname(c.inboxFile)),maxActive:c.maxActiveSmart??2}):undefined,
+  dumb:body=>scanDumb(body,{ruleset,resourceDir:capacityDirectory(path.dirname(c.inboxFile))}),
+  smart,
   authorize:fields=>authenticate(fields,c,Date.parse(fields.timestamp)),
   resolve:async target=>{const found=await callGatewayFromCli('sessions.resolve',opts,{key:target,allowMissing:true},extra);return found.ok&&found.key===target;},
   submit:async(fields,target)=>{

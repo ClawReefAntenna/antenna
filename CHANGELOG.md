@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.8-dev.6] — Unreleased local candidate
+
+- Package invocation-local custom evaluation corpora, concise summaries, verbose
+  failure details and the corpus authoring guide implemented after dev.5.
+- Reconcile scanner-quality/support guidance with the actual GPT-5.6 Terra native
+  Codex/OAuth run: Smart 40/40 caught, 1/40 false positives; Both 40/40, 9/40.
+- Scanner rules, rubric, runtime and delivery behavior unchanged from the
+  qualified source. No mode/default change, publication or production migration.
+
 ## [1.6.8-dev.5] — Unreleased local candidate
 
 - External JSON Dumb rulesets: one selected file, bundled nine-rule default,

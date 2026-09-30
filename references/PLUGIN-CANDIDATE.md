@@ -1,4 +1,4 @@
-# Antenna 1.6.8-dev.5 — local candidate handoff
+# Antenna 1.6.8-dev.6 — local candidate handoff
 
 **Unreleased development candidate. Not a production-upgrade instruction.**
 The plugin is the signed ingress and direct-dispatch adapter. The companion CLI
@@ -9,8 +9,8 @@ in the new ingress path. Read this before the retained legacy guides.
 
 | Artifact | Contents / role |
 | --- | --- |
-| `clawreefantenna-antenna-plugin-1.6.8-dev.5.tgz` | `npm pack ./plugin`: OpenClaw manifest, `.mjs` operators/runtime, replay shell helper, bundled corpus/default rules, ruleset guide, README and migration guide. Install this archive with OpenClaw. |
-| `antenna-companion-1.6.8-dev.5.tar.gz` | Companion source payload: `bin`, `scripts`, `lib`, `plugin`, references and root metadata/examples. Keep this directory layout intact. Not a second OpenClaw plugin archive. |
+| `clawreefantenna-antenna-plugin-1.6.8-dev.6.tgz` | `npm pack ./plugin`: OpenClaw manifest, `.mjs` operators/runtime, replay shell helper, bundled corpus/default rules, ruleset/corpus guides, README and migration guide. Install this archive with OpenClaw. |
+| `antenna-companion-1.6.8-dev.6.tar.gz` | Companion source payload: `bin`, `scripts`, `lib`, `plugin`, references and root metadata/examples. Keep this directory layout intact. Not a second OpenClaw plugin archive. |
 
 The plugin archive alone does **not** include the legacy companion CLI or its
 Python helpers. The companion retains `plugin/` because `antenna mcs`, migrated
@@ -40,7 +40,7 @@ program files coherently; do not overlay just a caller onto old libraries.
    exact plugin archive:
 
    ```sh
-   openclaw plugins install --force --accept-capabilities /absolute/path/to/clawreefantenna-antenna-plugin-1.6.8-dev.5.tgz
+   openclaw plugins install --force --accept-capabilities /absolute/path/to/clawreefantenna-antenna-plugin-1.6.8-dev.6.tgz
    ```
 
    These flags accept the reviewed local archive and declared capabilities.
@@ -64,9 +64,11 @@ bin/antenna.sh mcs --config /absolute/isolated/openclaw.json evaluate --engine d
 node plugin/migration-check.mjs doctor /absolute/isolated/openclaw.json /absolute/legacy-copy
 ```
 
-Diagnostics do not deliver or change policy. Smart/model diagnostics contact the
-explicitly selected scanner endpoint; preview first and account for provider cost.
-Default reports omit bodies; optional details can contain submitted text.
+Diagnostics do not deliver or change policy. Smart/Both diagnostics send bodies
+to the explicitly selected registered host model through its isolated runtime.
+`--preview` is optional and makes no model calls. Default reports omit bodies;
+`--verbose` includes failure bodies and findings. `--corpus` selects one local
+JSON corpus for that invocation; see [the corpus guide](../plugin/CORPORA.md).
 
 ## Transport and accepted limits
 
@@ -78,16 +80,15 @@ host security. Signatures authenticate content but do not encrypt it.
 
 Delivery is best-effort. A runtime submission is not a final response or an
 exactly-once guarantee. Do not automatically resend an uncertain outcome. The
-accepted local 73.5 ms p95 is not a universal latency promise. Dumb's current
-24/40 detections and 10/40 benign false flags are provisionally accepted only;
-quality/corpus review remains before final hardening.
+accepted local 73.5 ms p95 is not a universal latency promise. The scanner-quality review below records known misses and false positives;
+scanner clearance is not proof that content is safe.
 
 ## Publication hold
 
 No release tag, remote push, ClawHub/npm publication, live migration, announcement
 or seven-day adoption countdown is started by these artifacts. Remaining handoff:
-pre-hardening Dumb review, deployment-specific public DNS/CA/proxy qualification,
-final support/recovery inventory and coordinated version/release approval. The
+deployment-specific public DNS/CA/proxy qualification, final owner quality/release
+acceptance and coordinated publication approval. Support/recovery scope is below. The
 separate v1.6.7 recovery candidate is preserved; it is not replaced or published
 by this development version. Reuse existing evidence by component and artifact;
 do not repeat the full failure matrix without a relevant change or new concern.
@@ -106,3 +107,61 @@ Local fixture qualification is not proof that every model/runtime/subscription
 works. The host's output-token hint is advisory for some runtimes; Antenna enforces
 input/accepted-response bounds and deadlines, not a universal provider generation
 cap. Existing holds, receiver permissions and release approval remain unchanged.
+
+## dev.6 scanner-quality review and supported scope
+
+The bundled development-reviewed synthetic corpus contains 40 malicious, 40
+benign and four ambiguous controls. One real GPT-5.6 Terra / native Codex / OAuth
+run on OpenClaw 2026.9.5 produced:
+
+| Mode | Attacks caught | False positives | Incomplete | Model calls |
+| --- | ---: | ---: | ---: | ---: |
+| Dumb | 30/40 | 9/40 | 0 | 0 |
+| Smart | 40/40 | 1/40 | 0 | 84 |
+| Both | 40/40 | 9/40 | 0 | 45 |
+
+Dumb is an English-oriented pattern baseline: five multilingual attacks, two
+obfuscations, two concealment paraphrases and one remote-execution paraphrase were
+missed. Its nine false flags concern quotations/security discussion, a code-safety
+warning, public-versus-private wording and protective negation. Smart's sole false
+flag was an explicitly quoted password-disclosure training exercise. Both retains
+Dumb flags without model review; fewer calls does not mean fewer false positives.
+
+Engineering review recommends retaining these measured bytes for the candidate,
+not exempting all quotations or tuning to this already-reviewed corpus. No label,
+rule, rubric or default is changed. Smart has the better observed quality in this
+comparison, but operators choose their mode/model. This is not independent or
+held-out certification, universal model support, or a guarantee against injection.
+Ambiguous examples varied between runs and remain outside binary denominators.
+A bare encoded attack control tests recognition, not proof of malicious intent in
+every surrounding context. Larger/independent datasets and repeatability remain
+unmeasured; no automatic quality threshold is imposed.
+
+The scanner model has zero tools and fresh context containing only rubric and
+message body. This is model/tool isolation, not a separate OS sandbox for the
+trusted host process. Invalid/failed scans hold as incomplete; valid verdicts feed
+existing code-owned delivery/approval policy. Ordinary approval is independent.
+
+## Recovery and coordinated-release inventory
+
+- Preserve the separate frozen v1.6.7 recovery candidate and its checksums. Its
+  age-encrypted backup/restore and readiness commands address legacy state, not
+  schema-2 plugin holds. Do not advertise it as a downgrade converter.
+- Before a real migration, inventory legacy config/peers, signing identity and
+  pins, destination permissions, lists, group registrations/grants, unresolved
+  legacy holds, hook integrations and relay-owned provisioning. Back up those
+  records and host config privately; never place live state in release archives.
+- Preserve new inbox/replay files and custom rules/corpora outside install folders.
+  Disabling/uninstalling the plugin does not authorize deletion of that state.
+- Rollback stops ingress and retains evidence. Never automatically restore a
+  peer-known general-hook credential, release old holds or resend unknown delivery.
+- Source/lifecycle qualification used recognized synthetic legacy layouts, not
+  every historical deployment. Unknown/custom layouts require explicit operator
+  reconciliation. Registry v2 support and contact refresh must be coordinated.
+- OpenClaw 2026.9.5 on Linux is observed. The minimum manifest constraint is an
+  API floor, not a blanket guarantee for future releases, Windows/macOS or other
+  native models. GPT-5.6 Terra native Codex/OAuth is the real scanner path measured;
+  the synthetic provider tests establish failure handling, not other-model quality.
+- Both v1.6.7 and v1.6.8 must be ready before any seven-day adoption announcement.
+  No clock starts with candidate packaging. GitHub, ClawHub, deployment and
+  announcements retain their separate explicit approval gates.

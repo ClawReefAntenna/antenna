@@ -1,4 +1,4 @@
-# Antenna OpenClaw plugin — 1.6.8-dev.5 development candidate
+# Antenna OpenClaw plugin — 1.6.8-dev.6 development candidate
 
 Inbound signed v2 delivery with Off / Dumb / Smart / Both content scanning.
 Default: Dumb. Both runs Dumb first and only calls Smart after a pass.

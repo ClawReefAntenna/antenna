@@ -39,7 +39,8 @@ antenna backup restore /private/backups/antenna.age --apply
 The first command verifies and previews; the second verifies, shows the target
 and additions/replacements/removals, and asks for confirmation. The default
 target is the installation running the command. `--to /path/to/antenna` selects
-another compatible v1.6.7 directory on the same host. No uninstall, empty
+another compatible v1.6.7 directory on the same host. These archives restore
+to v1.6.7 only, not v1.6.6 or v1.6.8, and are not a downgrade path from v1.6.8. No uninstall, empty
 installation or manual directory deletion is required. Missing or damaged
 current configuration is a supported recovery case. `--apply --yes` accepts
 the displayed replacement plan without its confirmation prompt, not without
@@ -98,6 +99,10 @@ next actions, keeps unknowns visible and summarizes passed checks. JSON carries
 full check results and evidence without secret values. Readiness uses local
 files and validators: no network probes, gateway RPC, repairs, chmod, queue
 initialization, backup lookup/decryption or service changes. Installed CLI
+version is compared with the v1.6.8 plugin minimum, **2026.9.5**. An older
+installed version is a local readiness failure; an unavailable, unrecognized
+or named prerelease version remains unknown. Numeric packaging revisions are
+recognized. This reads package metadata without invoking OpenClaw. The installed
 version is not the running gateway version. Include-owned gateway settings are
 reported unknown, not expanded. A missing optional backup is not a blocker.
 
@@ -106,20 +111,45 @@ reported unknown, not expanded. A missing optional backup is not a blocker.
 no local failures (warnings/unknowns remain visible); 1 local failures; 2 invalid
 invocation or incomplete report. Missing age tools warn because backup is optional.
 
-## Coordinated release notice — private, undated draft
+### What to prepare for v1.6.8
 
-Antenna v1.6.7 adds encrypted state backup, in-place restore and local readiness
-while retaining the current messaging transport. v1.6.8 is planned to introduce
-deterministic staging and a compatibility change requiring coordinated peer and
-ClawReef upgrades. Review the qualified migration guide and coordinate with peer
-operators; a backup is optional preparation, not an upgrade prerequisite.
+Relay, hooks and identity checks describe your **current legacy installation**;
+they do not establish that plugin cutover is complete. Install the v1.6.8 plugin
+and companion and follow the explicit migration/cutover steps. Coordinate with
+paired peers and, if you use Public Groups, your ClawReef Registry operator.
+Existing valid pairings carry forward through migration; both peers must migrate
+before exchanging messages on the new transport.
 
-Both builds must be complete, tested and migration/rollback-qualified before
-the announcement. v1.6.8 publication is planned seven days after that announcement;
-there is no early public breaking test build. **No announcement has been made
-and no date has been set.** Before publication, replace this private draft with
-approved dated copy and verified migration/rollback links across release notes,
-CHANGELOG, ClawReef guidance and packaged notice metadata. The local metadata is
-not a live notice feed or evidence of remote publication. This candidate does
-not claim remediation of pre-model exposure or scanner clearance. Publication
-and live deployment require their separate authorization.
+Readiness warns about pending, approved-but-unsent and failed/uncertain inbox
+items. Review and resolve what you can. Remaining legacy inbox items are preserved
+as read-only recovery material, not converted into deliverable v1.6.8 messages.
+An empty inbox is not required. Readiness never approves, drains or resends;
+any new signed resend is explicit, with uncertain prior delivery reviewed first.
+
+**Your existing hooks token — rotation is recommended, not required:**
+
+> v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may still hold copies. We recommend rotating it to revoke non-essential general-hook access. If you rotate it, update any other integrations using that token. If you retain it, those copies may remain valid for enabled gateway hooks, outside Antenna’s checks.
+
+Retaining the token produces a warning, not a readiness failure. No credential
+is changed. A matching local self-token check is about current legacy health,
+not whether you have rotated it for the future plugin.
+
+### Migration guide and notice status
+
+For this private candidate, the qualified [v1.6.8 migration guide](../../antenna-v1.6.8-release/plugin/MIGRATION.md)
+is in the adjacent release worktree. This is a private workspace link, not a
+published guide URL. Its optional-token-rotation and native-recovery revisions
+remain pending; the owner-approved optional rotation policy above supersedes its
+older mandatory-rotation wording. Verified public guide links must replace private
+links before publication.
+
+The packaged notice remains `undated-draft`, with announcement/publication dates
+unset. Readiness recognizes that status only with null dates and matching release
+versions. Missing, malformed, inconsistent or unsupported notice metadata stays
+unknown; it never starts a countdown or implies remote availability. A future
+dated notice schema still needs explicit implementation and verification.
+
+The coordinated announcement and approved release copy are prepared separately.
+Both builds must be ready before announcement; planned v1.6.8 publication follows
+a seven-day announcement period. No date, publication or live deployment is
+established by this report. Backup remains optional preparation.

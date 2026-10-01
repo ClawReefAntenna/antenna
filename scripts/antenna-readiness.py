@@ -15,6 +15,18 @@ sys.path.insert(0,str(ROOT/'lib'))
 import antenna_state as state
 
 
+PLUGIN_MINIMUM='2026.9.5'
+HOOKS_WARNING='v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may still hold copies. We recommend rotating it to revoke non-essential general-hook access. If you rotate it, update any other integrations using that token. If you retain it, those copies may remain valid for enabled gateway hooks, outside Antenna’s checks.'
+
+
+def plugin_version_status(version):
+    # OpenClaw uses calendar versions; -N is a packaging revision, while
+    # named prereleases do not establish support for the stable minimum.
+    match=re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:-(\d+))?(?:\+[0-9A-Za-z.-]+)?',version or '') if isinstance(version,(str,type(None))) else None
+    if not match: return 'unknown'
+    return 'pass' if tuple(map(int,match.group(1,2,3))) >= (2026,9,5) else 'fail'
+
+
 def report(root,gateway):
     checks=[]
     def add(code,status,reason,source,action='',**data):
@@ -36,6 +48,13 @@ def report(root,gateway):
                 if package.get('name')=='openclaw': ocversion=package.get('version');break
             except (state.StateError,OSError): continue
     add('openclaw_cli_version','pass' if ocversion else 'unknown','Installed CLI package version; not running gateway version.',oc or 'PATH',version=ocversion)
+    minimum_status=plugin_version_status(ocversion)
+    add('plugin_openclaw_minimum',minimum_status,
+        'Installed OpenClaw meets the v1.6.8 minimum.' if minimum_status=='pass' else 'Installed OpenClaw is below the v1.6.8 minimum.' if minimum_status=='fail' else 'Installed OpenClaw compatibility with the v1.6.8 minimum is unknown.',
+        oc or 'PATH','v1.6.8 requires OpenClaw '+PLUGIN_MINIMUM+' or later; verify the running gateway separately.',minimum=PLUGIN_MINIMUM)
+    add('legacy_health_scope','pass','Configuration, identity, relay and gateway checks describe the current legacy installation, not completed plugin cutover.','local-only report')
+    add('migration','unknown','Plugin installation and migration/cutover are not performed or verified by readiness.',root/'references/BACKUP-AND-READINESS.md','Follow the qualified v1.6.8 migration guide: install plugin and companion, preserve pairings, complete explicit cutover, and coordinate with peers and any Public Groups Registry operator.')
+    add('hooks_token_rotation','warn',HOOKS_WARNING,'v1.6.8 migration guidance','Rotation is recommended, not required; no credentials are changed by readiness.')
     add('running_gateway','unknown','Running gateway version not checked.','local-only report','Verify separately during upgrade qualification.')
     add('remote_peers','unknown','Remote-peer readiness: unknown (not checked).','local-only report','Coordinate peer and ClawReef upgrades using the qualified migration guide.')
     config=None;peers=None
@@ -59,7 +78,13 @@ def report(root,gateway):
             _,_,queue,fps=state.validate_snapshot(root,files)
             add('identity_state','pass','State inventory and key relationships valid.',root,identity_fingerprints=fps)
             items=state.decode(files[queue]) if queue in files else []
-            add('inbox','pass','Existing inbox status counts; no initialization or drain.',refs[queue],counts=dict(Counter(i['status'] for i in items)))
+            counts=dict(Counter(i['status'] for i in items))
+            unresolved=sum(counts.get(k,0) for k in ('pending','approved','failed'))
+            add('inbox','warn' if unresolved else 'pass',
+                'Unresolved legacy inbox items: pending, approved-but-unsent or failed/uncertain.' if unresolved else 'No unresolved legacy inbox items.',
+                refs[queue],
+                'Review and resolve what you can before migration. Remaining legacy items are preserved as read-only recovery material, not deliverable v1.6.8 messages. Any new signed resend is explicit; review failed/uncertain delivery before resending.' if unresolved else '',
+                counts=counts,unresolved=unresolved)
         except (state.StateError,OSError,KeyError,TypeError):
             add('identity_state','fail','State inventory, key references or inbox invalid; no secret values displayed.',root,'Run Doctor or inspect the local state before upgrading.')
     # Reuse the exact non-mutating relay-policy validator used by Doctor.
@@ -98,14 +123,14 @@ def report(root,gateway):
                 else: add('gateway_token','unknown','External token reference not resolved.',gateway,'Verify through the configured secret provider separately.')
     except (state.StateError,OSError,KeyError,TypeError,ValueError,StopIteration):
         add('gateway_config','fail','Local gateway configuration is missing, unsupported or inconsistent.',gateway,'Inspect with Doctor; this report makes no repairs.')
-    add('backup','not_applicable','Backup is optional; no archive was located or decrypted.','not inspected','Create and verify a backup if desired.')
+    add('backup','not_applicable','Backup is optional; no archive was located or decrypted.','not inspected','Create and verify a backup if desired. v1.6.7 archives restore state to compatible v1.6.7 installations only; not to v1.6.8 or as a downgrade from it.')
     notice=root/'references/upgrade-notice.json'
     try:
         n=state.decode(state.read_file(notice))
-        state.need(n.get('schema_version')==1 and n.get('status')=='undated-draft')
+        state.need(n.get('schema_version')==1 and n.get('status')=='undated-draft' and n.get('announcement_at') is None and n.get('publication_at') is None and n.get('from_version')=='1.6.7' and n.get('next_version')=='1.6.8')
         add('notice','warn','Private undated notice draft; no publication date or remote availability established.',notice,'Use the final qualified migration guide at release time.',notice_status='undated-draft')
     except (state.StateError,OSError,AttributeError):
-        add('notice','unknown','Packaged notice unavailable or unsupported; no remote check performed.',notice)
+        add('notice','unknown','Packaged notice unavailable, inconsistent or unsupported; no publication date, countdown or remote availability established.',notice)
     counts=dict(Counter(c['status'] for c in checks))
     return {'schema_version':1,'complete':True,'target':str(root),'version':version,'checks':checks,'summary':counts,
             'local_result':'Local problems found' if counts.get('fail') else 'No local problems found'}

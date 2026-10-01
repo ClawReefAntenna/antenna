@@ -16,3 +16,9 @@ check('keyed entries relay detected',{entries:{'custom-relay':{}}},true);
 check('mixed representation relay detected',{list:[{id:'other'}],entries:{'custom-relay':{}}},true);
 check('unrelated keyed agent preserved',{entries:{other:{}}},false);
 check('removed relay passes',{entries:{}},false);
+
+for(const hooks of [{enabled:true,token:'p'.repeat(32)},{enabled:true,token:{source:'env',id:'HOOKS'}},{enabled:false}]){host.hooks=hooks;check('optional hook retention',{entries:{}},false);}
+host.gateway.auth.token='p'.repeat(32);write('host.json',host);
+assert.equal(spawnSync(process.execPath,[doctor,'doctor',path.join(root,'host.json'),root]).status,1);
+console.log('PASS operator separation remains mandatory');
+fs.rmSync(root,{recursive:true,force:true});

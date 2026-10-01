@@ -657,3 +657,7 @@ On each host:
 - 📧 **Email:** [help@clawreef.io](mailto:help@clawreef.io)
 - 🐛 **Issues:** [github.com/ClawReefAntenna/antenna/issues](https://github.com/ClawReefAntenna/antenna/issues)
 - 🔒 **Security:** See [the repository security policy](https://github.com/ClawReefAntenna/antenna/blob/main/SECURITY.md)
+
+## v1.6.8 recovery and migration update
+
+Use [plugin-native recovery](references/BACKUP-AND-READINESS.md) for v1.6.8 only; legacy archives are rejected. Hooks-token rotation is recommended, not required; retained general-hook access remains outside Antenna checks. Operator authentication must stay separate. Release scheduled October 8, 2026 (America/Toronto), not confirmation of publication.

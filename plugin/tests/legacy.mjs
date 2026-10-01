@@ -44,14 +44,15 @@ const auto=prepare(root,path.join(root,'host.json'),selection).host.plugins.entr
 assert.equal(policyFor(auto,auto.peers.alpha,'work').approval,false);
 write('new-inbox.json','preserve');assert.throws(()=>prepare(root,path.join(root,'host.json'),selection));assert.equal(fs.readFileSync(path.join(root,'new-inbox.json'),'utf8'),'preserve');
 console.log('PASS exact v2 signature/body; held/submitted/unknown/rejected; no redirect/retry/fallback; offline migration preservation; approval mapping; occupied-state refusal');
-// Offline contact exchange: export refusal before hook retirement, pinned import,
+// Offline contact exchange: export warning when hooks retained, pinned import,
 // no permission grant, and retired legacy writer guard.
 const {execFileSync}=await import('node:child_process');
 const pairing=new URL('../pairing.mjs',import.meta.url).pathname;
 const contact=path.join(root,'contact.json'),hostFile=path.join(root,'export-host.json');
 write('antenna-peers.json',{beta:{self:true,url:'https://beta.test',signing_public_key_file:'key.pem'}});
 write('export-host.json',{gateway:{auth:{token:'operator-not-shared'}},hooks:{token:'x'.repeat(32)},plugins:{entries:{antenna:{config:{receiver:'beta',bearer:'x'.repeat(32),destinations:{work:'agent:beta:main'}}}}}});
-assert.throws(()=>execFileSync(process.execPath,[pairing,'export',root,hostFile,contact],{stdio:'pipe'}));assert(!fs.existsSync(contact));
+const retained=JSON.parse(execFileSync(process.execPath,[pairing,'export',root,hostFile,contact]));assert.equal(retained.warnings.length,1);fs.unlinkSync(contact);
+const shared=JSON.parse(fs.readFileSync(hostFile));shared.gateway.auth.token='x'.repeat(32);write('export-host.json',shared);assert.throws(()=>execFileSync(process.execPath,[pairing,'export',root,hostFile,contact],{stdio:'pipe'}));shared.gateway.auth.token='operator-not-shared';write('export-host.json',shared);
 const exportHost=JSON.parse(fs.readFileSync(hostFile,'utf8'));exportHost.hooks.token='new-host-private';write('export-host.json',exportHost);
 execFileSync(process.execPath,[pairing,'export',root,hostFile,contact]);assert.equal(fs.statSync(contact).mode&0o777,0o600);
 const receiver=path.join(root,'recipient');fs.mkdirSync(receiver);fs.writeFileSync(path.join(receiver,'antenna-peers.json'),'{}');fs.writeFileSync(path.join(receiver,'antenna-config.json'),'{"allowed_outbound_peers":[]}');
@@ -80,5 +81,5 @@ try{
 console.log('PASS shell direct/list transport, UTF-8 BOM/trailing LF, and retired writer guards');
 await assert.rejects(run('bash',[path.join(shellRoot,'scripts/antenna-doctor.sh'),'--fix-hints']));
 try{await run('python3',[path.join(shellRoot,'scripts/antenna-readiness.py'),'--json']);assert.fail('legacy readiness must fail');}catch(e){assert.equal(JSON.parse(e.stdout).complete,false);}
-try{await run('python3',[path.join(shellRoot,'scripts/antenna-backup.py'),'restore','unused.age','--to',shellRoot]);assert.fail('legacy restore must fail');}catch(e){assert.match(e.stderr+e.stdout,/PLUGIN_MIGRATION|Legacy backup/);}
+try{await run('python3',[path.join(shellRoot,'scripts/antenna-backup.py'),'restore','unused.age','--to',shellRoot]);assert.fail('legacy restore must fail');}catch(e){assert.match(e.stderr+e.stdout,/INCOMPATIBLE_TARGET|HOST_REQUIRED|INVALID_HOST|MISSING_STATE|TERMINAL_REQUIRED/);}
 console.log('PASS migrated Doctor/readiness/restore cannot recommend or restore legacy state');

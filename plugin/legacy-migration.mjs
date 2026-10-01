@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Offline preparation only. No live writers, credential rotation, or gateway calls.
+import {hooksWarning} from './migration-warning.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash,createPublicKey} from 'node:crypto';
@@ -60,10 +61,10 @@ export function prepare(root,hostFile,selection){
  const stagedHost=structuredClone(host);stagedHost.plugins??={};stagedHost.plugins.entries??={};
  need(!stagedHost.plugins.entries.antenna?.enabled,'disable plugin before staging migration');
  stagedHost.plugins.entries.antenna={enabled:false,config:c};
- const blockers=['Stop Antenna ingress and all legacy writers before cutover.', 'Retire peer-known general-hook authority and coordinate every other hook consumer.', 'Verify selected runtime destinations exist; preparation is offline.', 'Install/load plugin, restart explicitly, and probe old hook denial before advertising migration.'];
+ const blockers=['Stop Antenna ingress and all legacy writers before cutover.', 'Verify selected runtime destinations exist; preparation is offline.', 'Install/load plugin, restart explicitly, and verify signed admission and operator separation before advertising migration.'];
  if(pending)blockers.push(`${pending} unresolved legacy inbox items: preserve file read-only; resolve explicitly or request a newly signed resend. No conversion, drain or automatic release.`);
  if(['smart','both'].includes(c.mcs))blockers.push('Select and validate a registered scanner model before activation.');
- const report={profile:PROFILE,compatibility:'documented manual migration',activation:false,receiver:c.receiver,peers:Object.keys(c.peers),destinations:c.destinations,legacyPending:pending,httpPeers:Object.entries(outbound).filter(([,p])=>p.allow_http===true).map(([id])=>id),unmigratedOutbound:old.allowed_outbound_peers.filter(id=>outbound[id]?.transport_profile!==PROFILE),blockers,sourceHashes:Object.fromEntries(inputs.map(p=>[path.resolve(p),hash(p)]))};
+ const report={warnings:[hooksWarning],profile:PROFILE,compatibility:'documented manual migration',activation:false,receiver:c.receiver,peers:Object.keys(c.peers),destinations:c.destinations,legacyPending:pending,httpPeers:Object.entries(outbound).filter(([,p])=>p.allow_http===true).map(([id])=>id),unmigratedOutbound:old.allowed_outbound_peers.filter(id=>outbound[id]?.transport_profile!==PROFILE),blockers,sourceHashes:Object.fromEntries(inputs.map(p=>[path.resolve(p),hash(p)]))};
  return {report,host:stagedHost,config:{...old,transport_profile:PROFILE},peers:outbound};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){

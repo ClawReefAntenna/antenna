@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Offline receiver-authored contact exchange. Never grants inbound/outbound permission.
+import {hooksWarning} from './migration-warning.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createPublicKey,randomUUID} from 'node:crypto';
@@ -14,13 +15,12 @@ try{
   const [hostPath,output]=args,host=read(hostPath),c=host.plugins?.entries?.antenna?.config;
   const self=Object.entries(peers).filter(([,p])=>p.self===true);need(self.length===1&&self[0][0]===c?.receiver,'receiver identity mismatch');
   need(typeof c.bearer==='string'&&c.bearer.length>=32,'Antenna bearer required');
-  need(host.hooks?.enabled===false||typeof host.hooks?.token==='string'&&host.hooks.token!==c.bearer,'retire shared hook authority before export');
   need(typeof host.gateway?.auth?.token==='string'&&host.gateway.auth.token!==c.bearer,'Antenna bearer must differ from resolved operator credential');
   const p=self[0][1];endpoint(p.url,p.allow_http===true);
   const key=createPublicKey(fs.readFileSync(resolve(p.signing_public_key_file)));need(key.asymmetricKeyType==='ed25519','Ed25519 identity required');
   const bundle={schema_version:3,bundle_type:'antenna-plugin-contact',transport_profile:PROFILE,peer:c.receiver,origin:p.url,allow_http:p.allow_http===true,public_key:key.export({type:'spki',format:'pem'}),antenna_bearer:c.bearer,destinations:Object.keys(c.destinations),expires_at:new Date(Date.now()+86400000).toISOString()};
   fs.writeFileSync(output,JSON.stringify(bundle)+'\n',{flag:'wx',mode:0o600});
-  console.log(JSON.stringify({written:true,encrypted:false,note:'Private credential-bearing contact; transfer through an authenticated encrypted channel.'}));
+  console.log(JSON.stringify({written:true,encrypted:false,warnings:host.hooks?.enabled===false?[]:[hooksWarning],note:'Private credential-bearing contact; transfer through an authenticated encrypted channel.'}));
  }else if(command==='import'){
   const [file,expectedPeer,defaultTarget]=args,st=fs.lstatSync(file);need(st.isFile()&&!(st.mode&0o077)&&st.size<=16384,'private bounded contact file required');
   const b=read(file);

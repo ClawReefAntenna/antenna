@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {hooksWarning} from './migration-warning.mjs';
 import {resolveScanner} from './smart.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,12 +18,12 @@ try{
   const legacyBearer=fs.readFileSync(path.resolve(root,self[0].token_file),'utf8').trim(),problems=[];
   if(old.transport_profile!==PROFILE)problems.push('legacy send/writer controls not switched');
   if(!host.plugins?.entries?.antenna?.enabled||!host.plugins?.allow?.includes('antenna'))problems.push('plugin disabled or not allowlisted');
-  if(host.hooks?.enabled!==false&&(typeof host.hooks?.token!=='string'||host.hooks.token===legacyBearer||host.hooks.token===c.bearer))problems.push('general-hook credential retirement not established');
+  const warnings=host.hooks?.enabled===false?[]:[hooksWarning];
   if(typeof host.gateway?.auth?.token!=='string'||[legacyBearer,c.bearer].includes(host.gateway.auth.token))problems.push('operator credential separation not established');
   const relay=old.relay_agent_id??'antenna';
   if(host.agents?.list?.some(a=>a.id===relay)||Object.hasOwn(host.agents?.entries??{},relay))problems.push('legacy relay agent still provisioned; review ownership before removal');
   if(host.hooks?.mappings?.some(m=>JSON.stringify(m).includes('antenna')))problems.push('possible old Antenna mapping remains; review manually');
   if([c.mcs,...Object.values(c.peers).map(p=>p.mcs)].some(m=>['smart','both'].includes(m))){try{if(resolveScanner(c.scannerModel,host).identity!==c.scannerIdentity)throw Error();}catch{problems.push('registered scanner selection not validated');}}
-  console.log(JSON.stringify({staticChecksPassed:problems.length===0,liveIngressVerified:false,problems,required:'After explicit restart, verify plugin admission and denial of old hook/operator paths using the retired peer credential.'}));if(problems.length)process.exitCode=1;
+  console.log(JSON.stringify({staticChecksPassed:problems.length===0,liveIngressVerified:false,problems,warnings,required:'After explicit restart, verify signed plugin admission and denial of operator access using peer credentials. If hooks were rotated or disabled, also verify old hook access is denied; otherwise retained hook access is outside Antenna checks.'}));if(problems.length)process.exitCode=1;
  }else throw Error('sources REPORT | doctor HOST LEGACY_ROOT');
 }catch(e){console.error(JSON.stringify({status:'blocked',reason:e.message}));process.exitCode=1;}

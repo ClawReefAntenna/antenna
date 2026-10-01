@@ -70,8 +70,14 @@ v1.6.7 provides legacy encrypted backup/in-place restore and local readiness;
 it is not a converter for plugin-state downgrade. Backup is optional preparation,
 not proof that peers are ready or a required activation gate.
 
-Both builds must be ready before the announcement. v1.6.8 publication is planned
-seven days after that announcement, with no early public breaking build. No date,
-announcement or countdown is created by this private package. Final dated notice
-and public links require publication preparation and authorization; deployment is
-separate. Passage of seven days does not authorize publication or remote upgrades.
+v1.6.7 is scheduled for October 1, 2026 and v1.6.8 for October 8, 2026
+(America/Toronto). These dates do not confirm publication or activate any installation.
+
+## Plugin-native recovery and credential choice
+
+v1.6.8 now provides encrypted backup, verification and confirmed in-place restore of
+its own plugin/companion state. It rejects legacy archives, preserves exact holds and
+replay state, and leaves the plugin disabled after restore. Shared OpenClaw settings
+and provider authentication are not restored. See [recovery](references/BACKUP-AND-READINESS.md).
+
+> v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may still hold copies. We recommend rotating it to revoke non-essential general-hook access. If you rotate it, update any other integrations using that token. If you retain it, those copies may remain valid for enabled gateway hooks, outside Antenna’s checks.

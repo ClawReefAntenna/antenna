@@ -1,5 +1,12 @@
 # Changelog
 
+### October 1 release preparation — v1.6.8 scheduled October 8, 2026
+
+- Make hook rotation advisory in migration preparation, Doctor and contact export; retain operator credential separation.
+- Add v1.6.8-only encrypted plugin/companion recovery, exact holds/replay preservation and disabled-after-restore behavior; reject legacy archives.
+- Refresh migration/recovery guidance. No production activation or publication is implied.
+
+
 ## [1.6.8] — Prepared; publication pending
 
 - Signed, receiver-addressed plugin ingress and direct local dispatch without a relay model.

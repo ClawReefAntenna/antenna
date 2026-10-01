@@ -248,3 +248,7 @@ This npm archive includes the plugin and its own operators, not the companion
 and `plugin/` together at the same development version. The repository's
 `references/PLUGIN-CANDIDATE.md` describes the two-artifact handoff; it is not
 included in this plugin-only archive. Legacy setup is not plugin initialization.
+
+## Recovery and retained hooks
+
+Use the version-matched companion recovery command and its `references/BACKUP-AND-READINESS.md` guide. Recovery is not a plugin-only CLI feature. General-hook rotation is recommended, not mandatory; operator credentials must remain separate. See [migration](MIGRATION.md).

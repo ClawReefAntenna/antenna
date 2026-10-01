@@ -17,10 +17,10 @@ import tempfile
 sys.dont_write_bytecode=True
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'lib'))
-import antenna_state as state
+import antenna_plugin_state as state
 
 WARNING='This will replace Antenna’s configuration and saved state with this backup. Changes made since the backup—including newer inbox records—will be lost. Installed program files and OpenClaw conversation history will not be changed. Continue?'
-FORMAT=1
+FORMAT=2
 TAR_LIMIT=state.MAX_TOTAL+state.MAX_MEMBERS*2048+1024*1024
 
 
@@ -56,7 +56,7 @@ def age(source,target,decrypt=False):
 
 
 def write_archive(path,root,files,refs):
-    manifest={'format_version':FORMAT,'producer_version':'1.6.7','state_schema':1,
+    manifest={'format_version':FORMAT,'producer_version':'1.6.8','state_schema':2,
               'created_at':datetime.now(timezone.utc).isoformat(),'source_root':str(root),
               'files':[{'name':n,'size':len(raw),'sha256':state.digest(raw)} for n,raw in sorted(files.items())],
               'absent':sorted(set(refs)-set(files))}
@@ -86,8 +86,8 @@ def load_archive(path):
         raise state.StateError('INVALID_ARCHIVE','Cannot read the bounded archive.') from None
     state.need('manifest.json' in files,'INVALID_ARCHIVE','Manifest missing.')
     m=state.decode(files.pop('manifest.json'))
-    state.need(isinstance(m,dict) and m.get('format_version')==FORMAT and m.get('state_schema')==1 and
-               m.get('producer_version')=='1.6.7','UNSUPPORTED_FORMAT','Unsupported backup format or producer state schema.')
+    state.need(isinstance(m,dict) and m.get('format_version')==FORMAT and m.get('state_schema')==2 and
+               m.get('producer_version')=='1.6.8','UNSUPPORTED_FORMAT','Unsupported backup format or producer state schema.')
     state.need(isinstance(m.get('source_root'),str) and Path(m['source_root']).is_absolute() and
                str(state.lexical(m['source_root']))==m['source_root'],'INVALID_ARCHIVE','Invalid source metadata.')
     state.need(isinstance(m.get('created_at'),str) and len(m['created_at'])<80 and
@@ -105,7 +105,7 @@ def load_archive(path):
     state.need(not files,'INVALID_ARCHIVE','Unlisted archive members.')
     root=Path(m['source_root'])
     cfg,peers,queue,fingerprints=state.validate_snapshot(root,payload)
-    expected,_=state.references(root,cfg,peers)
+    expected=state.expected(root,payload)
     state.need(all(isinstance(n,str) for n in m['absent']) and len(m['absent'])==len(set(m['absent'])) and
                set(m['absent'])==set(expected)-set(payload),'INVALID_ARCHIVE','Absent state inventory differs.')
     state.need(sum(map(len,payload.values()))<=state.MAX_TOTAL,'SIZE_LIMIT','Payload exceeds total limit.')
@@ -120,11 +120,13 @@ def summary(m,fingerprints):
 
 def package_target(root):
     state.need(root.is_dir() and root==root.resolve(),'INVALID_TARGET','Select a regular existing Antenna installation directory.')
-    for n in ('bin/antenna.sh','lib/session_policy.py','lib/antenna_state.py','scripts/antenna-backup.py'):
+    for n in ('bin/antenna.sh','lib/session_policy.py','lib/antenna_plugin_state.py','scripts/antenna-backup.py','plugin/recovery-validate.mjs'):
         state.read_file(root/n)
-    # v1.6.7 initially supports its own state schema, not arbitrary future packages.
-    state.need((root/'lib/antenna_state.py').read_bytes()==(ROOT/'lib/antenna_state.py').read_bytes(),
-               'INCOMPATIBLE_TARGET','Target must have matching v1.6.7 recovery validators.')
+    package=state.decode(state.read_file(root/'plugin/package.json'))
+    state.need(package.get('version')=='1.6.8','INCOMPATIBLE_TARGET','Target must be a v1.6.8 companion installation.')
+    # v1.6.8 initially supports its own state schema, not arbitrary future packages.
+    state.need((root/'lib/antenna_plugin_state.py').read_bytes()==(ROOT/'lib/antenna_plugin_state.py').read_bytes(),
+               'INCOMPATIBLE_TARGET','Target must have matching v1.6.8 recovery validators.')
 
 
 def prepared(m,files,target):
@@ -143,6 +145,12 @@ def prepared(m,files,target):
     if cfg.get('log_path') and Path(cfg['log_path']).is_absolute():
         cfg['log_path']='antenna.log';remaps.append({'field':'log_path','to':'antenna.log'})
     data['antenna-config.json']=state.encode(cfg);data['antenna-peers.json']=state.encode(peers)
+    plugin=state.decode(data[state.PLUGIN])
+    for field,name in state.NATIVE.items():
+        if field in plugin:
+            plugin[field]=str(target/name)
+            remaps.append({'field':field,'to':str(target/name)})
+    data[state.PLUGIN]=state.encode(plugin)
     state.validate_snapshot(target,data)
     return data,remaps
 
@@ -151,22 +159,34 @@ def restore_plan(m,files,target):
     package_target(target)
     desired,remaps=prepared(m,files,target)
     refs,current,stamps=state.capture(target,tolerant=True)
-    # External files are left intact; restored references point to private local
-    # copies. No archived external pathname grants permission to overwrite it.
     owned={n for n,p in refs.items() if p==target/n and n in current}
     removals=sorted(owned-set(desired))
-    changes={n:target/n for n in set(desired)|set(removals)}
-    for n,p in changes.items():
+    # Host config is read locally, not restored from an archive. Replace only
+    # Antenna config and disable its entry; preserve all unrelated fields.
+    host,_=state.host_config()
+    plugin=state.decode(desired.pop(state.PLUGIN))
+    operator=host.get('gateway',{}).get('auth',{}).get('token')
+    peers=state.decode(desired['antenna-peers.json'])
+    self_peer=peers[plugin['receiver']]
+    self_token=desired[state.destination(target,self_peer['token_file'],True)].decode().strip()
+    state.need(isinstance(operator,str) and operator not in (plugin['bearer'],self_token),
+               'OPERATOR_SEPARATION','Resolved operator token must differ from restored Antenna bearer.')
+    host['plugins']['entries']['antenna']['config']=plugin
+    host['plugins']['entries']['antenna']['enabled']=False
+    desired['@host']=state.encode(host)
+    targets={n:target/n for n in set(desired)|set(removals) if n!='@host'}
+    targets['@host']=state.HOST
+    state.need(state.HOST not in [p for n,p in targets.items() if n!='@host'],'PATH_COLLISION','Host overlaps Antenna state.')
+    for n,p in targets.items():
         state.safe_path(p,missing=True)
-        # Only explicitly inventoried current state or absent paths may change.
-        state.need(not p.exists() or n in owned,'TARGET_CONFLICT','Restore would overwrite a file outside the current Antenna inventory.')
-    prior={n:(state.read_file(p) if p.exists() else None) for n,p in changes.items()}
-    plan={'target':str(target),'snapshot_date':m['created_at'],
+        state.need(n=='@host' or not p.exists() or n in owned,'TARGET_CONFLICT','Restore would overwrite a file outside the current Antenna inventory.')
+    prior={n:(state.read_file(p) if p.exists() else None) for n,p in targets.items()}
+    plan={'target':str(target),'host':str(state.HOST),'snapshot_date':m['created_at'],
           'replace':sorted(n for n in desired if prior[n] is not None),
           'add':sorted(n for n in desired if prior[n] is None),'remove':removals,
           'remappings':remaps,'preserved_external_files':sorted(str(p) for n,p in refs.items() if p!=target/n and p.exists()),
-          'warning':WARNING,'resume':'Restore does not start services or drain the inbox. Review restored settings/inbox before resuming activity; duplicates are possible.'}
-    return plan,desired,prior,stamps,refs
+          'warning':WARNING,'resume':'Plugin is disabled. Restore does not start services or deliver messages. Review settings/holds/replay state and explicitly re-enable after verification; old snapshots can permit duplicates.'}
+    return plan,desired,prior,stamps,refs,targets
 
 
 def atomic(path,raw):
@@ -183,37 +203,38 @@ def atomic(path,raw):
         if os.path.exists(name): os.unlink(name)
 
 
-def replace_state(target,desired,prior):
+def replace_state(target,desired,prior,targets=None):
+    targets=targets or {n:target/n for n in prior}
     rollback=Path(tempfile.mkdtemp(prefix='.antenna-restore-',dir=target))
-    modes={n:((target/n).stat().st_mode & 0o777) for n,raw in prior.items() if raw is not None}
+    modes={n:(targets[n].stat().st_mode & 0o777) for n,raw in prior.items() if raw is not None}
     try:
         entries=[]
         for i,(n,raw) in enumerate(sorted(prior.items())):
             backup=str(i) if raw is not None else None
             if raw is not None: atomic(rollback/backup,raw)
-            entries.append({'path':n,'backup':backup,'mode':modes.get(n)})
+            entries.append({'path':str(targets[n]),'backup':backup,'mode':modes.get(n)})
         atomic(rollback/'rollback.json',state.encode({'target':str(target),'files':entries}))
-        atomic(rollback/'README.txt',b'Restore was interrupted. Keep dispatch stopped. rollback.json maps relative target paths to private numbered copies; null means absent before restore. Restore those copies with the recorded permission modes or remove those newly added files only. Do not resume until the covered state is consistent.\n')
+        atomic(rollback/'README.txt',b'Restore was interrupted. Keep dispatch stopped. rollback.json maps absolute target paths to private numbered copies; null means absent before restore. Restore those copies with the recorded permission modes or remove those newly added files only. Do not resume until the covered state is consistent.\n')
     except BaseException:
         shutil.rmtree(rollback)
         raise
     print('Temporary rollback: '+str(rollback),file=sys.stderr,flush=True)
     try:
         for n in sorted(prior):
-            if n in desired: atomic(target/n,desired[n])
-            elif (target/n).exists(): (target/n).unlink()
+            if n in desired: atomic(targets[n],desired[n])
+            elif targets[n].exists(): targets[n].unlink()
         for n in prior:
-            state.need((not (target/n).exists()) if n not in desired else state.read_file(target/n)==desired[n],
+            state.need((not targets[n].exists()) if n not in desired else state.read_file(targets[n])==desired[n],
                        'VERIFY_FAILED','Replacement verification failed.')
     except BaseException:
         try:
             for n,raw in prior.items():
                 if raw is None:
-                    if (target/n).exists(): (target/n).unlink()
+                    if targets[n].exists(): targets[n].unlink()
                 else:
-                    atomic(target/n,raw);os.chmod(target/n,modes[n])
+                    atomic(targets[n],raw);os.chmod(targets[n],modes[n])
             for n,raw in prior.items():
-                state.need(not (target/n).exists() if raw is None else state.read_file(target/n)==raw)
+                state.need(not targets[n].exists() if raw is None else state.read_file(targets[n])==raw)
         except BaseException:
             raise state.StateError('ROLLBACK_REQUIRED','Restore incomplete. Keep dispatch stopped; recover displaced state using '+str(rollback/'rollback.json')) from None
         shutil.rmtree(rollback)
@@ -238,14 +259,13 @@ def main(argv=None):
         if name=='restore':
             p.add_argument('--to',default=str(ROOT));p.add_argument('--apply',action='store_true');p.add_argument('--yes',action='store_true')
     create.add_argument('--json',action='store_true')
+    for command_parser in sub.choices.values():
+        command_parser.add_argument('--host',default=os.environ.get('OPENCLAW_CONFIG_PATH',str(Path.home()/'.openclaw/openclaw.json')))
     a=parser.parse_args(argv)
     if a.action=='restore': state.need(not a.yes or a.apply,'USAGE','--yes requires --apply.')
+    state.HOST=state.lexical(a.host)
     if a.action in ('create','restore'):
-        target_root=Path(a.to) if a.action=='restore' else ROOT
-        target_config=target_root/'antenna-config.json'
-        if target_config.exists():
-            state.need('transport_profile' not in state.decode(state.read_file(target_config)),
-                       'PLUGIN_MIGRATION', 'Legacy backup/restore cannot cover plugin state. Use the migration runbook; no files changed.')
+        package_target(Path(a.to) if a.action=='restore' else ROOT)
     terminal()
     with tempfile.TemporaryDirectory(prefix='antenna-backup-') as temp:
         temp=Path(temp)
@@ -296,7 +316,7 @@ def main(argv=None):
             with state.locks(target,paths):
                 state.need(restore_plan(m,files,target)==original,'STATE_CHANGED','Target changed after preview; rerun restore.')
                 state.quiescent()
-                replace_state(target,original[1],original[2])
+                replace_state(target,original[1],original[2],original[5])
             emit({'schema_version':1,'ok':True,'code':'RESTORED','target':str(target),'resume':original[0]['resume']},a.json)
 
 

@@ -54,7 +54,7 @@ Preparation reads the recognized version-1 session policy, Ed25519 pins and old
 inbox array. It stages `host.json`, `config.json`, `peers.json`, and a hash/report
 file with private permissions. Originals remain byte-identical. Staged host config
 retains unrelated settings and **keeps the plugin disabled**. It is not a ready-to-
-enable cutover config: its old hook settings have deliberately NOT been rotated.
+enable cutover config: destinations and operator authentication still require verification. Hook settings are retained; rotation is recommended, not required.
 
 Global inbox On/Off, per-session allowlist approval and peer auto-approval are
 mapped independently of MCS. Lists and group registrations are left in place;
@@ -85,21 +85,21 @@ retain their exact payloads/reasons. No migration silently approves an item.
    preserving native installer load paths/allowlist and all unrelated plugin settings.
    Keep it disabled while resolving the remaining steps. Copy staged config/peers
    into their intended legacy paths only after reviewing their diffs.
-4. Inventory every integration using the old general-hook credential. Rotate that
-   gateway credential to a fresh host-private value and update those integrations;
-   never distribute its replacement to Antenna peers. The uncompromised old bearer
-   may remain the Antenna-only plugin bearer. Known-compromised tokens require
-   explicit replacement. Keep operator authentication separate from both.
+4. Review the existing hooks credential. Rotation is recommended, not required.
+   If rotating, update other integrations using it; do not distribute the replacement
+   to Antenna peers. Retaining it must not block migration. Keep resolved operator
+   authentication separate from both the retained peer token and plugin bearer.
 5. Remove only confirmed Antenna-owned relay agent/mapping/cron/drain provisioning.
    Review customized or shared entries instead of deleting by name. Preserve other
    hooks, agents, sessions, lists, signing keys, pins, group registrations and grants.
 6. Confirm targets already exist and scanner readiness if selected. Explicitly enable
    and allowlist the plugin, then restart. The static check is local-only:
    `node plugin/migration-check.mjs doctor HOST_JSON LEGACY_ROOT`.
-7. Probe the actual public plugin route and verify that the retired peer credential
-   cannot access `/hooks/agent`, `/hooks/wake`, alternate/encoded hook paths or
-   operator surfaces. Static checks alone do not establish this. Plugin disable,
-   removal or startup failure must leave ingress unavailable, never reopen raw hooks.
+7. Probe the public plugin route and verify signed admission and denial of operator
+   access with peer credentials. If hooks were rotated or disabled, verify denial on
+   `/hooks/agent`, `/hooks/wake` and alternate/encoded hook paths. If retained,
+   general hooks may still accept the old credential outside Antenna checks; do not
+   claim whole-gateway bypass closure. Plugin failure must not fall back to hooks.
 8. Only now advertise the receiver's v2 transport. Switch each sender's peer profile
    explicitly. Unmigrated targets are unsupported; a timeout never selects old hooks.
 
@@ -108,10 +108,14 @@ old operations; they cannot knowingly recreate the relay or drain old holds. Use
 native plugin lifecycle commands, the new contact tool, and plugin inbox commands.
 Old backups and copies of old scripts are not patched: keep them offline.
 
+**Existing hooks credential:**
+
+> v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may still hold copies. We recommend rotating it to revoke non-essential general-hook access. If you rotate it, update any other integrations using that token. If you retain it, those copies may remain valid for enabled gateway hooks, outside Antenna’s checks.
+
 ## 3. Contact exchange, direct sends and replies
 
 No re-pair is needed merely to retain an existing safe key/bearer. To exchange a
-new contact after retiring general-hook authority:
+new or updated contact:
 
 ```text
 node plugin/pairing.mjs export LEGACY_ROOT HOST_JSON PRIVATE_CONTACT_FILE
@@ -120,7 +124,7 @@ node plugin/pairing.mjs import LEGACY_ROOT PRIVATE_CONTACT_FILE EXPECTED_PEER DE
 
 The output is **credential-bearing, private, and not encrypted**. Transfer it only
 through an authenticated encrypted channel (existing age exchange may be used as
-an external wrapper). Export refuses shared hook/operator authority; import requires
+an external wrapper). Export warns about retained general-hook access and refuses shared operator authority; import requires
 an explicit identity/destination, a fresh v3 contact, and continuity of an existing
 signing pin. It never grants inbound/outbound permission. Review plugin inbound pin
 configuration separately. Old bundle consumers reject version 3 rather than treating
@@ -167,3 +171,12 @@ not be followed by an old installer automatically. Rollback of program files is 
 permission to restore a peer-known general-hook credential or drain new holds through
 an old client. If old code cannot read retained state safely, remain unavailable until
 explicit operator recovery. No seamless downgrade or live migration is promised.
+
+## 6. Plugin-native recovery
+
+v1.6.8 provides its own encrypted backup and confirmed in-place restore. It rejects
+legacy archives; use v1.6.7 for legacy recovery before migration. The companion
+[recovery guide](../references/BACKUP-AND-READINESS.md) covers commands and scope.
+A plugin restore leaves the plugin disabled, preserves exact holds and replay data,
+and never activates, approves or resends. Existing legacy holds remain recovery
+material, not converted v2 messages.

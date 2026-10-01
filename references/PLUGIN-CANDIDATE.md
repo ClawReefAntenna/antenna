@@ -51,8 +51,9 @@ program files coherently; do not overlay just a caller onto old libraries.
    addresses must name existing destinations. Ordinary approval and MCS holds
    remain independent; Off does not disable signatures, permission or replay checks.
 4. For legacy state, follow [manual migration](../plugin/MIGRATION.md). Preserve old
-   holds, keys, lists and registrations; retire peer access to the general hook
-   credential before cutover. Unrelated hook users require explicit inventory.
+   holds, keys, lists and registrations. General-hook rotation is recommended, not
+   required; retained hook access remains outside Antenna checks. Keep operator
+   authentication separate and inventory unrelated hook consumers.
 5. Rollback means disable ingress while retaining state—not restore an old
    peer-known gateway credential or silently return to legacy delivery.
 
@@ -92,8 +93,8 @@ check passed; its temporary endpoint was removed. This is not qualification of
 every production binding or a public Registry group fan-out test.
 
 The separate v1.6.7 recovery build is preserved. Both builds must be ready before
-an announcement, with v1.6.8 publication planned seven days afterward. The notice
-remains undated until a schedule is approved. See [release notes](../RELEASE-NOTES.md).
+an announcement. The approved schedule is v1.6.7 on October 1, 2026 and v1.6.8
+on October 8, 2026 (America/Toronto); this is not proof of publication. See [release notes](../RELEASE-NOTES.md).
 Production host inventory and authorization remain separate. Reuse evidence by
 component and artifact; do not repeat broad tests without a relevant change.
 
@@ -155,6 +156,8 @@ existing code-owned delivery/approval policy. Ordinary approval is independent.
   pins, destination permissions, lists, group registrations/grants, unresolved
   legacy holds, hook integrations and relay-owned provisioning. Back up those
   records and host config privately; never place live state in release archives.
+- Use [v1.6.8-native encrypted recovery](BACKUP-AND-READINESS.md) for plugin/companion state.
+  It rejects legacy archives and leaves the plugin disabled after restore.
 - Preserve new inbox/replay files and custom rules/corpora outside install folders.
   Disabling/uninstalling the plugin does not authorize deletion of that state.
 - Rollback stops ingress and retains evidence. Never automatically restore a

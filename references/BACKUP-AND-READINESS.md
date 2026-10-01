@@ -1,131 +1,79 @@
-# Backup, restore and readiness — v1.6.7 private candidate
+# Plugin-native backup and restore — v1.6.8
 
-> Retained v1.6.7 legacy recovery guidance. For the 1.6.8-dev.4 plugin candidate,
-> start with [the candidate handoff](PLUGIN-CANDIDATE.md) and manual migration.
-> Legacy restore/readiness cannot qualify or restore migrated plugin state; preserve
-> plugin inbox/replay separately and never restore a peer-known general-hook token.
+Encrypted recovery covers v1.6.8 Antenna state only. Legacy archives are rejected
+before any replacement. Legacy backup/restore belongs to v1.6.7; one-way migration
+remains in the [migration guide](../plugin/MIGRATION.md).
 
+## Commands
 
-These commands are implemented in the local candidate, not yet published.
-They do not change the messaging transport or implement v1.6.8 staging/MCS.
-
-## Back up and verify
-
-Pause Antenna activity: stop gateway dispatch, state-changing Antenna commands
-and inbox drain before capture. The utility never stops or starts services.
-If stopping the shared OpenClaw gateway is necessary, other agents using it are
-also interrupted. There is no timed waiting period.
+Stop the local OpenClaw gateway and all Antenna writers before capture or restore.
+This interrupts other agents on a shared gateway; plan that interruption. The
+utility checks local processes and locks but never stops or starts a service.
 
 ```bash
-antenna backup create --output /private/backups/antenna.age
+antenna backup create --host /absolute/openclaw.json --output /private/backups/antenna.age
 antenna backup inspect /private/backups/antenna.age --json
 antenna backup verify /private/backups/antenna.age
+antenna backup restore /private/backups/antenna.age --host /absolute/openclaw.json
+antenna backup restore /private/backups/antenna.age --host /absolute/openclaw.json --apply
 ```
 
-Use a directory controlled by your account. Creation never overwrites an
-existing archive. Enter and confirm your chosen passphrase at age's protected
-terminal prompt. Creation opens the encrypted archive again for verification
-before publishing the completed file, so enter the passphrase again when asked.
+`--host` defaults to `OPENCLAW_CONFIG_PATH`, otherwise `~/.openclaw/openclaw.json`.
+Create uses the invoked companion installation; restore defaults to that installation
+and accepts `--to /absolute/compatible-v1.6.8`. Target metadata and recovery validators
+must match. A readable migrated companion config/peer inventory and resolved local
+JSON host config are required. Damaged reference/config files need explicit operator
+repair first; this tool does not guess ownership or resolve includes/secret providers.
+Inspect/verify need no active host configuration and make no operational changes.
 
-**If you lose the passphrase, you cannot recover this backup.** No password is
-stored and no automatic unlock is provided. Enter it directly at the terminal,
-not in chat: an agent cannot complete this step unattended. Without a usable
-terminal the command fails with instructions. `--yes` and `--json` do not bypass
-unlock. Cancellation/failure produces no verified-backup claim. Inspect and
-verify both currently perform full bounded verification and display only
-sanitized metadata, never credentials or message bodies.
+Enter the passphrase directly at age's protected terminal prompt, never in chat.
+**If you lose the passphrase, the backup cannot be recovered.** Creation prompts
+for confirmation and opens the encrypted result again to verify it before saving.
+An existing output is never overwritten. `--yes` skips only the restore replacement
+confirmation, never passphrase entry or validation. `--json` does not expose bodies,
+credentials or passphrases. No unattended unlock is supplied.
 
-## Restore into the existing installation
-
-```bash
-antenna backup restore /private/backups/antenna.age
-antenna backup restore /private/backups/antenna.age --apply
-```
-
-The first command verifies and previews; the second verifies, shows the target
-and additions/replacements/removals, and asks for confirmation. The default
-target is the installation running the command. `--to /path/to/antenna` selects
-another compatible v1.6.7 directory on the same host. No uninstall, empty
-installation or manual directory deletion is required. Missing or damaged
-current configuration is a supported recovery case. `--apply --yes` accepts
-the displayed replacement plan without its confirmation prompt, not without
-the passphrase or validation checks.
+Restore without `--apply` verifies and previews changes. `--apply` asks:
 
 > This will replace Antenna’s configuration and saved state with this backup. Changes made since the backup—including newer inbox records—will be lost. Installed program files and OpenClaw conversation history will not be changed. Continue?
 
-Keep gateway dispatch and Antenna writers stopped during replacement. Restore
-**replaces, not merges**, the explicitly inventoried state. It verifies before
-changing files and retains a private temporary copy of displaced state while
-replacing it. A failed replacement rolls back; if interrupted or rollback
-cannot finish, the reported `.antenna-restore-*` directory contains numbered
-copies, a mapping and recovery instructions. Keep activity stopped and retain
-that directory until the state is consistent. Successful restore removes its
-temporary rollback copy. This is not a permanent backup history service.
+## Covered state and exclusions
 
-Covered state: configuration, peers, referenced credentials and signing/exchange
-keys, local lists/Public Group routes, inbox, replay/rate state and recognized
-local ClawReef registration records. Old covered entries absent from the backup
-are removed. Arbitrary files and shared directories are not deleted.
+Covered: companion configuration, contacts, signing/exchange keys and tokens,
+lists, Public Group routes/registration records, rate/replay state, retained legacy
+recovery queue, Antenna plugin configuration (including policy and scanner selection),
+plugin inbox/replay files, and the selected custom ruleset. Exact plugin payloads,
+hold reasons, approval status and replay entries are retained; no conversion or
+automatic release occurs. Bundled rules are supplied by the matching program package.
 
-Program files, gateway settings, CLI links, OpenClaw databases/conversation
-history, agent identity/memory, provider auth, logs and caches remain untouched.
-Explicit external inbox/credential files are captured individually, not by
-copying directories. For restore they are remapped to private local paths
-shown in the preview; original external files are not overwritten or removed.
-Unknown operational state or unsupported schemas cause a visible refusal,
-not a partial “complete” backup. Initial limits: 10,000 payload files, 128 MiB
-per file, 512 MiB total payload; no truncation to fit.
+Only the Antenna plugin **config** is archived from OpenClaw. Provider credentials,
+operator/hooks tokens, unrelated plugins/settings, installer paths/allowlists,
+conversation history, agent memories, logs and program files are excluded. On restore,
+only Antenna config and its enabled flag are changed in the current host JSON;
+unrelated settings are preserved. Operator credentials must remain separate from
+peer-known credentials. The plugin is left **disabled**, never auto-activated.
 
-### After restore
+External referenced files are captured individually. Restored credentials are remapped
+into the companion's private `secrets/` or `keys/`; plugin state and custom rules into
+`state/plugin-*.json`. Original external files are not deleted or overwritten. The
+preview lists mappings. Unrecognized operational files, unsafe links, invalid state
+or unsupported layouts fail visibly rather than producing a partial backup.
+Limits: 10,000 members, 128 MiB per file, 512 MiB total; runtime-specific inbox/rules
+limits are also validated. Kernel scan slots and operation locks are not state payloads.
 
-Review settings and inbox before resuming services or existing drain automation.
-Restore does not start services, send messages, approve items or drain queues.
-It preserves archived inbox statuses; a restored approved item may already
-have been delivered since the snapshot and could be delivered again on normal
-drain. An old replay cache also forgets later accepted messages. No exactly-once
-recovery guarantee, countdown, recovery-only hold or activation gate is added.
+Replacement is verified, with temporary private displaced-state copies. Failed writes
+roll back; interruption may leave `.antenna-restore-*` with `rollback.json` (absolute
+local target paths) and recovery instructions. Keep services stopped and retain that
+folder until recovered. It is not a permanent backup history or recovery service.
 
-Old settings can restore revoked permissions or obsolete credentials. Gateway
-configuration and remote ClawReef grants have not been restored. Use existing
-Doctor diagnostics to check compatibility; the backup utility does not repair
-remote state or rotate keys. Cross-host cloning and arbitrary version migration
-are not supported by this first version.
+## After restore
 
-## Local readiness
+Review restored policy, contacts, scanner selection and inbox. Use the local migration
+Doctor and validate destinations/scanner readiness before explicitly re-enabling and
+restarting. Provider configuration is not restored. Old snapshots may reintroduce
+revoked permissions or forget later replay entries; there is no exactly-once guarantee.
+No credential rotation, service start, message send, approval or resend is performed.
 
-```bash
-antenna readiness
-antenna readiness --json
-antenna readiness --gateway /path/to/openclaw.json
-```
-
-Default output identifies the target/version, shows problems and warnings with
-next actions, keeps unknowns visible and summarizes passed checks. JSON carries
-full check results and evidence without secret values. Readiness uses local
-files and validators: no network probes, gateway RPC, repairs, chmod, queue
-initialization, backup lookup/decryption or service changes. Installed CLI
-version is not the running gateway version. Include-owned gateway settings are
-reported unknown, not expanded. A missing optional backup is not a blocker.
-
-**Remote-peer readiness: unknown (not checked).** A clean local result means
-“No local problems found,” not “safe to upgrade.” Exit codes: 0 completed with
-no local failures (warnings/unknowns remain visible); 1 local failures; 2 invalid
-invocation or incomplete report. Missing age tools warn because backup is optional.
-
-## Coordinated release notice — private, undated draft
-
-Antenna v1.6.7 adds encrypted state backup, in-place restore and local readiness
-while retaining the current messaging transport. v1.6.8 is planned to introduce
-deterministic staging and a compatibility change requiring coordinated peer and
-ClawReef upgrades. Review the qualified migration guide and coordinate with peer
-operators; a backup is optional preparation, not an upgrade prerequisite.
-
-Both builds must be complete, tested and migration/rollback-qualified before
-the announcement. v1.6.8 publication is planned seven days after that announcement;
-there is no early public breaking test build. **No announcement has been made
-and no date has been set.** Before publication, replace this private draft with
-approved dated copy and verified migration/rollback links across release notes,
-CHANGELOG, ClawReef guidance and packaged notice metadata. The local metadata is
-not a live notice feed or evidence of remote publication. This candidate does
-not claim remediation of pre-model exposure or scanner clearance. Publication
-and live deployment require their separate authorization.
+v1.6.8 is scheduled for **October 8, 2026 (America/Toronto)**. A schedule is not proof
+of publication. For legacy readiness, use v1.6.7; the old readiness command intentionally
+refuses migrated state. Backup remains optional.

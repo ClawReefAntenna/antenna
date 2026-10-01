@@ -2,7 +2,7 @@
 
 **Cross-host messaging for OpenClaw - your agents, their agents, any session, any host.**
 
-*v1.6.7 private candidate guide — not yet published. See [backup, restore and readiness](BACKUP-AND-READINESS.md) for the new commands; older installation examples do not install this candidate.*
+*v1.6.7 guide. See [backup, restore and readiness](BACKUP-AND-READINESS.md) for the new commands. Historical version-specific examples below remain labelled with their original versions.*
 
 ---
 

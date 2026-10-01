@@ -1,6 +1,6 @@
-# Backup, restore and readiness — v1.6.7 private candidate
+# Backup, restore and readiness — v1.6.7
 
-These commands are implemented in the local candidate, not yet published.
+These commands are included in v1.6.7.
 They do not change the messaging transport or implement v1.6.8 staging/MCS.
 
 ## Back up and verify
@@ -136,12 +136,11 @@ not whether you have rotated it for the future plugin.
 
 ### Migration guide and notice status
 
-For this private candidate, the qualified [v1.6.8 migration guide](../../antenna-v1.6.8-release/plugin/MIGRATION.md)
-is in the adjacent release worktree. This is a private workspace link, not a
-published guide URL. Its optional-token-rotation and native-recovery revisions
-remain pending; the owner-approved optional rotation policy above supersedes its
-older mandatory-rotation wording. Verified public guide links must replace private
-links before publication.
+The bundled [v1.6.8 migration guide](v1.6.8/plugin/MIGRATION.md) covers
+preparation, coordinated cutover, recommended hooks-token rotation and native
+recovery. These are documentation previews; v1.6.8 software is not included
+in v1.6.7. Legacy recovery remains available through v1.6.7; v1.6.8 recovery
+accepts only its own plugin-native archives.
 
 The packaged notice is `scheduled`: v1.6.7 release/announcement on **October 1,
 2026**, and v1.6.8 release on **October 8, 2026**, in America/Toronto. These

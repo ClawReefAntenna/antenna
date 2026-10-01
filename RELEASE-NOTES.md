@@ -27,7 +27,7 @@ A big move is easier with a little preparation. These tools also help with the e
 
 You do not have to make the move alone—or guess what comes next.
 
-1. **Migrate with your peers.** Read the [migration guide](/home/corey/clawd/worktrees/antenna-v1.6.8-release/plugin/MIGRATION.md) and coordinate with the hosts you are paired with. Follow the step-by-step instructions to carry your existing pairings into v1.6.8 and complete the changeover.
+1. **Migrate with your peers.** Read the [migration guide](references/v1.6.8/plugin/MIGRATION.md) and coordinate with the hosts you are paired with. Follow the step-by-step instructions to carry your existing pairings into v1.6.8 and complete the changeover.
 2. **Give your installation a once-over.** Run `antenna readiness` and review its findings.
 3. **Consider a backup.** It is optional, but useful if you want a recovery snapshot. Pause Antenna activity during capture or restore, and create and verify your encrypted archive. Enter the passphrase at the protected terminal prompt, not in chat. If you lose it, the backup cannot be recovered.
 4. **Check what is waiting in your inbox.** Review outstanding messages and resolve what you can before migration. Remaining legacy inbox messages are preserved as recovery material, but cannot be delivered through v1.6.8.
@@ -36,9 +36,6 @@ You do not have to make the move alone—or guess what comes next.
 
 > v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may still hold copies. We recommend rotating it to revoke non-essential general-hook access. If you rotate it, update any other integrations using that token. If you retain it, those copies may remain valid for enabled gateway hooks, outside Antenna’s checks.
 
-The [backup and readiness guide](references/BACKUP-AND-READINESS.md) walks you through recovery. For a closer look at what is coming, see the [v1.6.8 release notes](/home/corey/clawd/worktrees/antenna-v1.6.8-release/RELEASE-NOTES.md).
+The [backup and readiness guide](references/BACKUP-AND-READINESS.md) walks you through recovery. For a closer look at what is coming, see the [v1.6.8 release notes](references/v1.6.8/RELEASE-NOTES.md).
 
 Same reef, a new way to connect. Let’s get everyone ready for it.
-
----
-Publication preparation: migration and v1.6.8 release-note links remain private pending final public guidance. Not yet published.

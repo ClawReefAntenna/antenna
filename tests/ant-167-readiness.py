@@ -88,7 +88,7 @@ class Readiness(unittest.TestCase):
         self.assertEqual(checks['migration']['status'],'unknown')
 
     def test_notice_states(self):
-        original=json.loads((self.root/'references/upgrade-notice.json').read_text())
+        original={'schema_version':1,'status':'undated-draft','from_version':'1.6.7','next_version':'1.6.8','announcement_at':None,'publication_at':None,'notice_days':7}
         for changes,status in [({},'warn'),({'announcement_at':'2026-10-01T00:00:00Z'},'unknown'),({'publication_at':'2026-10-08T00:00:00Z'},'unknown'),({'status':'published'},'unknown'),({'schema_version':2},'unknown'),({'next_version':'9.0'},'unknown')]:
             with self.subTest(changes=changes):
                 self.write('references/upgrade-notice.json',s.encode({**original,**changes}))
@@ -97,6 +97,21 @@ class Readiness(unittest.TestCase):
         checks,_,_=self.report();self.assertEqual(checks['notice']['status'],'unknown')
         (self.root/'references/upgrade-notice.json').unlink()
         checks,_,_=self.report();self.assertEqual(checks['notice']['status'],'unknown')
+
+    def test_scheduled_notice(self):
+        original={'schema_version':1,'status':'scheduled','from_version':'1.6.7','next_version':'1.6.8','announcement_at':None,'publication_at':None,'notice_days':7,'announcement_date':'2026-10-01','publication_date':'2026-10-08','timezone':'America/Toronto'}
+        for changes,status in [({},'warn'),({'publication_date':'2026-10-07'},'unknown'),({'publication_date':'2026-10-32'},'unknown'),({'announcement_date':'2026-9-31'},'unknown'),({'announcement_date':None},'unknown'),({'timezone':'UTC'},'unknown'),({'notice_days':6},'unknown'),({'status':'published'},'unknown'),({'announcement_at':'2026-10-01T12:00:00-04:00'},'unknown'),({'status':'undated-draft'},'unknown')]:
+            with self.subTest(changes=changes):
+                self.write('references/upgrade-notice.json',s.encode({**original,**changes}))
+                checks,_,human=self.report()
+                self.assertEqual(checks['notice']['status'],status)
+                if status=='warn':
+                    self.assertEqual(checks['notice']['notice_status'],'scheduled')
+                    self.assertIn('2026-10-08',human)
+                    self.assertIn('not confirmation of publication',human)
+        for invalid in ([],None,42):
+            self.write('references/upgrade-notice.json',s.encode(invalid))
+            checks,_,_=self.report();self.assertEqual(checks['notice']['status'],'unknown')
 
     def test_cli_exit_codes_and_readonly(self):
         gateway=self.gateway()

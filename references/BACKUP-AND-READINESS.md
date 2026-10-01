@@ -143,13 +143,13 @@ remain pending; the owner-approved optional rotation policy above supersedes its
 older mandatory-rotation wording. Verified public guide links must replace private
 links before publication.
 
-The packaged notice remains `undated-draft`, with announcement/publication dates
-unset. Readiness recognizes that status only with null dates and matching release
-versions. Missing, malformed, inconsistent or unsupported notice metadata stays
-unknown; it never starts a countdown or implies remote availability. A future
-dated notice schema still needs explicit implementation and verification.
+The packaged notice is `scheduled`: v1.6.7 release/announcement on **October 1,
+2026**, and v1.6.8 release on **October 8, 2026**, in America/Toronto. These
+calendar dates do not claim an actual publication time. Readiness validates the
+versions, dates and seven-calendar-day interval, then displays the schedule as a
+warning—not proof of publication or remote availability. Missing, malformed or
+unsupported metadata stays unknown. It never starts a timer or triggers upgrades.
 
-The coordinated announcement and approved release copy are prepared separately.
-Both builds must be ready before announcement; planned v1.6.8 publication follows
-a seven-day announcement period. No date, publication or live deployment is
-established by this report. Backup remains optional preparation.
+See the [release notes](../RELEASE-NOTES.md) and [announcement](UPGRADE-ANNOUNCEMENT.md).
+Publication and live deployment are separate from this local report. Backup
+remains optional preparation.

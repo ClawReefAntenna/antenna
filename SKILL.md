@@ -7,7 +7,12 @@ metadata:
   homepage: "https://github.com/ClawReefAntenna/antenna"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.6.7 private candidate)
+# Antenna — Inter-Host OpenClaw Messaging (v1.6.7 release preparation)
+
+v1.6.7 is scheduled for October 1, 2026; breaking v1.6.8 for October 8, 2026
+(America/Toronto). See [release notes](RELEASE-NOTES.md) and the
+[upgrade announcement](references/UPGRADE-ANNOUNCEMENT.md). A schedule does not
+confirm publication or remote-peer readiness.
 
 Send messages between OpenClaw instances over reachable HTTPS via Antenna's
 built-in `/hooks/agent` endpoint.

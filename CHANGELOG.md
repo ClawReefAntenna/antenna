@@ -1,11 +1,14 @@
 # Changelog
 
-## [1.6.7] — Unreleased private candidate
+## [1.6.7] — 2026-10-01 (scheduled)
 
 - Encrypted Antenna-state backup with protected operator passphrase entry and verification.
 - Confirmed in-place snapshot replacement, preserving program/OpenClaw files and rolling back failed replacements. No service starts or message sends.
 - Local-only, read-only readiness with actionable human output and versioned JSON.
-- Private undated coordinated-release notice; no public countdown has started.
+- Dated local notice: v1.6.7 scheduled October 1 and breaking v1.6.8 October 8, 2026 (America/Toronto); no inference of publication or peer readiness.
+- Readiness checks the installed OpenClaw minimum, flags unresolved legacy inbox items and recommends—but does not require—hooks-token rotation.
+
+See the [release notes](RELEASE-NOTES.md) and [upgrade announcement](references/UPGRADE-ANNOUNCEMENT.md).
 - Messaging transport, MCS and relay execution policy unchanged.
 
 See [operator guidance and limitations](references/BACKUP-AND-READINESS.md).

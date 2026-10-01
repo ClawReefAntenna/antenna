@@ -2,6 +2,7 @@
 """Local-only read-only preparation checks; never invokes OpenClaw or Doctor repairs."""
 import argparse
 from collections import Counter
+from datetime import date
 import json
 import os
 from pathlib import Path
@@ -127,10 +128,20 @@ def report(root,gateway):
     notice=root/'references/upgrade-notice.json'
     try:
         n=state.decode(state.read_file(notice))
-        state.need(n.get('schema_version')==1 and n.get('status')=='undated-draft' and n.get('announcement_at') is None and n.get('publication_at') is None and n.get('from_version')=='1.6.7' and n.get('next_version')=='1.6.8')
-        add('notice','warn','Private undated notice draft; no publication date or remote availability established.',notice,'Use the final qualified migration guide at release time.',notice_status='undated-draft')
-    except (state.StateError,OSError,AttributeError):
-        add('notice','unknown','Packaged notice unavailable, inconsistent or unsupported; no publication date, countdown or remote availability established.',notice)
+        state.need(isinstance(n,dict) and n.get('schema_version')==1 and n.get('from_version')=='1.6.7' and n.get('next_version')=='1.6.8')
+        state.need(n.get('announcement_at') is None and n.get('publication_at') is None)
+        if n.get('status')=='undated-draft':
+            state.need(n.get('announcement_date') is None and n.get('publication_date') is None)
+            add('notice','warn','Private undated notice draft; no publication date or remote availability established.',notice,'Use the final qualified migration guide at release time.',notice_status='undated-draft')
+        else:
+            state.need(n.get('status')=='scheduled' and n.get('timezone')=='America/Toronto' and n.get('notice_days')==7)
+            dates=[n.get(k) for k in ('announcement_date','publication_date')]
+            state.need(all(isinstance(d,str) and re.fullmatch(r'\d{4}-\d{2}-\d{2}',d) for d in dates))
+            first,last=map(date.fromisoformat,dates)
+            state.need((last-first).days==7)
+            add('notice','warn',f'Planned v1.6.7 release/announcement: {dates[0]}; planned v1.6.8 release: {dates[1]} (America/Toronto). This is a schedule, not confirmation of publication or remote availability.',notice,'Coordinate migration with peers and verify published release guidance separately.',notice_status='scheduled',announcement_date=dates[0],publication_date=dates[1],timezone=n['timezone'])
+    except (state.StateError,OSError,AttributeError,ValueError,TypeError):
+        add('notice','unknown','Packaged notice unavailable, inconsistent or unsupported; no countdown or remote availability established.',notice)
     counts=dict(Counter(c['status'] for c in checks))
     return {'schema_version':1,'complete':True,'target':str(root),'version':version,'checks':checks,'summary':counts,
             'local_result':'Local problems found' if counts.get('fail') else 'No local problems found'}

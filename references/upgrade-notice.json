@@ -1,1 +1,13 @@
-{"schema_version":1,"status":"undated-draft","from_version":"1.6.7","next_version":"1.6.8","notice_days":7,"announcement_at":null,"publication_at":null,"guide":"BACKUP-AND-READINESS.md"}
+{
+  "schema_version": 1,
+  "status": "scheduled",
+  "from_version": "1.6.7",
+  "next_version": "1.6.8",
+  "notice_days": 7,
+  "announcement_at": null,
+  "publication_at": null,
+  "guide": "BACKUP-AND-READINESS.md",
+  "announcement_date": "2026-10-01",
+  "publication_date": "2026-10-08",
+  "timezone": "America/Toronto"
+}

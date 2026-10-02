@@ -38,6 +38,9 @@ then restart that gateway. Mode/selection edits also require a restart.
 The local adapter uses the gateway's configured port and token or password authentication,
 matching the host's selected mode without changing its login configuration. The selected
 credential must be resolved to a nonempty string and differ from the Antenna peer bearer.
+When the mode is explicit and that credential is absent from config, the matching
+`OPENCLAW_GATEWAY_TOKEN` or `OPENCLAW_GATEWAY_PASSWORD` environment variable is
+accepted. Config values take precedence; the other mode is never used as fallback.
 Non-string secret references must be resolved by OpenClaw before registration; standalone
 operator commands likewise require a resolved local credential. Unsupported auth modes
 and missing credentials fail without falling back to another mode.

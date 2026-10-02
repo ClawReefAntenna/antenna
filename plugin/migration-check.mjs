@@ -18,7 +18,7 @@ try{
   if(self.length!==1)throw Error('ambiguous retained identity');
   const legacyBearer=fs.readFileSync(path.resolve(root,self[0].token_file),'utf8').trim(),problems=[];
   if(old.transport_profile!==PROFILE)problems.push('legacy send/writer controls not switched');
-  if(!host.plugins?.entries?.antenna?.enabled||!host.plugins?.allow?.includes('antenna'))problems.push('plugin disabled or not allowlisted');
+  if(!host.plugins?.entries?.antenna?.enabled||(host.plugins?.allow?.length&&!host.plugins.allow.includes('antenna'))||host.plugins?.deny?.includes('antenna'))problems.push('plugin disabled or not allowlisted');
   const warnings=host.hooks?.enabled===false?[]:[hooksWarning];
   try{operatorAuth(host,[legacyBearer,c.bearer]);}catch{problems.push('operator credential separation not established');}
   const relay=old.relay_agent_id??'antenna';

@@ -26,4 +26,11 @@ check('password operator with unrelated agent',{entries:{other:{}}},false);
 host.gateway.auth.password='p'.repeat(32);write('host.json',host);
 assert.equal(spawnSync(process.execPath,[doctor,'doctor',path.join(root,'host.json'),root]).status,1);
 console.log('PASS shared operator password rejected');
+host.gateway.auth={mode:'password',password:'operator-password'};
+for(const allow of [undefined,[],['antenna','other']]){host.plugins.allow=allow;check('unrestricted or inclusive allow policy passes',{entries:{}},false);}
+for(const settings of [{allow:['other']},{allow:[],deny:['antenna']}]){
+ host.plugins.allow=settings.allow;host.plugins.deny=settings.deny;write('host.json',host);
+ assert.equal(spawnSync(process.execPath,[doctor,'doctor',path.join(root,'host.json'),root]).status,1);
+ console.log('PASS explicit plugin exclusion rejected');
+}
 fs.rmSync(root,{recursive:true,force:true});

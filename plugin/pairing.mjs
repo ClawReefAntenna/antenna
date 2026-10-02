@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {operatorAuth} from './operator-auth.mjs';
 // Offline receiver-authored contact exchange. Never grants inbound/outbound permission.
 import {hooksWarning} from './migration-warning.mjs';
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ try{
   const [hostPath,output]=args,host=read(hostPath),c=host.plugins?.entries?.antenna?.config;
   const self=Object.entries(peers).filter(([,p])=>p.self===true);need(self.length===1&&self[0][0]===c?.receiver,'receiver identity mismatch');
   need(typeof c.bearer==='string'&&c.bearer.length>=32,'Antenna bearer required');
-  need(typeof host.gateway?.auth?.token==='string'&&host.gateway.auth.token!==c.bearer,'Antenna bearer must differ from resolved operator credential');
+  operatorAuth(host,[c.bearer]);
   const p=self[0][1];endpoint(p.url,p.allow_http===true);
   const key=createPublicKey(fs.readFileSync(resolve(p.signing_public_key_file)));need(key.asymmetricKeyType==='ed25519','Ed25519 identity required');
   const bundle={schema_version:3,bundle_type:'antenna-plugin-contact',transport_profile:PROFILE,peer:c.receiver,origin:p.url,allow_http:p.allow_http===true,public_key:key.export({type:'spki',format:'pem'}),antenna_bearer:c.bearer,destinations:Object.keys(c.destinations),expires_at:new Date(Date.now()+86400000).toISOString()};

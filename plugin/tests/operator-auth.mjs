@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {operatorAuth} from '../operator-auth.mjs';
+const host=auth=>({gateway:{auth}});
+assert.deepEqual(operatorAuth(host({token:'operator'})),{token:'operator'});
+assert.deepEqual(operatorAuth(host({password:'operator'})),{password:'operator'});
+assert.deepEqual(operatorAuth(host({mode:'password',token:'unused',password:'operator'})),{password:'operator'});
+assert.deepEqual(operatorAuth(host({mode:'token',token:'operator',password:'unused'})),{token:'operator'});
+for(const auth of [{},{token:''},{mode:'password',password:' '},{mode:'password',token:'fallback'},{mode:'token',password:'fallback'},{mode:'none'},{mode:'trusted-proxy'},{token:{source:'env',id:'SECRET'}},{mode:'password',password:{source:'env',id:'SECRET'}}]) assert.throws(()=>operatorAuth(host(auth)));
+for(const mode of ['token','password']) assert.throws(()=>operatorAuth(host({mode,[mode]:'peer'}),['peer']));
+console.log('PASS operator auth: token/password selection, no fallback or unresolved references, peer/operator separation');

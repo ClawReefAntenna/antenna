@@ -21,4 +21,9 @@ for(const hooks of [{enabled:true,token:'p'.repeat(32)},{enabled:true,token:{sou
 host.gateway.auth.token='p'.repeat(32);write('host.json',host);
 assert.equal(spawnSync(process.execPath,[doctor,'doctor',path.join(root,'host.json'),root]).status,1);
 console.log('PASS operator separation remains mandatory');
+host.gateway.auth={mode:'password',password:'operator-password'};
+check('password operator with unrelated agent',{entries:{other:{}}},false);
+host.gateway.auth.password='p'.repeat(32);write('host.json',host);
+assert.equal(spawnSync(process.execPath,[doctor,'doctor',path.join(root,'host.json'),root]).status,1);
+console.log('PASS shared operator password rejected');
 fs.rmSync(root,{recursive:true,force:true});

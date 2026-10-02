@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {operatorAuth} from './operator-auth.mjs';
 import {hooksWarning} from './migration-warning.mjs';
 import {resolveScanner} from './smart.mjs';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ try{
   if(old.transport_profile!==PROFILE)problems.push('legacy send/writer controls not switched');
   if(!host.plugins?.entries?.antenna?.enabled||!host.plugins?.allow?.includes('antenna'))problems.push('plugin disabled or not allowlisted');
   const warnings=host.hooks?.enabled===false?[]:[hooksWarning];
-  if(typeof host.gateway?.auth?.token!=='string'||[legacyBearer,c.bearer].includes(host.gateway.auth.token))problems.push('operator credential separation not established');
+  try{operatorAuth(host,[legacyBearer,c.bearer]);}catch{problems.push('operator credential separation not established');}
   const relay=old.relay_agent_id??'antenna';
   if(host.agents?.list?.some(a=>a.id===relay)||Object.hasOwn(host.agents?.entries??{},relay))problems.push('legacy relay agent still provisioned; review ownership before removal');
   if(host.hooks?.mappings?.some(m=>JSON.stringify(m).includes('antenna')))problems.push('possible old Antenna mapping remains; review manually');

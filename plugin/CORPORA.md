@@ -1,7 +1,12 @@
 # Evaluation corpora
 
 A corpus is a separate JSON file of labelled test messages. `mcs evaluate` uses
-bundled `corpus/controls.json` unless you supply `--corpus /path/tests.json`.
+`corpus/controls.json` when present, unless you supply `--corpus /path/tests.json`.
+OpenClaw bundles this default; Hermes omits it. If the requested/default file is
+missing, evaluation stops with the ClawReef default-download link and asks you to
+supply `--corpus /path/controls.json`. Text/file/stdin tests need no corpus. No
+automatic download occurs. The release download path is
+`https://clawreef.io/downloads/antenna/1.6.8/controls.json`.
 The same file works with Dumb, Smart and Both. Selection applies only to that
 invocation; keep custom files outside the plugin installation directory.
 

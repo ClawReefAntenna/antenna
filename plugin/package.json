@@ -27,6 +27,6 @@
     "openclaw": ">=2026.9.5"
   },
   "scripts": {
-    "test": "node tests/operator-auth.mjs && node tests/package.mjs && node tests/flow.mjs && node tests/legacy.mjs && node tests/migration-doctor.mjs && node tests/diagnostics.mjs && node tests/resources.mjs && node tests/corpus.mjs"
+    "test": "node tests/operator-auth.mjs && node tests/package.mjs && node tests/flow.mjs && node tests/legacy.mjs && node tests/migration-doctor.mjs && node tests/diagnostics.mjs && node tests/resources.mjs && node tests/corpus.mjs && node tests/missing-corpus.mjs"
   }
 }

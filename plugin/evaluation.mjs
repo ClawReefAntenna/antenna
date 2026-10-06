@@ -10,6 +10,7 @@ import {capacityDirectory} from './capacity.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const usageKeys=['prompt_tokens','completion_tokens','total_tokens'];
 const knownSources=['evaluation.mjs','scanners.mjs','dumb-worker.mjs','inbox.mjs','limits.mjs','capacity.mjs','policy.mjs','smart.mjs','ruleset.mjs'];
+export const DEFAULT_CORPUS_URL='https://clawreef.io/downloads/antenna/1.6.8/controls.json';
 export const quantile=(xs,p)=>xs.length?[...xs].sort((a,b)=>a-b)[Math.max(0,Math.ceil(xs.length*p)-1)]:null;
 export function score(rows){
  const labelled=rows.filter(r=>['malicious','benign'].includes(r.expected));
@@ -134,7 +135,7 @@ export async function runDiagnostic(command,args,c,host,{configPath,stdout=conso
  const engine=o.engine??(command==='evaluate'?'smart':'dumb');
  let corpus,cases;
  if(command==='evaluate'){
-  try{const loaded=loadCorpus(o.corpus);cases=loaded.cases;corpus=loaded.metadata;}catch(e){stderr(JSON.stringify({status:'input_error',reason:e.code==='ELOOP'?'corpus must not be a symlink':e.code?'corpus file unavailable ('+e.code+')':e.message}));return 64;}
+  try{const loaded=loadCorpus(o.corpus);cases=loaded.cases;corpus=loaded.metadata;}catch(e){stderr(JSON.stringify({status:'input_error',reason:e.code==='ENOENT'?`No diagnostic corpus found. Download the default corpus from ${DEFAULT_CORPUS_URL}, then use --corpus /path/controls.json.`:e.code==='ELOOP'?'corpus must not be a symlink':e.code?'corpus file unavailable ('+e.code+')':e.message}));return 64;}
  }else{
   cases=o.files.length?o.files.map((file,i)=>({id:'file-'+(i+1),source:file})): [{id:o.stdin?'stdin':'text'}];
   for(const item of cases){item.expected=o.expect;item.labelProvenance=o.expect?'operator batch label':'unlabelled';

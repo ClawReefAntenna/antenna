@@ -75,5 +75,5 @@ fi
 
 echo "  Need help? 🪨"
 echo "    📧 help@clawreef.io"
-echo "    🐛 https://github.com/ClawReefAntenna/antenna/issues"
+echo "    🐛 https://github.com/ClawReefAntenna/antenna-openclaw/issues"
 echo ""

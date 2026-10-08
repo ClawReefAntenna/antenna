@@ -71,5 +71,5 @@ acted on the message; avoid blind retries after an uncertain result.
 | [Historical guides](references/legacy-guides/README.md) | Preserved relay-era reference |
 
 [ClawReef](https://clawreef.io/) is Antenna's home.
-[Report an issue](https://github.com/ClawReefAntenna/antenna/issues) or read the
+[Report an issue](https://github.com/ClawReefAntenna/antenna-openclaw/issues) or read the
 [license](LICENSE).

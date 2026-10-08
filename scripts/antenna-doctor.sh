@@ -1035,7 +1035,7 @@ else
 fi
 
 if [[ $FAIL -gt 0 || $WARN -gt 0 ]]; then
-  echo -e "  Still stuck? ${CYAN}help@clawreef.io${NC} · ${CYAN}https://github.com/ClawReefAntenna/antenna/issues${NC}"
+  echo -e "  Still stuck? ${CYAN}help@clawreef.io${NC} · ${CYAN}https://github.com/ClawReefAntenna/antenna-openclaw/issues${NC}"
 fi
 
 echo ""

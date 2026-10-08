@@ -1,11 +1,7 @@
 # Repository material that is useful to source reviewers but not required by
 # an installed Antenna runtime.
-/README.md
-/CHANGELOG.md
-/SECURITY.md
-/lib/README.md
-/references/CHANGELOG-HISTORY.md
-/tests/
+/lib/tests/
+/plugin/tests/
 
 # OpenClaw workspace/bootstrap files can appear when this checkout is used as
 # an agent workspace. They are installation-local identity/state, never skill

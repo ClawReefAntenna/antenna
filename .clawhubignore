@@ -1,7 +1,6 @@
 # Repository material that is useful to source reviewers but not required by
 # an installed Antenna runtime.
-/lib/tests/
-/plugin/tests/
+/tests/
 
 # OpenClaw workspace/bootstrap files can appear when this checkout is used as
 # an agent workspace. They are installation-local identity/state, never skill
@@ -13,3 +12,4 @@
 /TOOLS.md
 /USER.md
 /openclaw-workspace-state.json
+/plugin/tests/

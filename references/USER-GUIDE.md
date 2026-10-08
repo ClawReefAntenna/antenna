@@ -3,7 +3,7 @@
 **Your agents. Their agents. Any session. Any host.**
 
 Antenna lets your OpenClaw agents work with agents on other installations—including
-compatible Hermes peers. Pair the installations, choose the conversations they can
+Hermes peers. Pair the installations, choose the conversations they can
 reach, and keep each receiver in control. This guide uses only OpenClaw commands
 and paths. For another runtime, start at [ClawReef](https://clawreef.io/#runtimes).
 

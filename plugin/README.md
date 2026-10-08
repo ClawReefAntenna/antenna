@@ -1,4 +1,4 @@
-# Antenna OpenClaw plugin — 1.6.8 — publication pending
+# Antenna for OpenClaw plugin — 1.6.8
 
 Inbound signed v2 delivery with Off / Dumb / Smart / Both content scanning.
 Default: Dumb. Both runs Dumb first and only calls Smart after a pass.
@@ -7,20 +7,19 @@ in every mode. Ordinary approval and MCS holds remain independent.
 
 This package provides signed ingress and direct local dispatch without a messaging
 relay model. Manual migration, direct/list transport and contact exchange are
-covered in [MIGRATION.md](MIGRATION.md). Final-version artifacts are prepared
-privately; publication and production cutover remain separate. Qualification is
+covered in [MIGRATION.md](MIGRATION.md). Compatible peers may run OpenClaw or Hermes, using their own
+runtime-specific setup. Direct messaging does not establish Registry feature parity. Qualification is
 scoped to the tested components and runtime, not every model or deployment.
 No atomic session-incarnation or exactly-once delivery guarantee is made.
 
-## Install in an isolated OpenClaw instance
+## Install in your selected OpenClaw instance
 
 Requires Node supported by OpenClaw, Bash, jq and flock. Local qualification uses
 Linux x64 / Node 26.8.2 and 24.19.0 / OpenClaw 2026.9.5. The manifest floor `>=2026.9.5`
 is not certification of all later releases or platforms.
 Package with `npm pack ./plugin`; install the resulting archive with
 `openclaw plugins install /absolute/path/to/archive.tgz` using the intended
-isolated OpenClaw state/config environment. Do not point qualification at
-production state. The OpenClaw peer dependency supplies the public gateway SDK.
+OpenClaw state/config environment. For a migration rehearsal, use an isolated copy. The OpenClaw peer dependency supplies the public gateway SDK.
 
 Prepare a JSON policy with:
 - `schemaVersion: 2`, `receiver`, a private random `bearer` (at least 32 characters);
@@ -33,7 +32,7 @@ Prepare a JSON policy with:
 For a new absent entry, `antenna-plugin /path/openclaw.json init policy.json`
 writes it **disabled**. If the native installer has already added an entry,
 merge the policy into its config explicitly; init refuses to overwrite it.
-Set the plugin enabled and allowlisted only in the intended isolated config,
+Set the plugin enabled and allowlisted only in the intended config,
 then restart that gateway. Mode/selection edits also require a restart.
 The local adapter uses the gateway's configured port and token or password authentication,
 matching the host's selected mode without changing its login configuration. The selected
@@ -128,7 +127,7 @@ selected files fail visibly, never silently disable scanning.
 
 ## Explicit upgrade
 
-Stop the isolated gateway before migration. Preview:
+Stop the selected gateway before migration. Preview:
 `antenna-plugin /path/openclaw.json migrate`; apply with `migrate --apply`.
 Only recognized `schemaVersion:1, policyRevision:"combined-smart-v1"`
 configuration maps global/peer smart to both. Version 2 is unchanged.
@@ -180,7 +179,7 @@ controls. Its JSON contains intent rationales, development/held-out-family split
 and source/license provenance. Labels were authored without scanner results;
 these are locally authored synthetic controls, **not an independently sourced
 quality certification**. All cases have now been inspected during development review; none are claimed
-as held-out evidence for this candidate. Bodies and labels are unchanged. Expected labels never enter model requests. Ambiguous controls do not
+as held-out evidence for this release. Bodies and labels are unchanged. Expected labels never enter model requests. Ambiguous controls do not
 enter binary denominators; incomplete scans remain in the relevant denominators.
 Reports distinguish misses, false flags, incomplete holds and operational failures,
 including benign hold burden. Repetitions show disagreement without inflating
@@ -251,7 +250,7 @@ provider, public-network, and long-running soak scopes must be reported separate
 
 This npm archive includes the plugin and its own operators, not the companion
 `antenna` shell CLI or Python helpers. Keep companion `bin/`, `scripts/`, `lib/`
-and `plugin/` together at the same development version. The repository's
+and `plugin/` together at the same release version. The repository's
 `references/PLUGIN-CANDIDATE.md` describes the two-artifact handoff; it is not
 included in this plugin-only archive. Legacy setup is not plugin initialization.
 

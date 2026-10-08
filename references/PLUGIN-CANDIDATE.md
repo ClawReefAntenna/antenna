@@ -1,9 +1,13 @@
-# Antenna 1.6.8 — installation and release handoff
+# Antenna for OpenClaw 1.6.8 — maintainer release handoff
 
-**Final-version preparation; publication pending. No live upgrade is authorized by this file.**
+**Internal handoff: final-version preparation; publication pending. No live upgrade is authorized by this file.**
+Public-facing v1.6.8 copy is deliberately written in release-day present tense at
+the owner’s direction. That editorial staging is not evidence of publication.
 The plugin is the signed ingress and direct-dispatch adapter. The companion CLI
 retains sender, contact, list/group and recovery helpers. There is no relay model
-in the new ingress path. Read this before the retained legacy guides.
+in the new ingress path. For installation and everyday use, start with the [User Guide](USER-GUIDE.md).
+This document retains artifact, qualification and publication coordination details
+for maintainers; its isolated examples are rehearsals, not the only operator path.
 
 ## Two artifacts, one version
 
@@ -84,21 +88,27 @@ exactly-once guarantee. Do not automatically resend an uncertain outcome. The
 accepted local 73.5 ms p95 is not a universal latency promise. The scanner-quality review below records known misses and false positives;
 scanner clearance is not proof that content is safe.
 
-## Publication hold
+## Publication status and remaining handoff
 
-Final-version files are prepared privately. No release tag, remote push,
-ClawHub/npm publication, live migration, announcement or seven-day countdown is
-started by these artifacts. The selected BETTYXVIII public DNS/CA/proxy ingress
-check passed; its temporary endpoint was removed. This is not qualification of
-every production binding or a public Registry group fan-out test.
+v1.6.7 was published on GitHub and ClawHub on October 1, 2026. Anonymous download
+verification and normal ClawHub installation matched the approved artifacts. Its
+published release notes carry the v1.6.8 transition notice. Preserve those released
+bytes; the earlier private-candidate statements in changelog history are not current
+publication status.
 
-The separate v1.6.7 recovery build is preserved. Both builds must be ready before
-an announcement. The approved schedule is v1.6.7 on October 1, 2026 and v1.6.8
-on October 8, 2026 (America/Toronto); this is not proof of publication. See [release notes](../RELEASE-NOTES.md).
-Production host inventory and authorization remain separate. Reuse evidence by
-component and artifact; do not repeat broad tests without a relevant change.
+v1.6.8 remains prepared, with October 8, 2026 (America/Toronto) as its planned date.
+Earlier final-version artifacts are preserved privately. The current documentation
+pass changes source bytes; final source/artifact/evidence matching remains pending.
+Do not treat an earlier archive as the final download merely because it says 1.6.8.
+No v1.6.8 publication, live migration or new adoption deadline is created by this file.
 
-## dev.5 scanner changes
+The selected BETTYXVIII public DNS/CA/proxy ingress check passed; its temporary
+endpoint was removed. This is not qualification of every production binding or a
+public Registry group fan-out test. Production host inventory and authorization
+remain separate. Reuse evidence by component and artifact; do not repeat broad tests
+without a relevant change. See [release notes](../RELEASE-NOTES.md).
+
+## Registered-model scanner changes (introduced in dev.5)
 
 See [scanner setup](../plugin/README.md#registered-model-smart-scanning) and
 [ruleset authoring](../plugin/RULESETS.md). Smart now selects a registered host
@@ -149,7 +159,7 @@ existing code-owned delivery/approval policy. Ordinary approval is independent.
 
 ## Recovery and coordinated-release inventory
 
-- Preserve the separate frozen v1.6.7 recovery candidate and its checksums. Its
+- Preserve the published v1.6.7 recovery artifacts and their checksums. Their
   age-encrypted backup/restore and readiness commands address legacy state, not
   schema-2 plugin holds. Do not advertise it as a downgrade converter.
 - Before a real migration, inventory legacy config/peers, signing identity and
@@ -169,6 +179,6 @@ existing code-owned delivery/approval policy. Ordinary approval is independent.
   API floor, not a blanket guarantee for future releases, Windows/macOS or other
   native models. GPT-5.6 Terra native Codex/OAuth is the real scanner path measured;
   the synthetic provider tests establish failure handling, not other-model quality.
-- Both v1.6.7 and v1.6.8 must be ready before any seven-day adoption announcement.
-  No clock starts with candidate packaging. GitHub, ClawHub, deployment and
-  announcements retain their separate explicit approval gates.
+- The v1.6.7 transition notice is already public. Do not infer a new countdown
+  or an EOL deadline from candidate packaging. v1.6.8 GitHub, ClawHub, deployment
+  and announcements retain their separate explicit approval gates.

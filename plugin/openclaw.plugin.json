@@ -1,6 +1,6 @@
 {
   "id": "antenna",
-  "name": "Antenna",
+  "name": "Antenna for OpenClaw",
   "activation": {
     "onStartup": true
   },

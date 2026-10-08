@@ -1,6 +1,8 @@
 {
   "name": "@clawreefantenna/antenna-plugin",
   "version": "1.6.8",
+  "description": "Antenna for OpenClaw: signed messaging between approved conversations on compatible OpenClaw and Hermes peers.",
+  "homepage": "https://clawreef.io/",
   "type": "module",
   "private": true,
   "license": "MIT",

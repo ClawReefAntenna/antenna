@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.6.8] — October 8, 2026
+
+- Connect compatible OpenClaw and Hermes peers through signed, receiver-addressed plugin ingress and direct local dispatch—without a messaging relay model.
+- Choose Off, Dumb, Smart or Both screening, independent inbox approval and per-peer controls.
+- Use registered-model Smart scans in fresh, zero-tool context; explore custom rules, corpora and diagnostics without sending messages.
+- Keep connections recoverable with encrypted plugin/companion backup, verification and explicit in-place restore. Holds and replay state are preserved; restore leaves the plugin disabled.
+- Follow the task-led OpenClaw User Guide and coordinated manual migration. General-hook rotation is recommended, not mandatory.
+- See [release notes](RELEASE-NOTES.md) and [security/support scope](SECURITY.md). Direct messaging compatibility does not imply identical runtime or Registry features.
+
+## Published legacy preparation release — October 1, 2026
+
+v1.6.7 was published on GitHub and ClawHub with legacy backup/readiness tools and
+the v1.6.8 transition notice. It is not a plugin-state downgrade converter.
+
+## Historical development and preparation log
+
+The entries below are preserved verbatim. “Candidate,” “unreleased” and other
+preparation labels describe their original stage, not current release status.
+
+
 ### October 1 release preparation — v1.6.8 scheduled October 8, 2026
 
 - Make hook rotation advisory in migration preparation, Doctor and contact export; retain operator credential separation.

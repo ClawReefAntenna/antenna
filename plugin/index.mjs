@@ -13,7 +13,7 @@ import {makeFlow} from './runtime.mjs';
 import {policyFor} from './inbox.mjs';
 import {Refusal,parse,authenticate} from './envelope.mjs';
 const exec=promisify(execFile),helper=fileURLToPath(new URL('./antenna-replay.sh',import.meta.url));
-export default {id:'antenna',name:'Antenna',register(api){
+export default {id:'antenna',name:'Antenna for OpenClaw',register(api){
  const c=validateConfig(api.pluginConfig);
  if(!['off','dumb','smart','both'].includes(c.mcs)||!['off','on'].includes(c.inbox)||!Number.isInteger(c.maxBodyChars)||c.maxBodyChars<1||c.maxBodyChars>1000000)throw new Error('Invalid prototype modes or body cap');
  const complete=async params=>{

@@ -10,7 +10,7 @@ import {capacityDirectory} from './capacity.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const usageKeys=['prompt_tokens','completion_tokens','total_tokens'];
 const knownSources=['evaluation.mjs','scanners.mjs','dumb-worker.mjs','inbox.mjs','limits.mjs','capacity.mjs','policy.mjs','smart.mjs','ruleset.mjs'];
-export const DEFAULT_CORPUS_URL='https://clawreef.io/downloads/antenna/1.6.8/controls.json';
+export const DEFAULT_CORPUS_URL='https://clawreef.io/resources/controls.json';
 export const quantile=(xs,p)=>xs.length?[...xs].sort((a,b)=>a-b)[Math.max(0,Math.ceil(xs.length*p)-1)]:null;
 export function score(rows){
  const labelled=rows.filter(r=>['malicious','benign'].includes(r.expected));

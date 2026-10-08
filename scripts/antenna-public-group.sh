@@ -68,8 +68,14 @@ require_relay_peer() {
   [[ -n "$signing_ref" ]] || die "Relay peer '$relay' has no pinned Ed25519 signing public key"
   signing_path="$signing_ref"
   [[ "$signing_path" == /* ]] || signing_path="$SKILL_DIR/$signing_path"
-  signature_public_key_ok "$signing_path" "$SKILL_DIR/keys" \
-    || die "Relay peer '$relay' has an invalid or unsafe Ed25519 signing public key"
+  # Native plugin contact import stores its public pin in the private secrets
+  # directory. Keep the same path/ownership/mode/type checks for both roots;
+  # legacy registrations remain restricted to their original keys directory.
+  if ! signature_public_key_ok "$signing_path" "$SKILL_DIR/keys"; then
+    jq -e --arg relay "$relay" '.[$relay].transport_profile == "antenna-plugin-v2"' "$PEERS_FILE" >/dev/null 2>&1 \
+      && signature_public_key_ok "$signing_path" "$SKILL_DIR/secrets" \
+      || die "Relay peer '$relay' has an invalid or unsafe Ed25519 signing public key"
+  fi
 }
 
 validate_relay_prerequisites() {

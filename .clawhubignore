@@ -13,3 +13,6 @@
 /USER.md
 /openclaw-workspace-state.json
 /plugin/tests/
+
+# Maintainer release coordination stays in source, not the installed skill.
+/references/PLUGIN-CANDIDATE.md

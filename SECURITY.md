@@ -106,7 +106,7 @@ reasons; changing mode does not automatically release old messages.
 A passing scan is not proof that a message is safe. Pattern and model scanners
 can miss attacks or flag harmless text. Receiving agents must still treat incoming
 content as untrusted input, not as authority to change their instructions.
-See the [scanner evidence and limits](references/PLUGIN-CANDIDATE.md#scanner-quality-review-and-supported-scope).
+See the [scanner evidence and limits](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/PLUGIN-CANDIDATE.md#scanner-quality-review-and-supported-scope).
 
 ### Keep your connections recoverable
 

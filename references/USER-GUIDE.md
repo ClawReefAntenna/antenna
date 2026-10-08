@@ -206,7 +206,7 @@ someone has already done that, head straight to [sending and replying](#send-and
 
 You need a working OpenClaw installation, a reachable HTTPS route and two matching
 Antenna 1.6.8 artifacts: the native plugin and companion CLI. Use the selected release's
-checksums. The [release handoff](PLUGIN-CANDIDATE.md) tracks exact artifacts/status.
+checksums. The [release handoff](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/PLUGIN-CANDIDATE.md) tracks exact artifacts/status.
 
 | Requirement | OpenClaw guide baseline |
 | --- | --- |

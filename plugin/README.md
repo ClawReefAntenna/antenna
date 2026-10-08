@@ -251,8 +251,8 @@ provider, public-network, and long-running soak scopes must be reported separate
 This npm archive includes the plugin and its own operators, not the companion
 `antenna` shell CLI or Python helpers. Keep companion `bin/`, `scripts/`, `lib/`
 and `plugin/` together at the same release version. The repository's
-`references/PLUGIN-CANDIDATE.md` describes the two-artifact handoff; it is not
-included in this plugin-only archive. Legacy setup is not plugin initialization.
+[release handoff](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/PLUGIN-CANDIDATE.md) describes the two artifacts and stays in source,
+not in the installed packages. Legacy setup is not plugin initialization.
 
 ## Recovery and retained hooks
 

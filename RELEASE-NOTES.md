@@ -36,7 +36,7 @@ through installing both packages and getting connected.
 
 **Upgrading from the relay version? This is a breaking transport change that
 requires a coordinated manual migration with your peers.** Follow the
-[migration guide](plugin/MIGRATION.md) to bring your connections across.
+[migration guide](plugin/OPTIONAL-KITS.md#migration) to bring your connections across.
 
 Keep your place in the reef with the [backup and recovery guide](references/BACKUP-AND-READINESS.md).
 Use v1.6.7 recovery for legacy installations and v1.6.8 recovery for the new plugin.

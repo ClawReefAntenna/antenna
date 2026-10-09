@@ -3,14 +3,15 @@ import {LIMITS} from './limits.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
-import {validateConfig,migrate,modes} from './policy.mjs';
+import {validateConfig,modes} from './policy.mjs';
 import {resolveScanner,gatewayScan} from './smart.mjs';
 import {loadRuleset} from './ruleset.mjs';
 import {Inbox} from './inbox.mjs';
 const args=process.argv.slice(2),configPath=args.shift(),command=args.shift();
-const help='Usage: antenna-plugin <openclaw.json> mcs evaluate|test [options]|status|init <policy.json>|mode <off|dumb|smart|both> [peer]|check <registered-model-or-alias>|select <registered-model-or-alias>|rules validate|select <absolute-file>|migrate [--apply]|inbox list|show|release|discard|approve-ordinary [id] [acknowledgements JSON]';
+const help='Usage: antenna-plugin <openclaw.json> status|init <policy.json>|mode <off|dumb|smart|both> [peer]|check <registered-model-or-alias>|select <registered-model-or-alias>|rules validate|select <absolute-file>|inbox list|show|release|discard|approve-ordinary [id] [acknowledgements JSON]';
 try{
  if(!configPath||!command)throw Error(help);
+ if(['mcs','migrate'].includes(command))throw Error(command==='mcs'?'Diagnostics kit not bundled. See OPTIONAL-KITS.md; run its standalone CLI with this host path. Nothing downloaded or run.':'Migration is a separate version-matched app; see OPTIONAL-KITS.md. No files changed.');
  const original=fs.readFileSync(configPath,'utf8'),host=JSON.parse(original);
  const entry=host.plugins?.entries?.antenna;
  let c=entry?.config;
@@ -33,18 +34,9 @@ try{
  if(command==='init'){
   if(entry)throw Error('Antenna entry exists; use mode/select or explicit migration');
   save(JSON.parse(fs.readFileSync(args[0],'utf8')));
- }else if(command==='migrate'){
-  const next=migrate(c);
-  // Never convert or rewrite legacy inbox payloads. Unsupported formats stop.
-  new Inbox(next.inboxFile).read();
-  if(args[0]==='--apply')save(next);
-  else console.log(JSON.stringify({from:c.schemaVersion,to:next.schemaVersion,mcs:next.mcs,peers:Object.fromEntries(Object.entries(next.peers).map(([k,v])=>[k,v.mcs??'default'])),inbox:'preserved',apply:false}));
  }else{
   c=validateConfig(c);
-  if(command==='mcs'){
-   const {runDiagnostic}=await import('./evaluation.mjs');
-   process.exitCode=await runDiagnostic(args.shift(),args,c,host,{configPath});
-  }else if(command==='status'){
+  if(command==='status'){
    let p;try{p=resolveScanner(c.scannerModel,host);}catch{}
    const items=new Inbox(c.inboxFile,{readOnly:true}).read().items;
    const stateCounts=Object.fromEntries(['scanning','held','dispatching','submitted','unknown','discarded'].map(state=>[state,items.filter(r=>r.state===state).length]));

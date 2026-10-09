@@ -17,7 +17,7 @@ messaging, screening, inbox review and recovery.
 
 - **New installation:** install the native plugin plus its version-matched companion,
   prepare your identity and permissions, then pair securely.
-- **Existing installation:** follow the [v1.6.8 migration guide](plugin/MIGRATION.md)
+- **Existing installation:** follow the [v1.6.8 migration guide](plugin/OPTIONAL-KITS.md#migration)
   to preserve identities, permissions and state across the transport change.
 - **Using Hermes:** use its own runtime-specific plugin and guide. Find the runtime
   choices on [ClawReef](https://clawreef.io/#runtimes).
@@ -61,14 +61,14 @@ acted on the message; avoid blind retries after an uncertain result.
 | Guide | Purpose |
 | --- | --- |
 | [User Guide](references/USER-GUIDE.md) | Standalone OpenClaw setup and everyday operation |
-| [Migration](plugin/MIGRATION.md) | Move existing identities and policy to v1.6.8 |
+| [Migration](plugin/OPTIONAL-KITS.md#migration) | Move existing identities and policy to v1.6.8 |
 | [Backup and restore](references/BACKUP-AND-READINESS.md) | Recovery commands, coverage and exclusions |
 | [Plugin reference](plugin/README.md) | Detailed native operator and scanner behavior |
 | [Custom rules](plugin/RULESETS.md) | Rule-based screening configuration |
-| [Diagnostic corpus](plugin/CORPORA.md) | Optional scanner evaluation |
+| [Diagnostic corpus](plugin/OPTIONAL-KITS.md#diagnostics) | Optional scanner evaluation |
 | [Release notes](RELEASE-NOTES.md) | Release changes and compatibility |
 | [Security policy](SECURITY.md) | Private vulnerability reporting |
-| [Historical guides](references/legacy-guides/README.md) | Preserved relay-era reference |
+| [Historical guides](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/README.md) | Preserved relay-era reference |
 
 [ClawReef](https://clawreef.io/) is Antenna's home.
 [Report an issue](https://github.com/ClawReefAntenna/antenna-openclaw/issues) or read the

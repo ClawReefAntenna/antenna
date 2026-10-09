@@ -33,8 +33,8 @@ A worker deadline terminates expensive regexes with an incomplete scan.
 
 ```text
 antenna-plugin /path/openclaw.json rules validate /absolute/my-rules.json
-antenna-plugin /path/openclaw.json mcs evaluate --engine dumb --ruleset /absolute/my-rules.json --json
-antenna-plugin /path/openclaw.json mcs test --engine dumb --ruleset /absolute/my-rules.json --text "ordinary message" --json
+node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --preview
+node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --preview
 antenna-plugin /path/openclaw.json rules select /absolute/my-rules.json
 ```
 
@@ -45,7 +45,7 @@ Omit `rulesetFile` from plugin configuration to return to the bundled default.
 Validation checks usability, not detection effectiveness. Evaluation reuses the
 separate editable `corpus/controls.json` baseline: 40 malicious, 40 benign and
 four ambiguous examples. Use `--corpus /path/tests.json` to select your own
-labelled examples; see the [corpus authoring guide](CORPORA.md). Add `--verbose`
+labelled examples; see the [corpus authoring guide](OPTIONAL-KITS.md#diagnostics). Add `--verbose`
 for missed attacks and false positives with full content and rule explanations.
 Evaluation does not activate the tested ruleset or release holds.
 

@@ -1,23 +1,21 @@
 {
   "<your-host-id>": {
     "url": "https://your-host.example.test",
-    "token_file": "secrets/hooks_token_<your-host-id>",
+    "token_file": "secrets/plugin-self.token",
     "auth_mode": "ed25519-v1",
     "signing_private_key_file": "secrets/antenna-signing-private.pem",
     "signing_public_key_file": "secrets/antenna-signing-public.pem",
-    "peer_secret_file": "secrets/antenna-peer-<your-host-id>.secret",
-    "exchange_public_key": "age1...",
-    "agentId": "antenna",
     "display_name": "My Host",
-    "self": true
+    "self": true,
+    "transport_profile": "antenna-plugin-v2"
   },
   "<remote-peer-id>": {
     "url": "https://remote-host.example.test",
-    "token_file": "secrets/hooks_token_<remote-peer-id>",
+    "token_file": "secrets/plugin-remote.token",
     "auth_mode": "ed25519-v1",
     "signing_public_key_file": "keys/<pinned-peer-key>.ed25519.pem",
-    "exchange_public_key": "age1...",
-    "agentId": "antenna",
-    "display_name": "Remote Host"
+    "display_name": "Remote Host",
+    "transport_profile": "antenna-plugin-v2",
+    "default_target": "work"
   }
 }

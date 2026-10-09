@@ -124,7 +124,7 @@ different formats; neither makes an ordinary message end-to-end encrypted.
 
 Retire Antenna's old relay path when moving to plugin ingress; there is no silent
 fallback. Preserve legacy holds as recovery material rather than converting them
-into new sends. Follow the [manual migration guide](plugin/MIGRATION.md).
+into new sends. Follow the [manual migration guide](plugin/OPTIONAL-KITS.md#migration).
 
 v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may
 still hold copies. **Rotation is recommended, not required for migration.** If you
@@ -158,6 +158,6 @@ bypass. If you think one of the promised checks can be defeated, please tell us.
 - Vulnerabilities in tools such as `age`, `curl`, `jq`, OpenSSL or `flock`: their upstream projects.
 - Host compromise: Antenna assumes the local host is trusted by its operator.
 
-For older installations, the [previous security policy](references/legacy-guides/SECURITY-before-plugin-policy.txt)
+For older installations, the [previous security policy](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/SECURITY-before-plugin-policy.txt)
 preserves the relay-era design and support statements verbatim. It is historical
 reference, not the v1.6.8 installation or security model.

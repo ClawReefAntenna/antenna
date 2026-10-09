@@ -146,16 +146,17 @@ completion capability; Antenna does not fall back to a direct provider connectio
 
 ### Try a message without sending it
 
-See how the scanner treats a piece of text before changing anything:
+With the [optional diagnostics kit](../plugin/OPTIONAL-KITS.md#diagnostics),
+see how the scanner treats a piece of text before changing anything:
 
 ```sh
-antenna mcs --config "$OPENCLAW_CONFIG_PATH" test --file /private/body.txt --engine dumb
-antenna mcs --config "$OPENCLAW_CONFIG_PATH" evaluate --engine dumb --preview --json
+node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json test --text 'meeting agenda' --engine dumb
+node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --preview
 ```
 
 These diagnostics do not send messages, change policy or release holds. Smart/Both
 diagnostics send selected bodies to the model. Preview makes no model call.
-See [corpus diagnostics](../plugin/CORPORA.md) for larger sets of examples.
+See [corpus diagnostics](../plugin/OPTIONAL-KITS.md#diagnostics) for larger sets of examples.
 
 ### Choose your own rules
 
@@ -196,7 +197,7 @@ antenna clawreef status --local-only --json
 
 These discovery/status commands do not enroll you, create a group or send a message.
 When upgrading, preserve existing memberships and grants and follow
-[Registry migration coordination](../plugin/MIGRATION.md#4-registry-coordination) before switching routes.
+[Registry migration coordination](../plugin/OPTIONAL-KITS.md#migration) before switching routes.
 
 ## Before you start
 
@@ -250,7 +251,7 @@ openclaw plugins install /absolute/downloads/clawreefantenna-antenna-plugin-1.6.
 Review normal native trust/capability prompts. Do not start the gateway until policy is
 ready. The installer can create an enabled entry: keep `plugins.entries.antenna.enabled`
 false while preparing it. Do not use the old `install.sh` or `antenna setup` for plugin
-initialization. The companion's historical relay files are not the new setup path.
+initialization. Legacy activation and optional kits are not part of the native install.
 
 ### 2. Prepare a fresh identity and private files
 
@@ -436,7 +437,7 @@ A legacy v1.6.7 archive is not a v1.6.8 plugin restore. See the [full recovery g
 
 ## Upgrading an existing installation
 
-v1.6.8 changes transport. Use the [manual migration guide](../plugin/MIGRATION.md) to
+v1.6.8 changes transport. Use the [manual migration guide](../plugin/OPTIONAL-KITS.md#migration) to
 prepare against a copy, preserve keys/pins and destination grants, account for unresolved
 legacy holds and switch peer profiles deliberately. Do not overlay a new caller on old
 libraries or run old/new inbox writers together. General-hook rotation is recommended,
@@ -445,7 +446,7 @@ not required; retaining that credential must not block migration.
 Old holds remain recovery material rather than being rewritten into signed v2 sends.
 Rollback disables ingress and preserves state; it does not automatically restore old
 peer-known hook authority or resend uncertain messages. See the
-[historical guide snapshots](legacy-guides/README.md) only for legacy reference.
+[historical guide snapshots](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/README.md) only for legacy reference.
 
 ## Disable or remove
 

@@ -23,8 +23,8 @@ that companion's `bin/antenna.sh`; the native operators are in its `plugin/` dir
 For migrated/new v1.6.8 state, use transport profile `antenna-plugin-v2` and native
 plugin operators. Do not run legacy `install.sh`, `antenna setup`, `antenna pair`,
 legacy inbox commands or the old relay model checker to initialize this plugin.
-The [migration guide](plugin/MIGRATION.md) covers unmigrated installations;
-[historical snapshots](references/legacy-guides/README.md) are not current instructions.
+The [migration guide](plugin/OPTIONAL-KITS.md#migration) covers unmigrated installations;
+[historical snapshots](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/README.md) are not current instructions.
 
 ## Commands
 
@@ -42,7 +42,7 @@ node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json inbox release ITEM
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json inbox discard ITEM_ID
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json mode dumb PEER
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json mode default PEER
-/absolute/antenna/bin/antenna.sh mcs --config /absolute/openclaw.json test --file /private/body.txt --engine dumb
+node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --preview
 ```
 
 Doctor's host-config selection follows `OPENCLAW_CONFIG_PATH`; set it to the selected

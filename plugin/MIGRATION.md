@@ -1,3 +1,5 @@
+> Local migration candidate: conversion/retirement qualification remains pending; see [app status](../migration/README.md).
+
 # Explicit legacy migration — v1.6.8
 
 Compatibility tier: **documented manual migration**, not seamless live compatibility.
@@ -176,7 +178,7 @@ explicit operator recovery. No seamless downgrade or live migration is promised.
 
 v1.6.8 provides its own encrypted backup and confirmed in-place restore. It rejects
 legacy archives; use v1.6.7 for legacy recovery before migration. The companion
-[recovery guide](../references/BACKUP-AND-READINESS.md) covers commands and scope.
+[recovery guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/BACKUP-AND-READINESS.md) covers commands and scope.
 A plugin restore leaves the plugin disabled, preserves exact holds and replay data,
 and never activates, approves or resends. Existing legacy holds remain recovery
 material, not converted v2 messages.

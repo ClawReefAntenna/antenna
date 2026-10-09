@@ -24,7 +24,9 @@ with tempfile.TemporaryDirectory() as temp:
  link=d/'antenna';link.symlink_to(ROOT/'bin/antenna.sh')
  env={**os.environ,'PYTHONPATH':str(d)}
  r=subprocess.run([str(link),'clawreef','--help'],cwd=d,env=env,capture_output=True,text=True);assert r.returncode==0,r.stderr
- r=subprocess.run([sys.executable,str(ROOT/'scripts/antenna-policy-export.py'),'--help'],cwd=d,env=env,capture_output=True,text=True);assert r.returncode==0,r.stderr
+ # Legacy rollback projection is source-only, not part of native installables.
+ if (ROOT/'scripts/antenna-policy-export.py').exists():
+     r=subprocess.run([sys.executable,str(ROOT/'scripts/antenna-policy-export.py'),'--help'],cwd=d,env=env,capture_output=True,text=True);assert r.returncode==0,r.stderr
  # Force the CLI's deferred import from a foreign CWD/environment too.
  script="import runpy; p=runpy.run_path("+repr(str(ROOT/'scripts/antenna-clawreef.py'))+"); m=p['policy_module'](); assert m.__file__=="+repr(str(ROOT/'lib/session_policy.py'))
  r=subprocess.run([sys.executable,'-c',script],cwd=d,env=env,capture_output=True,text=True);assert r.returncode==0,r.stderr

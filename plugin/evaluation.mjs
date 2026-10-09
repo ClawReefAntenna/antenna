@@ -8,6 +8,7 @@ import {resolveScanner,gatewayScan} from './smart.mjs';
 import {ReceiveFlow} from './inbox.mjs';
 import {capacityDirectory} from './capacity.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
+export const REPORT_LIMITS=Object.freeze({stdoutBytes:65536,reportBytes:33554432});
 const usageKeys=['prompt_tokens','completion_tokens','total_tokens'];
 const knownSources=['evaluation.mjs','scanners.mjs','dumb-worker.mjs','inbox.mjs','limits.mjs','capacity.mjs','policy.mjs','smart.mjs','ruleset.mjs'];
 export const DEFAULT_CORPUS_URL='https://clawreef.io/resources/controls.json';
@@ -154,18 +155,27 @@ export async function runDiagnostic(command,args,c,host,{configPath,stdout=conso
  const resourceDir=capacityDirectory(path.dirname(c.inboxFile));
  const smart=model?body=>scanModel(host,p,body):undefined;
  const flow=new ReceiveFlow({dumb:body=>scanDumb(body,{resourceDir,ruleset}),smart});
- const began=performance.now();
+ const began=performance.now();let reportBytes=Buffer.byteLength(JSON.stringify(report));
  for(let repetition=1;repetition<=o.repeat;repetition++)for(const item of cases){
   const start=performance.now();let result;
   if(item.error)result={verdict:'incomplete',reason:item.error};
   else result=await flow.scan({body:item.body},{mode:engine==='model'?'smart':engine});
   const row={id:item.id,source:item.source,expected:item.expected,labelProvenance:item.labelProvenance??(o.corpus?'operator corpus label':'bundled control intent'),family:item.family,split:item.split,repetition,bodyDigest:item.body===undefined?null:hash(item.body),bodyBytes:item.body===undefined?null:Buffer.byteLength(item.body),verdict:result.verdict,error:item.error,reason:result.reason,stage:result.stage,modelSkipped:model&&result.stage!=='smart',requests:result.requests??0,usage:result.usage,returnedModel:result.returnedModel,elapsedMs:performance.now()-start,outcome:result.verdict==='pass'?'Would pass MCS':result.verdict==='flagged'?'Would hold':'Scan incomplete',findings:result.findings?.map(f=>o.details||o.verbose?f:{id:f.id,category:f.category})??[]};
   if(o.verbose&&((item.expected==='malicious'&&result.verdict==='pass')||(item.expected==='benign'&&result.verdict==='flagged')))row.body=item.body;
+  reportBytes+=Buffer.byteLength(JSON.stringify(row))+2;
+  if(reportBytes>REPORT_LIMITS.reportBytes){stderr(JSON.stringify({status:'resource_error',reason:'Detailed report exceeds 32 MiB; reduce cases/repetitions or omit verbose/details. No partial report saved.'}));return 3;}
   report.results.push(row);
  }
  report.finishedAt=new Date().toISOString();report.elapsedMs=performance.now()-began;report.summary=summarize(report.results);
- if(o.output){fs.writeFileSync(path.join(o.output,'report.json'),JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});fs.writeFileSync(path.join(o.output,'report.txt'),human(report),{flag:'wx',mode:0o600});}
- stdout(o.json?JSON.stringify(report):human(report));
+ const jsonReport=JSON.stringify(report)+'\n',textReport=human(report);
+ if(Math.max(Buffer.byteLength(jsonReport),Buffer.byteLength(textReport))>REPORT_LIMITS.reportBytes){stderr(JSON.stringify({status:'resource_error',reason:'Detailed report exceeds 32 MiB; reduce cases/repetitions. No partial report saved.'}));return 3;}
+ if(o.output){fs.writeFileSync(path.join(o.output,'report.json'),jsonReport,{flag:'wx',mode:0o600});fs.writeFileSync(path.join(o.output,'report.txt'),textReport,{flag:'wx',mode:0o600});}
+ const output=o.json?jsonReport:textReport;
+ if(Buffer.byteLength(output)<=REPORT_LIMITS.stdoutBytes)stdout(output);
+ else {
+  const compact={command,engine,plan:report.plan,observations:report.summary.observations,incomplete:report.summary.incomplete,requests:report.summary.requests,score:report.summary.score,detailsOnStdout:false,reportDirectory:o.output??null,note:o.output?'Full details saved in requested report files.':'Use --output NEW_DIRECTORY for full details; console output is capped at 64 KiB.'};
+  stdout(o.json?JSON.stringify(compact):`Antenna MCS ${command} — ${engine}\n${JSON.stringify(compact)}`);
+ }
  if(command==='evaluate')return 0;
  return cases.some(x=>x.error)?64:report.results.some(x=>x.verdict==='incomplete')?3:report.results.some(x=>x.verdict==='flagged')?2:0;
 }

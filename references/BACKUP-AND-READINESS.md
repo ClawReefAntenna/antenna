@@ -2,7 +2,7 @@
 
 Encrypted recovery covers v1.6.8 Antenna state only. Legacy archives are rejected
 before any replacement. Legacy backup/restore belongs to v1.6.7; one-way migration
-remains in the [migration guide](../plugin/MIGRATION.md).
+remains in the [migration guide](../plugin/OPTIONAL-KITS.md#migration).
 
 ## Commands
 
@@ -68,12 +68,13 @@ folder until recovered. It is not a permanent backup history or recovery service
 
 ## After restore
 
-Review restored policy, contacts, scanner selection and inbox. Use the local migration
+Review restored policy, contacts, scanner selection and inbox. Use the native
 Doctor and validate destinations/scanner readiness before explicitly re-enabling and
 restarting. Provider configuration is not restored. Old snapshots may reintroduce
 revoked permissions or forget later replay entries; there is no exactly-once guarantee.
 No credential rotation, service start, message send, approval or resend is performed.
 
 v1.6.8 is scheduled for **October 8, 2026 (America/Toronto)**. A schedule is not proof
-of publication. For legacy readiness, use v1.6.7; the old readiness command intentionally
-refuses migrated state. Backup remains optional.
+of publication. For legacy readiness, use the matching legacy release or migration app.
+The current `antenna readiness` runs native read-only Doctor checks; it does not
+qualify remote peers or live ingress. Backup remains optional.

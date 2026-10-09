@@ -5,7 +5,6 @@ import path from 'node:path';
 import http from 'node:http';
 import {generateKeyPairSync,verify} from 'node:crypto';
 import {buildMessage,sendEnvelope,PROFILE} from '../transport.mjs';
-import {prepare} from '../legacy-migration.mjs';
 import {policyFor} from '../inbox.mjs';
 import {canonical,parse} from '../envelope.mjs';
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'antenna-legacy-'));
@@ -27,23 +26,7 @@ try{
 }finally{await new Promise(r=>server.close(r));}
 const write=(name,value)=>fs.writeFileSync(path.join(root,name),typeof value==='string'?value:JSON.stringify(value),{mode:0o600});
 write('token','x'.repeat(32));write('key.pem',publicKey);
-const old={session_policy_version:1,session_policies:{'agent:beta:main':{inbox:true}},allowed_inbound_peers:['alpha'],allowed_outbound_peers:['alpha'],allowed_inbound_sessions:['agent:beta:main'],inbox_mode:'allowlist',inbox_enabled:true,max_message_length:10000};
-write('antenna-config.json',old);write('antenna-peers.json',{beta:{self:true,auth_mode:'ed25519-v1',token_file:'token'},alpha:{auth_mode:'ed25519-v1',signing_public_key_file:'key.pem',url:'https://alpha.test',token_file:'remote'}});
-write('antenna-inbox.json',[{status:'pending',full_message:body,from:'alpha'}]);write('antenna-lists.json',{staff:[{peer:'alpha'}]});
-write('host.json',{hooks:{token:'x'.repeat(32),mappings:[{id:'unrelated'}]},agents:{list:[{id:'antenna'},{id:'other'}]}});
-const selection={mcs:'dumb',destinations:{work:'agent:beta:main'},inboxFile:path.join(root,'new-inbox.json'),replayFile:path.join(root,'new-replay.json'),outbound:{alpha:{profile:PROFILE,default_target:'work'}}};
-const before=Object.fromEntries(fs.readdirSync(root).map(f=>[f,fs.readFileSync(path.join(root,f),'utf8')]));
-const result=prepare(root,path.join(root,'host.json'),selection),c=result.host.plugins.entries.antenna.config;
-assert.equal(result.report.legacyPending,1);assert.equal(result.host.plugins.entries.antenna.enabled,false);assert.equal(result.peers.alpha.transport_profile,PROFILE);
-assert.equal(c.peers.alpha.publicKey,publicKey);assert.equal(policyFor(c,c.peers.alpha,'work').approval,true);
-assert.deepEqual(result.host.hooks,JSON.parse(before['host.json']).hooks);assert.deepEqual(result.host.agents,JSON.parse(before['host.json']).agents);
-for(const [f,raw] of Object.entries(before))assert.equal(fs.readFileSync(path.join(root,f),'utf8'),raw);
-assert.throws(()=>prepare(root,path.join(root,'host.json'),{...selection,destinations:{work:'agent:other:main'}}));
-write('antenna-config.json',{...old,inbox_mode:'on',inbox_auto_approve_peers:['alpha']});
-const auto=prepare(root,path.join(root,'host.json'),selection).host.plugins.entries.antenna.config;
-assert.equal(policyFor(auto,auto.peers.alpha,'work').approval,false);
-write('new-inbox.json','preserve');assert.throws(()=>prepare(root,path.join(root,'host.json'),selection));assert.equal(fs.readFileSync(path.join(root,'new-inbox.json'),'utf8'),'preserve');
-console.log('PASS exact v2 signature/body; held/submitted/unknown/rejected; no redirect/retry/fallback; offline migration preservation; approval mapping; occupied-state refusal');
+console.log('PASS native signature/body, response statuses and no redirect/fallback');
 // Offline contact exchange: export warning when hooks retained, pinned import,
 // no permission grant, and retired legacy writer guard.
 const {execFileSync}=await import('node:child_process');
@@ -63,7 +46,7 @@ console.log('PASS contact scope gate, private output, pin continuity and no perm
 // Exercise retained shell entrypoints rather than only the transport library.
 const {execFile}=await import('node:child_process');const {promisify}=await import('node:util');const run=promisify(execFile);
 const shellRoot=path.join(root,'shell');fs.mkdirSync(shellRoot);
-for(const part of ['scripts','lib','plugin'])fs.cpSync(new URL('../../'+part,import.meta.url).pathname,path.join(shellRoot,part),{recursive:true,filter:src=>!src.includes('/node_modules')&&!src.includes('/tests/')});
+for(const part of ['bin','scripts','lib','plugin'])fs.cpSync(new URL('../../'+part,import.meta.url).pathname,path.join(shellRoot,part),{recursive:true,filter:src=>!src.includes('/node_modules')&&!src.includes('/tests/')});
 fs.writeFileSync(path.join(shellRoot,'private.pem'),privateKey,{mode:0o600});fs.writeFileSync(path.join(shellRoot,'token'),'x'.repeat(32),{mode:0o600});
 let shellCalls=0;const exact='\ufeffExact shell 🕵️\n\n';
 const receiverServer=http.createServer((req,res)=>{let raw='';req.on('data',b=>raw+=b);req.on('end',()=>{shellCalls++;assert.equal(req.url,'/antenna/v1/receive');assert.equal(parse(Buffer.from(raw),10000).body,exact);res.writeHead(202,{'Content-Type':'application/json'});res.end('{"status":"held"}');});});
@@ -73,9 +56,9 @@ try{
  fs.writeFileSync(path.join(shellRoot,'antenna-config.json'),JSON.stringify({transport_profile:PROFILE,max_message_length:10000,allowed_outbound_peers:['beta']}));
  fs.writeFileSync(path.join(shellRoot,'antenna-peers.json'),JSON.stringify({alpha:{self:true,auth_mode:'ed25519-v1',url:'https://alpha.test',signing_private_key_file:'private.pem'},beta:{url,allow_http:true,auth_mode:'ed25519-v1',token_file:'token',transport_profile:PROFILE,default_target:'work'}}));
  fs.writeFileSync(path.join(shellRoot,'antenna-lists.json'),JSON.stringify({staff:[{peer:'beta'}]}));
- const direct=await run('bash',[path.join(shellRoot,'scripts/antenna-send.sh'),'beta',exact]);assert.equal(JSON.parse(direct.stdout).status,'held');
+ const direct=await run('bash',[path.join(shellRoot,'bin/antenna.sh'),'msg','beta',exact]);assert.equal(JSON.parse(direct.stdout.trim().split('\n').at(-1)).status,'held');
  const list=await run('bash',[path.join(shellRoot,'scripts/antenna-list-send.sh'),'@staff',exact]);assert.equal(JSON.parse(list.stdout).results[0].sender.status,'held');assert.equal(shellCalls,2);
- for(const name of ['setup','upgrade','pair','exchange','uninstall','inbox'])await assert.rejects(run('bash',[path.join(shellRoot,`scripts/antenna-${name}.sh`)]));
+ for(const name of ['setup','upgrade','pair','uninstall','inbox','model'])await assert.rejects(run('bash',[path.join(shellRoot,'bin/antenna.sh'),name]));
  assert.equal(shellCalls,2);
 }finally{await new Promise(r=>receiverServer.close(r));}
 console.log('PASS shell direct/list transport, UTF-8 BOM/trailing LF, and retired writer guards');
@@ -83,3 +66,5 @@ await assert.rejects(run('bash',[path.join(shellRoot,'scripts/antenna-doctor.sh'
 try{await run('python3',[path.join(shellRoot,'scripts/antenna-readiness.py'),'--json']);assert.fail('legacy readiness must fail');}catch(e){assert.equal(JSON.parse(e.stdout||e.stderr).status,'blocked');}
 try{await run('python3',[path.join(shellRoot,'scripts/antenna-backup.py'),'restore','unused.age','--to',shellRoot]);assert.fail('legacy restore must fail');}catch(e){assert.match(e.stderr+e.stdout,/INCOMPATIBLE_TARGET|HOST_REQUIRED|INVALID_HOST|MISSING_STATE|TERMINAL_REQUIRED/);}
 console.log('PASS migrated Doctor/readiness/restore cannot recommend or restore legacy state');
+
+fs.rmSync(root,{recursive:true,force:true});

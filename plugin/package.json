@@ -10,15 +10,32 @@
     "antenna-plugin": "./cli.mjs"
   },
   "files": [
-    "*.mjs",
-    "*.sh",
-    "openclaw.plugin.json",
+    "LICENSE",
+    "OPTIONAL-KITS.md",
     "README.md",
-    "MIGRATION.md",
-    "corpus/*.json",
-    "rules/*.json",
     "RULESETS.md",
-    "CORPORA.md"
+    "antenna-replay.sh",
+    "capacity.mjs",
+    "cli.mjs",
+    "doctor.mjs",
+    "dumb-worker.mjs",
+    "envelope.mjs",
+    "inbox.mjs",
+    "index.mjs",
+    "limits.mjs",
+    "migration-warning.mjs",
+    "openclaw.plugin.json",
+    "operator-auth.mjs",
+    "pairing.mjs",
+    "policy.mjs",
+    "recovery-validate.mjs",
+    "rules/default.json",
+    "ruleset.mjs",
+    "runtime.mjs",
+    "scanners.mjs",
+    "send.mjs",
+    "smart.mjs",
+    "transport.mjs"
   ],
   "openclaw": {
     "extensions": [
@@ -29,6 +46,6 @@
     "openclaw": ">=2026.9.5"
   },
   "scripts": {
-    "test": "node tests/operator-auth.mjs && node tests/package.mjs && node tests/flow.mjs && node tests/legacy.mjs && node tests/migration-doctor.mjs && node tests/diagnostics.mjs && node tests/resources.mjs && node tests/corpus.mjs && node tests/missing-corpus.mjs"
+    "test": "node tests/operator-auth.mjs && node tests/package.mjs && node tests/flow.mjs && node tests/native-doctor.mjs && node tests/native-companion.mjs && node tests/diagnostics.mjs && node tests/resources.mjs && node tests/corpus.mjs && node tests/missing-corpus.mjs && node tests/report-bounds.mjs"
   }
 }

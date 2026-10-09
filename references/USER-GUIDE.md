@@ -223,7 +223,7 @@ pointed at the same companion and host configuration:
 ```sh
 export ANTENNA_ROOT=/absolute/antenna
 export OPENCLAW_CONFIG_PATH=/absolute/openclaw.json
-antenna() { "$ANTENNA_ROOT/bin/antenna.sh" "$@"; }
+antenna() { bash "$ANTENNA_ROOT/bin/antenna.sh" "$@"; }
 antenna-plugin() { node "$ANTENNA_ROOT/plugin/cli.mjs" "$OPENCLAW_CONFIG_PATH" "$@"; }
 ```
 

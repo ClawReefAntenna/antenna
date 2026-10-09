@@ -32,10 +32,10 @@ In the examples, replace `/absolute/antenna` and `/absolute/openclaw.json` with 
 chosen installation. Do not interpret uppercase placeholders as real peer/item IDs.
 
 ```sh
-/absolute/antenna/bin/antenna.sh doctor
+bash /absolute/antenna/bin/antenna.sh doctor
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json status
-/absolute/antenna/bin/antenna.sh peers list
-/absolute/antenna/bin/antenna.sh msg PEER --session DESTINATION 'Literal message'
+bash /absolute/antenna/bin/antenna.sh peers list
+bash /absolute/antenna/bin/antenna.sh msg PEER --session DESTINATION 'Literal message'
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json inbox list
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json inbox show ITEM_ID
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json inbox release ITEM_ID '["Awaiting approval"]'

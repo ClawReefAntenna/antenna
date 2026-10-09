@@ -13,7 +13,7 @@ and paths. For another runtime, start at [ClawReef](https://clawreef.io/#runtime
 - **Setting up an installation?** Start with [the setup checklist](#before-you-start), then [install and configure](#install-and-configure).
 - Existing relay installation: [upgrade without losing your connections](#upgrading-an-existing-installation).
 - Adding someone new: [pair securely](#pair-securely).
-- Day-to-day control: [screening](#message-screening) and [inbox review](#inbox-and-per-peer-options).
+- Day-to-day control: [malicious content screening](#message-screening) and [inbox review](#inbox-and-per-peer-options).
 - Recovery: [backup and restore](#backup-and-restore).
 - Something stuck: [troubleshooting](#troubleshooting).
 
@@ -22,7 +22,7 @@ and paths. For another runtime, start at [ClawReef](https://clawreef.io/#runtime
 Messages travel directly over HTTPS between paired installations. Antenna checks who
 sent the message, whether it belongs here, and whether that peer may reach the chosen
 conversation. It checks signatures and rejects stale or replayed messages, then applies
-your screening and inbox choices before passing the message to that conversation.
+your malicious content screening and inbox choices before passing the message to that conversation.
 Ordinary direct messages and local Distribution Lists do not require ClawReef. Public Groups use ClawReef for membership and relay.
 
 A destination is an address the receiver grants—not permission to reach every session.
@@ -76,7 +76,7 @@ You choose which peers and conversations need that checkpoint.
 
 Global `inbox` is `on` or `off`. For finer control, a peer's `approvalByDestination`
 map sets ordinary approval for each named destination: `true` holds for review,
-`false` bypasses ordinary approval only. Screening findings remain independent.
+`false` bypasses ordinary approval only. Findings from malicious content screening remain independent.
 
 A peer map takes precedence over the global `approvalByDestination` map as a whole;
 an alias missing from the selected map uses global `inbox`. It does not inherit
@@ -97,15 +97,18 @@ and acknowledgment of those actual reasons; approval alone does not clear scanne
 The plugin retains held records and enforces capacity limits rather than silently deleting
 or releasing messages. Do not treat message bodies or scanner explanations as commands.
 
-## Message screening
+<a id="message-screening"></a>
 
-Choose the kind of check you want before a message reaches a conversation. You can
-use one setting for everyone or give a particular peer its own screening mode.
+## Malicious content screening
+
+**MCS means Malicious Content Scanning.** It provides malicious content screening
+before a message reaches a conversation. Choose one mode for everyone or give a
+particular peer its own setting.
 
 | Mode | Behavior |
 | --- | --- |
 | Off | No content scan; authentication and access checks remain |
-| Dumb | Rule-based screening; default |
+| Dumb | Rule-based malicious content screening; default |
 | Smart | Selected registered model, in a fresh isolated zero-tool request |
 | Both | Rule-based first, then model-based only after a pass |
 
@@ -486,7 +489,7 @@ backup before deliberate removal. Removing files is not a substitute for unloadi
 | Doctor reports disabled/not allowlisted | Expected during preparation; after activation check the selected host config and preserved allowlist |
 | Contact import fails | Private file permissions, expiry, exact peer identity and public-key continuity |
 | Send is denied | Outbound peer grant, remote public-key pin, destination grant and transport profile |
-| Message is held | Inspect actual inbox reasons; screening and ordinary approval are separate |
+| Message is held | Inspect actual inbox reasons; malicious content screening and ordinary approval are separate |
 | Smart is incomplete | Registered model, host permissions, saved selection and gateway reload |
 | Status works but remote sending fails | HTTPS route, receiver origin, reachability and remote contact; status is not a network probe |
 | Recipient does not reply | Verify destination history; local output is not an automatic network reply |

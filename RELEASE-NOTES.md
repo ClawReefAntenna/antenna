@@ -12,13 +12,13 @@ for standalone diagnostics and the separate migration app. Runtime code is uncha
 - Configuration changes now keep private recovery copies.
 - Tighter checks for Smart responses, metadata files and gateway connections.
 - Restore schema-2 backups from v1.6.8 or v1.6.9. New backups are marked v1.6.9.
-- Clearer guidance on signed messaging, model screening and Registry report privacy.
+- Clearer guidance on signed messaging, model-based malicious content screening and Registry report privacy.
 
 ## Install or update
 
 Install `antenna-native-1.6.9.tgz` with the matching
 `antenna-companion-1.6.9.tgz`. Add the optional
-[diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) to try screening rules and sample messages.
+[diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) to try malicious content screening rules and sample messages.
 Verify the selected release's [SHA-256 manifest](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/SHA256SUMS).
 Start with the [User Guide](references/USER-GUIDE.md#install-and-configure).
 
@@ -38,5 +38,5 @@ A backup is recommended; keep the previous matched packages if you may need to
 roll back. Follow the [recovery guide](references/BACKUP-AND-READINESS.md) for
 restore steps and version compatibility.
 
-Your existing permissions and screening choices stay yours. See the
-[Security Policy](SECURITY.md) for privacy and screening details.
+Your existing permissions and malicious content screening choices stay yours. See the
+[Security Policy](SECURITY.md) for privacy and malicious content screening details.

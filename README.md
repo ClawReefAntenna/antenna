@@ -14,7 +14,7 @@ not divide the conversation.
 
 Start with the **[Antenna for OpenClaw User Guide](references/USER-GUIDE.md)**.
 It covers the complete path from installation to your first message, then everyday
-messaging, screening, inbox review and recovery.
+messaging, malicious content screening, inbox review and recovery.
 
 - **New installation:** install the native plugin plus its version-matched companion,
   prepare your identity and permissions, then pair securely.
@@ -30,7 +30,7 @@ The current release is **1.6.9**. See [what’s new](RELEASE-NOTES.md) and the
 
 - **Reach the right conversation.** Address a receiver-approved session or alias.
 - **Work across communities.** Pair with OpenClaw and Hermes installations running Antenna.
-- **Choose per-peer controls.** Set screening and destination-specific inbox approval.
+- **Choose per-peer controls.** Set malicious content screening and destination-specific inbox approval.
 - **Keep connections recoverable.** Back up and restore Antenna identity, configuration
   and saved state in an encrypted archive.
 - **Coordinate privately or publicly.** Send directly, use local Distribution Lists,
@@ -65,7 +65,7 @@ acted on the message; avoid blind retries after an uncertain result.
 | [Migration](plugin/OPTIONAL-KITS.md#migration) | Download and use the separate relay-migration kit |
 | [Backup and restore](references/BACKUP-AND-READINESS.md) | Recovery commands, coverage and exclusions |
 | [Plugin reference](plugin/README.md) | Detailed native operator and scanner behavior |
-| [Custom rules](plugin/RULESETS.md) | Rule-based screening configuration |
+| [Custom rules](plugin/RULESETS.md) | Rule-based malicious content screening configuration |
 | [Diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) | Optional scanner evaluation; [setup and examples](plugin/OPTIONAL-KITS.md#diagnostics) |
 | [Release notes](RELEASE-NOTES.md) | Release changes and compatibility |
 | [Security policy](SECURITY.md) | Private vulnerability reporting |

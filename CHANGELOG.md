@@ -2,7 +2,8 @@
 
 Package separation, protected configuration/migration writes, stricter Smart response
 validation, safe metadata output, validated gateway loopback ports and replay failure
-cleanup. Same schema-2 transport and OpenClaw API minimum. See [release notes](RELEASE-NOTES.md).
+cleanup. A refused damaged replay cache releases its temporary resources without
+clearing the replay history. Same schema-2 transport and OpenClaw API minimum. See [release notes](RELEASE-NOTES.md).
 
 # Changelog
 

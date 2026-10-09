@@ -39,3 +39,11 @@ do not pin immutable provider weights.
 The earlier local receive benchmark missed the proposed 50 ms p95 target, including
 after worker reuse. Broad performance acceptance remains open; loaded gateway,
 provider, public-network and long-running soak results must be assessed separately.
+
+## Configuration-write implementation
+
+The explicit-file CLI uses source comparisons and a cooperative lock; these do
+not provide a cross-tool compare-and-swap API. Other configuration writers must
+be stopped while editing. The adapter also supports isolated/offline rehearsals
+without selecting or invoking the active host. Operator setup and private
+recovery-copy details remain in the [plugin reference](../plugin/README.md).

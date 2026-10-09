@@ -1,16 +1,15 @@
 # Antenna diagnostics — v1.6.9
 
-Standalone, not installed with native messaging. Compatibility: matching v1.6.9 release
-manifest, schema 2, antenna-limits-2.
+Try screening rules against sample messages or your own examples, without
+sending messages or changing your active settings. Use the diagnostics kit
+matching your Antenna release; it is a separate download from native messaging.
 Run from this extracted kit with `node diagnostics/cli.mjs HOST COMMAND ...`.
 
 ## MCS evaluation and custom-body diagnostics
 
 With Dumb or Both, `evaluate` and `test` accept `--ruleset /absolute/candidate.json` for candidate
-rule evaluation without changing the active file. These commands share the production scanner and do **not** send peer messages,
-create sessions, change policy, insert inbox records, or release held work.
-Scans use private kernel-lock slots beneath the configured inbox directory;
-they do not write message or policy state.
+rule evaluation without changing the active file. These commands share the
+production scanner and leave your messages, inbox and policy unchanged.
 
 See the [corpus format and authoring guide](../plugin/CORPORA.md). `evaluate --corpus /path/tests.json`
 selects a custom labelled corpus for that invocation; omitting it uses the separate
@@ -34,12 +33,11 @@ Use the standalone `diagnostics/cli.mjs` from this kit with an explicit host con
 Smart is model-only, Both is Dumb-first with short-circuit, and `model` is a
 model-only diagnostic alias. Off is not a diagnostic engine.
 
-Smart/model/Both can upload selected bodies to the selected registered model.
-`--preview` performs no scan or model request and never consumes stdin.
-There is no additional confirmation prompt, provider fallback, retry, model
-installation, selection activation, or automatic acceptance threshold. Tests of
-multiple models are separate explicit selections/runs; reports carry model identities and fingerprints
-for comparison. Evaluation itself never switches the selected model.
+Smart/model sends selected message bodies to your configured model; Both does
+so after a Dumb pass. Preview makes no model calls and never consumes stdin.
+Evaluation leaves your selected model and live policy unchanged. To compare
+models, select and run each explicitly; reports include model identities and
+fingerprints.
 
 The bundled corpus contains 40 malicious, 40 benign and four ambiguous examples.
 Use your own examples alongside this sample when comparing screening choices.
@@ -77,7 +75,13 @@ Console output is capped at 64 KiB; larger results produce a compact summary.
 Use `--output NEW_DIRECTORY` for full JSON/plain-text reports (0700 directory,
 0600 files). Detailed reports have a 32 MiB budget per representation; reduce
 cases, repetitions or verbose/details if it is exceeded. No partial report is
-presented as complete. Realistic test bodies and protective rules are unchanged.
+presented as complete.
+
+## Technical compatibility
+
+This kit matches the v1.6.9 release manifest, schema 2 and `antenna-limits-2`.
+Scans use private kernel-lock slots beneath the configured inbox directory;
+they do not write message or policy state.
 
 The asset manifest records SHA-256 hashes of every file. Reports additionally
 fingerprint the scanner implementation, corpus and selected rules/model. Those

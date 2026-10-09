@@ -7,15 +7,15 @@ in every mode. Ordinary approval and MCS holds remain independent.
 
 This package provides signed ingress and direct local dispatch without a messaging
 relay model. Manual migration, direct/list transport and contact exchange are
-covered in [the companion guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/references/USER-GUIDE.md). Compatible peers may run OpenClaw or Hermes, using their own
-runtime-specific setup. For Public Groups, use the features advertised by your Registry. Delivery is
+covered in [the companion guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/references/USER-GUIDE.md). Peers can run OpenClaw or Hermes, with Antenna installed on both sides
+using their own runtime-specific setup. For Public Groups, use the features advertised by your Registry. Delivery is
 best-effort; check uncertain outcomes before resending.
 
 ## Install in your selected OpenClaw instance
 
-Requires Node supported by OpenClaw, Bash, jq and flock. Local qualification uses
-Linux x64 / Node 26.8.2 and 24.19.0 / OpenClaw 2026.9.5. The manifest floor `>=2026.9.5`
-is not certification of all later releases or platforms.
+Requires OpenClaw **2026.9.5 or newer**, a Node version supported by OpenClaw,
+Bash, jq and flock. Tested platform: Linux x64, with Node 26.8.2 and 24.19.0
+and OpenClaw 2026.9.5.
 Install `antenna-native-1.6.9.tgz` from the
 [v1.6.9 release](https://github.com/ClawReefAntenna/antenna-openclaw/releases/tag/v1.6.9) with
 `openclaw plugins install /absolute/path/to/antenna-native-1.6.9.tgz`, using the
@@ -38,12 +38,11 @@ plugin reload; restart only when hot reload is unavailable or disabled.
 Configuration-file edits preserve unrelated settings and activation, validate the
 new Antenna policy, and keep a private `HOST.antenna-backup-*/before.json` preimage.
 No-op edits do not request a reload or restart. `restartRequired: null` means
-the offline editor has not determined the running host’s reload capability. The file CLI accepts resolved JSON, not
-includes, symlinks or hard links. Keep other configuration writers quiescent;
-source comparisons and a cooperative lock do not replace a cross-tool CAS API.
-For normal host administration prefer supported `openclaw config set`/`patch`
-commands; this explicit-file adapter also supports isolated/offline rehearsals
-without selecting or invoking the active host. It does not restart services.
+the offline editor has not determined the running host’s reload capability.
+The file CLI requires resolved JSON and does not accept includes, symlinks or
+hard links. Keep other configuration writers stopped while editing. For normal
+host administration, prefer supported OpenClaw configuration commands. The file
+CLI does not restart services.
 
 The local adapter uses the gateway's configured port and token or password authentication,
 matching the host's selected mode without changing its login configuration. The selected

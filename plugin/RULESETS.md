@@ -2,7 +2,7 @@
 
 Antenna ships `rules/default.json`. Keep custom copies outside the plugin install
 folder: upgrades replace the bundled default, not your own files. One file is
-active at a time. JSON requires no additional parser dependency.
+active at a time.
 
 ```json
 {

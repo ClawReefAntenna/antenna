@@ -8,13 +8,10 @@ for standalone diagnostics and the separate migration app. Runtime code is uncha
 
 ## What changed
 
-- Separate, explicit package contents for native messaging, companion/ClawHub,
-  diagnostics, and the separate migration app.
-- Protected configuration writes with private recovery copies.
-- Stricter Smart response validation, safe list-metadata output files, validated
-  loopback gateway ports, and cleanup after damaged replay-cache refusal.
-- Recovery accepts the explicitly qualified v1.6.8/v1.6.9 schema-2 packages and
-  archives; newly created archives identify v1.6.9 as their producer.
+- A smaller everyday install, with diagnostics available as an optional download.
+- Configuration changes now keep private recovery copies.
+- Tighter checks for Smart responses, metadata files and gateway connections.
+- Restore schema-2 backups from v1.6.8 or v1.6.9. New backups are marked v1.6.9.
 - Clearer guidance on signed messaging, model screening and Registry report privacy.
 
 ## Install or update
@@ -24,10 +21,9 @@ Install `antenna-native-1.6.9.tgz` with the matching
 `antenna-diagnostics-1.6.9.tgz`. Verify the selected release's SHA-256 manifest.
 Start with the [User Guide](references/USER-GUIDE.md#install-and-configure).
 
-v1.6.8 native installations keep schema 2 and `antenna-plugin-v2`: no peer remigration
-is needed. Preserve identity, permissions, holds and replay data when updating.
-OpenClaw **2026.9.5 or newer** remains the API requirement; Linux is the qualified
-platform. This does not claim every later host version has been tested.
+Updating from native v1.6.8? Your existing connections and permissions carry
+forward; no relay migration is needed. Requires OpenClaw **2026.9.5 or newer**.
+Tested platform: Linux.
 
 Legacy relay installations still need coordinated manual migration. The migration
 app has not yet been published and is not included in these downloads.
@@ -35,11 +31,10 @@ See [optional kits](plugin/OPTIONAL-KITS.md#migration).
 
 ## Recovery and security
 
-Back up and stop the intended gateway before replacement. Keep the previous matched
-packages and protected state snapshot. If an update fails, leave Antenna disabled;
-restore compatible state with the [recovery guide](references/BACKUP-AND-READINESS.md),
-review Doctor and policy, then explicitly re-enable. Never reactivate the retired relay.
-Restoring an older snapshot can restore revoked grants or lose newer replay entries.
+Before replacing packages, stop the gateway and preserve your Antenna state.
+A backup is recommended; keep the previous matched packages if you may need to
+roll back. Follow the [recovery guide](references/BACKUP-AND-READINESS.md) for
+restore steps and version compatibility.
 
-Screening is not a security guarantee. Standing grants, trusted peers and preserved
-HTTP peer configuration retain their existing behavior. See the [Security Policy](SECURITY.md).
+Your existing permissions and screening choices stay yours. See the
+[Security Policy](SECURITY.md) for privacy and screening details.

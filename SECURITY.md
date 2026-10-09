@@ -27,8 +27,7 @@ We will acknowledge your report within 48 hours and aim to provide a fix or miti
 
 This policy covers Antenna for OpenClaw: signed ingress, local dispatch,
 companion scripts, contact exchange, screening, inbox and recovery handling.
-Compatible Hermes peers use their own runtime adapter; this policy does not
-promise identical runtime features or qualify every deployment.
+Hermes uses its own adapter and runtime-specific guidance.
 
 ## Supported Versions
 
@@ -93,7 +92,7 @@ Private addressing alone is not encryption.
 ### Screening and review are separate choices
 
 Dumb screening is the default; Off, Smart and Both are available, with per-peer
-controls. Smart uses an explicitly selected registered OpenClaw model in fresh
+controls. Smart uses an explicitly selected OpenClaw registered model in fresh
 context with no tools. Both runs Dumb first and cannot clear a Dumb finding.
 Smart/Both may send message bodies to the selected model provider. Model isolation
 is not an operating-system sandbox, and provider output-token hints are not

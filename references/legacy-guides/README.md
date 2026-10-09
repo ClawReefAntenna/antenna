@@ -8,6 +8,6 @@ These exact snapshots preserve the operator documents as they existed at source 
 
 The snapshots use plain-text extensions to avoid presenting their old command examples or relative links as current navigation. Historical Markdown links are retained verbatim and resolve relative to their original source paths.
 
-For current operation use the [OpenClaw User Guide](../USER-GUIDE.md). For moving an existing installation, use [manual migration](../../plugin/MIGRATION.md). Do not run legacy installers against migrated state.
+For current operation use the [OpenClaw User Guide](../USER-GUIDE.md). For moving an existing installation, use [migration availability](../../plugin/OPTIONAL-KITS.md#migration). Do not run legacy installers against migrated state.
 
 Task 002 also preserves the [previous Security Policy](SECURITY-before-plugin-policy.txt) byte-for-byte from the same source commit, before the native-plugin security reconciliation. Its support statements are historical evidence, not proof of a later publication.

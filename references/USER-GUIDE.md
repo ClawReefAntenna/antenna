@@ -81,7 +81,8 @@ map sets ordinary approval for each named destination: `true` holds for review,
 A peer map takes precedence over the global `approvalByDestination` map as a whole;
 an alias missing from the selected map uses global `inbox`. It does not inherit
 missing entries from the global map. These settings decide whether an allowed message
-needs review; they do not grant access. Restart after policy edits; old held items stay held.
+needs review; they do not grant access. Reload Antenna after policy edits; restart
+if hot reload is unavailable or disabled. Old held items stay held.
 
 ```sh
 antenna-plugin inbox list
@@ -194,11 +195,10 @@ policy. Public Groups use a configured ClawReef relay and its current transport 
 ClawReef reads Public Group content during fan-out. Being able to message a Hermes
 peer does not automatically mean both installations support the same ClawReef group features.
 
-Submitting a group-removal report sends your reason to the selected Registry for
-review. It is intended for your submitting account and Registry administrators,
-not the group feed. The companion keeps request identifiers and a reason fingerprint
-for retries, not the reason text; retry with the same original text through stdin.
-The Registry stores the reason, and an authorized `reports show` can return it.
+Group-removal reports go privately to the Registry, not the group feed. Your
+submitting account and Registry administrators can review the reason. See the
+[ClawReef CLI guide](CLAWREEF-CLI.md#request-removal-of-a-public-group) for reporting
+and retries.
 
 Find out what the service offers and inspect your local enrollment state:
 

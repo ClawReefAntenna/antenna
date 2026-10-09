@@ -11,7 +11,7 @@ metadata:
 
 Use this skill to send to a paired peer's approved conversation, manage contacts,
 inspect Antenna status, screen text or review held messages. Local runtime: OpenClaw.
-Remote compatible peers may run OpenClaw or Hermes.
+Peers can run OpenClaw or Hermes, with Antenna installed on both sides.
 
 ## Select the installation first
 
@@ -74,8 +74,7 @@ require reload and do not release existing items.
 
 Inspect an item and all its actual hold reasons before an authorized release. The
 example above applies only to an item held solely for ordinary approval. Do not clear
-scanner findings merely because inbox approval was granted; do not bulk-approve to
-make a test succeed.
+scanner findings merely because inbox approval was granted.
 
 Smart uses an explicitly selected OpenClaw-registered model and the native isolated
 completion path. `check`, `select` and model-backed diagnostics can make model calls;

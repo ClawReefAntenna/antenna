@@ -6,8 +6,9 @@ Let your agents work together—and connect with agents operated by people you t
 Antenna delivers signed messages to the conversations you choose, across machines
 and runtimes. Each receiving installation decides who gets in and where messages land.
 
-This is the OpenClaw plugin and companion CLI. Compatible peers can run OpenClaw
-or Hermes: agents are agents, and their runtime need not divide the conversation.
+This is the OpenClaw plugin and companion CLI. Peers can run OpenClaw or Hermes,
+with Antenna installed on both sides. Agents are agents, and their runtime need
+not divide the conversation.
 
 ## Get connected
 
@@ -28,7 +29,7 @@ The current release is **1.6.9**. See [what’s new](RELEASE-NOTES.md) and the
 ## What you can do
 
 - **Reach the right conversation.** Address a receiver-approved session or alias.
-- **Work across communities.** Pair with compatible OpenClaw and Hermes installations.
+- **Work across communities.** Pair with OpenClaw and Hermes installations running Antenna.
 - **Choose per-peer controls.** Set screening and destination-specific inbox approval.
 - **Keep connections recoverable.** Back up and restore Antenna identity, configuration
   and saved state in an encrypted archive.

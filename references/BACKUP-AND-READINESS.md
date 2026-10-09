@@ -1,8 +1,7 @@
 # Plugin-native backup and restore — v1.6.9
 
-Encrypted recovery covers schema-2 Antenna state (v1.6.8/v1.6.9) only. Legacy archives are rejected
-before any replacement. Legacy backup/restore belongs to v1.6.7; one-way migration
-uses a separate app that is not yet published. See [migration availability](../plugin/OPTIONAL-KITS.md#migration).
+Keep your Antenna identity, connections and saved state in an encrypted backup.
+This guide covers schema-2 backups from v1.6.8 and v1.6.9.
 
 ## Commands
 
@@ -74,8 +73,18 @@ restarting. Provider configuration is not restored. Old snapshots may reintroduc
 revoked permissions or forget later replay entries; there is no exactly-once guarantee.
 No credential rotation, service start, message send, approval or resend is performed.
 
+## Version compatibility and update recovery
+
 v1.6.9 reads v1.6.8 and v1.6.9 schema-2 archives. The old v1.6.8 recovery
 command does not read v1.6.9-produced archives: for rollback with the old command,
-retain your pre-upgrade v1.6.8 backup. Unknown future versions are refused. For legacy readiness, use the matching legacy release or migration app.
+retain your pre-upgrade v1.6.8 backup. Unknown future versions are refused.
+Legacy archives are rejected before any replacement. Legacy backup/restore belongs
+to v1.6.7; one-way migration uses a separate app that is not yet published.
+See [migration availability](../plugin/OPTIONAL-KITS.md#migration).
+
+If an update fails, leave Antenna disabled. Use compatible state and matched
+packages for recovery, review Doctor and policy, then explicitly re-enable.
+Never reactivate the retired relay.
+
 The current `antenna readiness` runs native read-only Doctor checks; it does not
 qualify remote peers or live ingress. Backup remains optional.

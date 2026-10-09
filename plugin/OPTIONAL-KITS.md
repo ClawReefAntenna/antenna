@@ -1,4 +1,4 @@
-# Optional tools for this candidate
+# Optional tools for v1.6.9
 
 Everyday messaging, screening, inbox review, contacts, health and recovery work
 without either kit. Neither kit is fetched or executed automatically.
@@ -6,10 +6,9 @@ without either kit. Neither kit is fetched or executed automatically.
 ## Diagnostics
 
 Use the **version-matched standalone diagnostics asset** alongside the companion,
-not inside the native plugin directory. This local candidate is `oc168-local-review.1`,
+not inside the native plugin directory. The diagnostics kit is versioned `1.6.9`,
 compatible with the accompanying schema-2 runtime and `antenna-limits-2` contract.
-It has not been published: there is no download URL for this candidate yet.
-When released, obtain the matching diagnostics asset from the release's asset list
+Obtain `antenna-diagnostics-1.6.9.tgz` from the selected release's asset list
 and verify its SHA-256 against that release's manifest before extracting it.
 Do not substitute the older v1.6.8 corpus-only download for the full kit.
 

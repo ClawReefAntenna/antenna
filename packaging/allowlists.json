@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "candidate": "oc168-local-review.1",
+  "candidate": "1.6.9",
   "base_revision": "c30c7d4edbcd42362c899fb69bc51c99d3961b2c",
   "compatibility": {
-    "runtime": "1.6.8 schema 2 candidate (not a new public release)",
+    "runtime": "1.6.9 schema 2; compatible with 1.6.8 native state and antenna-plugin-v2 peers",
     "transport": "antenna-plugin-v2",
     "limits": "antenna-limits-2",
-    "release_version": "not selected"
+    "release_version": "1.6.9"
   },
   "artifacts": {
     "native": [

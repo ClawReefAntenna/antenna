@@ -17,12 +17,12 @@ messaging, screening, inbox review and recovery.
 
 - **New installation:** install the native plugin plus its version-matched companion,
   prepare your identity and permissions, then pair securely.
-- **Existing installation:** follow the [v1.6.8 migration guide](plugin/OPTIONAL-KITS.md#migration)
+- **Legacy relay installation:** follow the [migration guide](plugin/OPTIONAL-KITS.md#migration)
   to preserve identities, permissions and state across the transport change.
 - **Using Hermes:** use its own runtime-specific plugin and guide. Find the runtime
   choices on [ClawReef](https://clawreef.io/#runtimes).
 
-The current release is **1.6.8**. See [what’s new](RELEASE-NOTES.md) and the
+The current release is **1.6.9**. See [what’s new](RELEASE-NOTES.md) and the
 [User Guide](references/USER-GUIDE.md) for installation and migration.
 
 ## What you can do

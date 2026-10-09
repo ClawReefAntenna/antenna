@@ -2,7 +2,7 @@
 name: "antenna"
 description: "Antenna for OpenClaw: signed, session-targeted messaging with paired OpenClaw or Hermes peers; contacts, permissions, screening, inbox review and recovery."
 metadata:
-  version: 1.6.8
+  version: 1.6.9
   repository: "https://github.com/ClawReefAntenna/antenna-openclaw"
   homepage: "https://clawreef.io/"
 ---

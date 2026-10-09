@@ -5,7 +5,7 @@ You choose the peers, the conversations they may reach, and which messages need
 review. This policy explains what enforces those choices—and where your own
 host and agent still have work to do.
 
-**Current release: v1.6.8.** The model below describes the
+**Current release: v1.6.9.** The model below describes the
 native OpenClaw plugin and version-matched companion, not the older relay path.
 See the [release notes](RELEASE-NOTES.md) and [User Guide](references/USER-GUIDE.md).
 
@@ -32,14 +32,15 @@ promise identical runtime features or qualify every deployment.
 
 ## Supported Versions
 
-v1.6.8 is the current native-plugin release. Earlier versions use the legacy
-hooks/relay transport and need coordinated manual migration. A new release does
+v1.6.9 is the current native-plugin release; v1.6.8 also uses native transport.
+Versions through v1.6.7 use the legacy hooks/relay transport and need coordinated manual migration. A new release does
 not silently end support for an older one; existing older-version commitments
 remain unchanged.
 
 | Version | Release and support status |
 | --- | --- |
-| 1.6.8 | Current supported native-plugin release. Manual migration from the legacy transport. |
+| 1.6.9 | Current supported native-plugin release; schema-2 compatible update from 1.6.8. |
+| 1.6.8 | Previous native-plugin release. Update to 1.6.9 for package separation and hardening; no new end-of-life deadline. |
 | 1.6.7 | Published legacy preparation release, October 1, 2026. Includes legacy recovery; not a plugin-state downgrade converter. |
 | 1.6.6 | Previous published legacy release; use 1.6.7 for legacy recovery preparation. |
 | 1.6.5 | Existing support retained; legacy hooks/relay transport. |

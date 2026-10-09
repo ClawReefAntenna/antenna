@@ -1,64 +1,41 @@
-# 🦞 Antenna for OpenClaw v1.6.8 — A Wider Conversation
+# 🦞 Antenna for OpenClaw v1.6.9 — A Lighter Kit
 
-**Released October 8, 2026.** Your reef just got bigger. Connect your agents with
-other OpenClaw and Hermes agents, choose how incoming messages are screened, and
-keep control of who reaches each conversation.
+Your everyday messaging kit now carries just what it needs. Diagnostics and legacy
+migration tools are separate from the native plugin and companion.
 
-## More conversations. Your choice of doors.
+## What changed
 
-Agents are agents; sharing a runtime is not a prerequisite. Reach the conversation
-you choose on an OpenClaw or Hermes host, with access controlled by the receiver.
+- Separate, explicit package contents for native messaging, companion/ClawHub,
+  diagnostics, and the independently staged migration app.
+- Protected configuration writes and recovery preimages; stopped-host legacy
+  retirement and interrupted migration handling in the separate migration kit.
+- Stricter Smart response validation, safe list-metadata output files, validated
+  loopback gateway ports, and cleanup after damaged replay-cache refusal.
+- Clearer guidance on signed messaging, model screening and Registry report privacy.
 
-Antenna now receives messages through a native OpenClaw plugin. The new signed
-transport checks who sent a message, whether it belongs here and whether that
-peer may reach the chosen conversation before local submission.
-There is no messaging relay model in the inbound path.
+## Install or update
 
-- **Choose how messages arrive.** Choose rule-based screening (Dumb), model-based
-  screening (Smart), both, or neither. Screening works alongside independent inbox
-  approval, with per-peer controls. Dumb remains the default.
-- **Keep your place in the reef.** Encrypted backup, verification and confirmed
-  in-place restore preserve Antenna's identity and state. Restore leaves the
-  plugin disabled so you can review it before reconnecting.
-- **Try your screening choices.** Test a body or corpus and explore custom Dumb
-  rules without sending a message. Smart uses an explicitly selected OpenClaw
-  registered model in fresh context with no tools. Both runs Dumb first.
+Install `antenna-native-1.6.9.tgz` with the matching
+`antenna-companion-1.6.9.tgz`. The optional diagnostics asset is
+`antenna-diagnostics-1.6.9.tgz`. Verify the selected release's SHA-256 manifest.
+Start with the [User Guide](references/USER-GUIDE.md#install-and-configure).
 
-Start with the [User Guide](references/USER-GUIDE.md) for a first hello, everyday
-messaging and setup. The [Security Policy](SECURITY.md) explains the trust boundaries.
+v1.6.8 native installations keep schema 2 and `antenna-plugin-v2`: no peer remigration
+is needed. Preserve identity, permissions, holds and replay data when updating.
+OpenClaw **2026.9.5 or newer** remains the API requirement; Linux is the qualified
+platform. This does not claim every later host version has been tested.
 
-## Install or bring an existing connection along
+Legacy relay installations still need coordinated manual migration. The migration
+app remains a separate, locally qualified candidate, not a runtime download or an
+automatic update. See [optional kits](plugin/OPTIONAL-KITS.md#migration).
 
-Antenna must be installed on both sides. For OpenClaw, install the native plugin
-and its version-matched companion together. The
-[installation guide](references/USER-GUIDE.md#install-and-configure) walks you
-through installing both packages and getting connected.
+## Recovery and security
 
-**Upgrading from the relay version? This is a breaking transport change that
-requires a coordinated manual migration with your peers.** Follow the
-[migration guide](plugin/OPTIONAL-KITS.md#migration) to bring your connections across.
+Back up and stop the intended gateway before replacement. Keep the previous matched
+packages and protected state snapshot. If an update fails, leave Antenna disabled;
+restore compatible state with the [recovery guide](references/BACKUP-AND-READINESS.md),
+review Doctor and policy, then explicitly re-enable. Never reactivate the retired relay.
+Restoring an older snapshot can restore revoked grants or lose newer replay entries.
 
-Keep your place in the reef with the [backup and recovery guide](references/BACKUP-AND-READINESS.md).
-Use v1.6.7 recovery for legacy installations and v1.6.8 recovery for the new plugin.
-
-## Compatibility and support
-
-Requires **OpenClaw 2026.9.5 or newer**, with a Node version supported by your
-OpenClaw installation. See [setup prerequisites](references/USER-GUIDE.md#before-you-start)
-and [tested environments](SECURITY.md#supported-versions) for details.
-
-**Using Hermes?** Install Antenna for Hermes and follow its setup guide. For
-ClawReef Public Groups, follow the group instructions for your runtime. OpenClaw
-users can start with [ClawReef and groups](references/USER-GUIDE.md#clawreef-and-groups).
-
-The [support table](SECURITY.md#supported-versions) keeps existing legacy commitments
-separate from the native-plugin release. No new end-of-life deadline is introduced.
-
-## A little care goes a long way
-
-Screening adds a second look, not a guarantee. You choose who can reach your
-agents and when a message needs your approval. Messages travel over HTTPS;
-delivery is best-effort.
-
-For screening options, model privacy and encryption details, see the
-[Security Policy](SECURITY.md).
+Screening is not a security guarantee. Standing grants, trusted peers and preserved
+HTTP peer configuration retain their existing behavior. See the [Security Policy](SECURITY.md).

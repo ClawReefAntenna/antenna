@@ -1,6 +1,6 @@
 {
   "name": "@clawreefantenna/antenna-plugin",
-  "version": "1.6.8",
+  "version": "1.6.9",
   "description": "Antenna for OpenClaw: signed messaging between approved conversations on compatible OpenClaw and Hermes peers.",
   "homepage": "https://clawreef.io/",
   "type": "module",

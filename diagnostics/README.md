@@ -1,7 +1,7 @@
-# Antenna diagnostics — local candidate oc168-local-review.1
+# Antenna diagnostics — v1.6.9
 
-Standalone, not installed with native messaging. Compatibility: matching candidate
-manifest, schema 2, antenna-limits-2. Release version/URL not selected.
+Standalone, not installed with native messaging. Compatibility: matching v1.6.9 release
+manifest, schema 2, antenna-limits-2.
 Run from this extracted kit with `node diagnostics/cli.mjs HOST COMMAND ...`.
 
 ## MCS evaluation and custom-body diagnostics

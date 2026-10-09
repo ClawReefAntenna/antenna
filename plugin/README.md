@@ -1,4 +1,4 @@
-# Antenna for OpenClaw plugin — 1.6.8
+# Antenna for OpenClaw plugin — 1.6.9
 
 Inbound signed v2 delivery with Off / Dumb / Smart / Both content scanning.
 Default: Dumb. Both runs Dumb first and only calls Smart after a pass.
@@ -7,7 +7,7 @@ in every mode. Ordinary approval and MCS holds remain independent.
 
 This package provides signed ingress and direct local dispatch without a messaging
 relay model. Manual migration, direct/list transport and contact exchange are
-covered in [the companion guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/USER-GUIDE.md). Compatible peers may run OpenClaw or Hermes, using their own
+covered in [the companion guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/references/USER-GUIDE.md). Compatible peers may run OpenClaw or Hermes, using their own
 runtime-specific setup. Direct messaging does not establish Registry feature parity. Qualification is
 scoped to the tested components and runtime, not every model or deployment.
 No atomic session-incarnation or exactly-once delivery guarantee is made.
@@ -192,7 +192,7 @@ provider, public-network, and long-running soak scopes must be reported separate
 This npm archive includes the plugin and its own operators, not the companion
 `antenna` shell CLI or Python helpers. Keep companion `bin/`, `scripts/`, `lib/`
 and `plugin/` together at the same release version. The repository's
-[release handoff](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/PLUGIN-CANDIDATE.md) describes the two artifacts and stays in source,
+[release notes](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/RELEASE-NOTES.md) describe the matching artifacts and stay in source,
 not in the installed packages. Legacy setup is not plugin initialization.
 
 ## Recovery and retained hooks

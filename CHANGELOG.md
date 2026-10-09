@@ -1,3 +1,9 @@
+# v1.6.9
+
+Package separation, protected configuration/migration writes, stricter Smart response
+validation, safe metadata output, validated gateway loopback ports and replay failure
+cleanup. Same schema-2 transport and OpenClaw API minimum. See [release notes](RELEASE-NOTES.md).
+
 # Changelog
 
 ## [1.6.8] — October 8, 2026

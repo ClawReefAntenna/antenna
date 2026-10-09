@@ -217,8 +217,8 @@ packages, give this installation its identity, and choose who it can talk to. If
 someone has already done that, head straight to [sending and replying](#send-and-reply).
 
 You need a working OpenClaw installation, a reachable HTTPS route and two matching
-Antenna 1.6.8 artifacts: the native plugin and companion CLI. Use the selected release's
-checksums. The [release handoff](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/PLUGIN-CANDIDATE.md) tracks exact artifacts/status.
+Antenna 1.6.9 artifacts: the native plugin and companion CLI. Use the selected release's
+checksums. The [selected release](https://github.com/ClawReefAntenna/antenna-openclaw/releases/tag/v1.6.9) lists the matching assets.
 
 | Requirement | OpenClaw guide baseline |
 | --- | --- |
@@ -245,9 +245,14 @@ secret-provider objects. Do not replace your host's configuration with an exampl
 
 ## Install and configure
 
+Already on v1.6.8 native transport? v1.6.9 uses the same schema and peer protocol.
+Back up first, stop the gateway, replace both version-matched packages using your
+host’s plugin update procedure, and review Doctor before restarting. Preserve
+identity, policy, inbox holds and replay state. Do not run legacy migration.
+
 ### 1. Install the matching plugin and companion
 
-Extract `antenna-companion-1.6.8.tar.gz` into a new directory and point `ANTENNA_ROOT`
+Extract `antenna-companion-1.6.9.tgz` into a new directory and point `ANTENNA_ROOT`
 at the extracted root containing `bin`, `scripts`, `lib` and `plugin`. Keep that layout
 intact. The plugin-only archive does not include the companion tools.
 
@@ -256,7 +261,7 @@ or supervisor. On a shared gateway this affects other agents too. Use the same O
 profile/state selection you normally use for that gateway, plus its exact config path.
 
 ```sh
-openclaw plugins install /absolute/downloads/clawreefantenna-antenna-plugin-1.6.8.tgz
+openclaw plugins install /absolute/downloads/antenna-native-1.6.9.tgz
 ```
 
 Review normal native trust/capability prompts. Do not start the gateway until policy is

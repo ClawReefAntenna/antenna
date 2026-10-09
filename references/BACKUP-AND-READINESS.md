@@ -1,6 +1,6 @@
-# Plugin-native backup and restore — v1.6.8
+# Plugin-native backup and restore — v1.6.9
 
-Encrypted recovery covers v1.6.8 Antenna state only. Legacy archives are rejected
+Encrypted recovery covers schema-2 Antenna state (v1.6.8/v1.6.9) only. Legacy archives are rejected
 before any replacement. Legacy backup/restore belongs to v1.6.7; one-way migration
 remains in the [migration guide](../plugin/OPTIONAL-KITS.md#migration).
 
@@ -74,7 +74,6 @@ restarting. Provider configuration is not restored. Old snapshots may reintroduc
 revoked permissions or forget later replay entries; there is no exactly-once guarantee.
 No credential rotation, service start, message send, approval or resend is performed.
 
-v1.6.8 is scheduled for **October 8, 2026 (America/Toronto)**. A schedule is not proof
-of publication. For legacy readiness, use the matching legacy release or migration app.
+v1.6.9 retains the native schema-2 recovery format. For legacy readiness, use the matching legacy release or migration app.
 The current `antenna readiness` runs native read-only Doctor checks; it does not
 qualify remote peers or live ingress. Backup remains optional.

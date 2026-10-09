@@ -79,8 +79,8 @@ v1.6.9 reads v1.6.8 and v1.6.9 schema-2 archives. The old v1.6.8 recovery
 command does not read v1.6.9-produced archives: for rollback with the old command,
 retain your pre-upgrade v1.6.8 backup. Unknown future versions are refused.
 Legacy archives are rejected before any replacement. Legacy backup/restore belongs
-to v1.6.7; one-way migration uses a separate app that is not yet published.
-See [migration availability](../plugin/OPTIONAL-KITS.md#migration).
+to v1.6.7; one-way migration uses the separate
+[migration kit](../plugin/OPTIONAL-KITS.md#migration).
 
 If an update fails, leave Antenna disabled. Use compatible state and matched
 packages for recovery, review Doctor and policy, then explicitly re-enable.

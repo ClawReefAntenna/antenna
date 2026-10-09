@@ -152,7 +152,8 @@ provider. Choose a model suitable for the content you exchange.
 
 ### Try a message without sending it
 
-With the [optional diagnostics kit](../plugin/OPTIONAL-KITS.md#diagnostics),
+With the [optional diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz)
+([setup instructions](../plugin/OPTIONAL-KITS.md#diagnostics)),
 see how the scanner treats a piece of text before changing anything:
 
 ```sh
@@ -210,7 +211,7 @@ antenna clawreef status --local-only --json
 These discovery/status commands do not enroll you, create a group or send a message.
 When updating a native installation, preserve existing memberships and grants.
 Moving from the relay transport requires coordinated route changes through the
-separate migration app; see [migration availability](../plugin/OPTIONAL-KITS.md#migration).
+separate migration app; see [migration kit and guide](../plugin/OPTIONAL-KITS.md#migration).
 
 ## Before you start
 
@@ -457,8 +458,9 @@ A legacy v1.6.7 archive is not a v1.6.8 plugin restore. See the [full recovery g
 ## Upgrading an existing installation
 
 Updating native v1.6.8 to v1.6.9 uses the [normal update path](#install-and-configure).
-Older relay installations need the separate migration app, which is not yet
-published; see [migration availability](../plugin/OPTIONAL-KITS.md#migration).
+For an older relay installation, download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
+and follow its [migration guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md). See [optional kits](../plugin/OPTIONAL-KITS.md#migration)
+for checksum verification and setup.
 For that transition, preserve keys, pins, destination grants and unresolved legacy
 holds, and coordinate the peer-profile switch. Do not overlay a new caller on old
 libraries or run old/new inbox writers together. General-hook rotation is recommended,

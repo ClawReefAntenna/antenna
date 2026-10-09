@@ -1,7 +1,7 @@
 # Evaluation corpora
 
 A corpus is a JSON collection of labelled messages for testing your screening
-choices. The [standalone diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/tag/v1.6.9)
+choices. The [standalone diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz)
 includes one at `plugin/corpus/controls.json`. Extract the kit into its own directory;
 run the commands below from that directory.
 

@@ -1,7 +1,7 @@
-> **Source-only migration reference.** The separate migration app is not yet
-> published. For current installation and update instructions, use the
-> [User Guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/references/USER-GUIDE.md); see
-> [Optional tools](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/plugin/OPTIONAL-KITS.md#migration) for migration availability.
+> **Historical engineering reference.** For the current stopped-host workflow,
+> use the [migration kit guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md) and
+> [download the kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz). For native installation and updates, use the
+> [User Guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/references/USER-GUIDE.md).
 
 # Explicit legacy migration — v1.6.8
 

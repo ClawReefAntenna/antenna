@@ -5,9 +5,8 @@ screening rules or test a collection of messages.
 
 ## Diagnostics
 
-Download `antenna-diagnostics-1.6.9.tgz` from the
-[v1.6.9 release](https://github.com/ClawReefAntenna/antenna-openclaw/releases/tag/v1.6.9),
-verify its SHA-256 against `SHA256SUMS`, and extract it into its own directory,
+Download [antenna-diagnostics-1.6.9.tgz](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz),
+verify its SHA-256 against [SHA256SUMS](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/SHA256SUMS), and extract it into its own directory,
 separate from the native plugin and companion. Use the kit matching your runtime version.
 
 From the extracted diagnostics directory:
@@ -29,9 +28,19 @@ A corpus-only download supplies test data, not the tools needed to run it.
 
 ## Migration
 
-Moving from the older relay? Migration uses a separate app to preserve your
-identity, permissions and saved state. That app is not yet published; it is not
-included in the messaging or diagnostics downloads.
+Moving from the older relay? The migration kit carries your identity and
+permissions into native transport while preserving unresolved legacy holds as
+recovery material. It is a separate download from messaging and diagnostics.
+
+Download [antenna-migration-1.6.9.tgz](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz),
+verify it against the migration release's [SHA256SUMS](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/SHA256SUMS), and extract it
+into its own directory. Follow the [migration guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md), also included as
+`migration/README.md`, to prepare an isolated rehearsal, review the conversion
+and cut over with the gateway and Antenna writers stopped.
+
+The kit supports Ed25519 relay-era v1.6.7 installations moving to native schema 2.
+Install the matching native plugin and companion separately. Migration preserves
+old held work; it does not convert holds into signed messages or enable the plugin.
 
 Already using v1.6.8 native transport? Follow the normal update instructions—no
 relay migration is needed. Keep your existing identity, permissions and held messages.

@@ -18,8 +18,8 @@ messaging, screening, inbox review and recovery.
 
 - **New installation:** install the native plugin plus its version-matched companion,
   prepare your identity and permissions, then pair securely.
-- **Legacy relay installation:** migration uses a separate app that is not yet
-  published. See [migration availability](plugin/OPTIONAL-KITS.md#migration).
+- **Legacy relay installation:** download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
+  and follow the [migration guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md).
 - **Using Hermes:** use its own runtime-specific plugin and guide. Find the runtime
   choices on [ClawReef](https://clawreef.io/#runtimes).
 
@@ -62,11 +62,11 @@ acted on the message; avoid blind retries after an uncertain result.
 | Guide | Purpose |
 | --- | --- |
 | [User Guide](references/USER-GUIDE.md) | Standalone OpenClaw setup and everyday operation |
-| [Migration](plugin/OPTIONAL-KITS.md#migration) | Availability of the separate relay-migration app |
+| [Migration](plugin/OPTIONAL-KITS.md#migration) | Download and use the separate relay-migration kit |
 | [Backup and restore](references/BACKUP-AND-READINESS.md) | Recovery commands, coverage and exclusions |
 | [Plugin reference](plugin/README.md) | Detailed native operator and scanner behavior |
 | [Custom rules](plugin/RULESETS.md) | Rule-based screening configuration |
-| [Diagnostic corpus](plugin/OPTIONAL-KITS.md#diagnostics) | Optional scanner evaluation |
+| [Diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) | Optional scanner evaluation; [setup and examples](plugin/OPTIONAL-KITS.md#diagnostics) |
 | [Release notes](RELEASE-NOTES.md) | Release changes and compatibility |
 | [Security policy](SECURITY.md) | Private vulnerability reporting |
 | [Historical guides](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/README.md) | Preserved relay-era reference |

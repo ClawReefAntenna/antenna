@@ -17,17 +17,19 @@ for standalone diagnostics and the separate migration app. Runtime code is uncha
 ## Install or update
 
 Install `antenna-native-1.6.9.tgz` with the matching
-`antenna-companion-1.6.9.tgz`. The optional diagnostics asset is
-`antenna-diagnostics-1.6.9.tgz`. Verify the selected release's SHA-256 manifest.
+`antenna-companion-1.6.9.tgz`. Add the optional
+[diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) to try screening rules and sample messages.
+Verify the selected release's [SHA-256 manifest](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/SHA256SUMS).
 Start with the [User Guide](references/USER-GUIDE.md#install-and-configure).
 
 Updating from native v1.6.8? Your existing connections and permissions carry
 forward; no relay migration is needed. Requires OpenClaw **2026.9.5 or newer**.
 Tested platform: Linux.
 
-Legacy relay installations still need coordinated manual migration. The migration
-app has not yet been published and is not included in these downloads.
-See [optional kits](plugin/OPTIONAL-KITS.md#migration).
+Moving from the legacy relay? Download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
+and follow the [migration guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md). The kit is separate from the messaging
+and diagnostics downloads; see [optional kits](plugin/OPTIONAL-KITS.md#migration)
+for checksums and setup.
 
 ## Recovery and security
 

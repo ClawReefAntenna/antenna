@@ -124,8 +124,8 @@ different formats; neither makes an ordinary message end-to-end encrypted.
 
 Retire Antenna's old relay path when moving to plugin ingress; there is no silent
 fallback. Preserve legacy holds as recovery material rather than converting them
-into new sends. The separate migration app is not yet published; see
-[migration availability](plugin/OPTIONAL-KITS.md#migration).
+into new sends. Use the separate [migration kit](plugin/OPTIONAL-KITS.md#migration)
+and its stopped-writer workflow.
 
 v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may
 still hold copies. **Rotation is recommended, not required for migration.** If you

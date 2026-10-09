@@ -23,7 +23,7 @@ that companion's `bin/antenna.sh`; the native operators are in its `plugin/` dir
 For native schema-2 state, use transport profile `antenna-plugin-v2` and native
 plugin operators. Do not run legacy `install.sh`, `antenna setup`, `antenna pair`,
 legacy inbox commands or the old relay model checker to initialize this plugin.
-The [migration availability notice](plugin/OPTIONAL-KITS.md#migration) explains the separate app for older relay installations;
+The [migration kit instructions](plugin/OPTIONAL-KITS.md#migration) link to the separate download and guide for older relay installations;
 [historical snapshots](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/README.md) are not current instructions.
 
 ## Commands

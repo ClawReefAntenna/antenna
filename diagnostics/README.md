@@ -3,6 +3,8 @@
 Try screening rules against sample messages or your own examples, without
 sending messages or changing your active settings. Use the diagnostics kit
 matching your Antenna release; it is a separate download from native messaging.
+[Download v1.6.9](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) and verify its
+[SHA-256 checksum](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/SHA256SUMS) before extracting it into its own directory.
 Run from this extracted kit with `node diagnostics/cli.mjs HOST COMMAND ...`.
 
 ## MCS evaluation and custom-body diagnostics

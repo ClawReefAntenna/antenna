@@ -1,14 +1,47 @@
-# Antenna migration app — local candidate oc168-local-review.1
+# Antenna migration kit — v1.6.9
 
-Separate local repository; no remote name or public release selected. This kit
-is locally fixture-qualified, not a live-host migration or public release.
-Compatibility: Ed25519 relay-era v1.6.7 session-policy-v1 state to schema-2/plugin-v2;
+Bring your existing identity and permissions from the relay into native Antenna.
+This standalone kit prepares the conversion, retires the old relay and keeps
+private recovery copies. Install the native plugin and companion separately.
+
+[Download the kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz), verify its
+[SHA-256 checksum](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/SHA256SUMS), and extract it into its own directory. Run the
+commands below from the extracted kit root. Requires Node supported by OpenClaw
+and a Linux host for the stopped-writer cutover.
+
+## Supported transition
+
+Ed25519 relay-era v1.6.7 session-policy-v1 state to schema-2/plugin-v2;
 experimental schema-1 combined-smart-v1 policy can be exported as schema 2.
 Unknown schemas and plaintext signing peers are rejected, not guessed.
 
 ## Rehearse on an isolated copy
 
-Use the receiver-owned selection JSON in [manual migration](../plugin/MIGRATION.md).
+Choose existing receiving conversations and confirm destination names with your
+peers. Save a selection JSON like this, using your own destinations, paths and
+paired peer names:
+
+```json
+{
+  "mcs": "dumb",
+  "destinations": {"research": "agent:research:main"},
+  "inboxFile": "/absolute/new-state/inbox.json",
+  "replayFile": "/absolute/new-state/replay.json",
+  "outbound": {
+    "lab": {
+      "profile": "antenna-plugin-v2",
+      "default_target": "research"
+    }
+  }
+}
+```
+
+Include every receiving conversation allowed by the old policy. The new inbox
+and replay paths must be distinct and absent. `LEGACY_ROOT` is the old Antenna
+installation, `HOST_JSON` the intended resolved OpenClaw configuration, and
+`SELECTION_JSON` your saved selection. Choose a new directory for `NEW_STAGE`.
+Keep the isolated rehearsal's host and state paths separate from live files.
+
 A dry-run prints only the report. Supplying a new staging directory writes private
 preimages, disabled native policy, peer/config candidates and a hash-bound plan.
 
@@ -76,7 +109,7 @@ The native plugin/companion assets still need installation separately. Then veri
 existing destinations, operator credential separation and scanner selection,
 explicitly enable/restart, and live-probe admission before advertising migration.
 The guide describes optional general-hook token rotation; it is not mandatory.
-Publication and each live-host cutover remain separately authorized actions.
+Coordinate the peer-profile switch before resuming message delivery.
 
 ## Schema-only export and checks
 

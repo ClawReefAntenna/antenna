@@ -2,7 +2,7 @@
 
 Encrypted recovery covers schema-2 Antenna state (v1.6.8/v1.6.9) only. Legacy archives are rejected
 before any replacement. Legacy backup/restore belongs to v1.6.7; one-way migration
-remains in the [migration guide](../plugin/OPTIONAL-KITS.md#migration).
+uses a separate app that is not yet published. See [migration availability](../plugin/OPTIONAL-KITS.md#migration).
 
 ## Commands
 
@@ -20,7 +20,7 @@ antenna backup restore /private/backups/antenna.age --host /absolute/openclaw.js
 
 `--host` defaults to `OPENCLAW_CONFIG_PATH`, otherwise `~/.openclaw/openclaw.json`.
 Create uses the invoked companion installation; restore defaults to that installation
-and accepts `--to /absolute/compatible-v1.6.8`. Target metadata and recovery validators
+and accepts `--to /absolute/compatible-antenna`. Target metadata and recovery validators
 must match. A readable migrated companion config/peer inventory and resolved local
 JSON host config are required. Damaged reference/config files need explicit operator
 repair first; this tool does not guess ownership or resolve includes/secret providers.

@@ -8,18 +8,18 @@ in every mode. Ordinary approval and MCS holds remain independent.
 This package provides signed ingress and direct local dispatch without a messaging
 relay model. Manual migration, direct/list transport and contact exchange are
 covered in [the companion guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/references/USER-GUIDE.md). Compatible peers may run OpenClaw or Hermes, using their own
-runtime-specific setup. Direct messaging does not establish Registry feature parity. Qualification is
-scoped to the tested components and runtime, not every model or deployment.
-No atomic session-incarnation or exactly-once delivery guarantee is made.
+runtime-specific setup. For Public Groups, use the features advertised by your Registry. Delivery is
+best-effort; check uncertain outcomes before resending.
 
 ## Install in your selected OpenClaw instance
 
 Requires Node supported by OpenClaw, Bash, jq and flock. Local qualification uses
 Linux x64 / Node 26.8.2 and 24.19.0 / OpenClaw 2026.9.5. The manifest floor `>=2026.9.5`
 is not certification of all later releases or platforms.
-Package with `npm pack ./plugin`; install the resulting archive with
-`openclaw plugins install /absolute/path/to/archive.tgz` using the intended
-OpenClaw state/config environment. For a migration rehearsal, use an isolated copy. The OpenClaw peer dependency supplies the public gateway SDK.
+Install `antenna-native-1.6.9.tgz` from the
+[v1.6.9 release](https://github.com/ClawReefAntenna/antenna-openclaw/releases/tag/v1.6.9) with
+`openclaw plugins install /absolute/path/to/antenna-native-1.6.9.tgz`, using the
+intended OpenClaw state/config environment and the matching companion. The OpenClaw peer dependency supplies the public gateway SDK.
 
 Prepare a JSON policy with:
 - `schemaVersion: 2`, `receiver`, a private random `bearer` (at least 32 characters);
@@ -29,7 +29,7 @@ Prepare a JSON policy with:
 - absolute, distinct `inboxFile` and `replayFile`;
 - optional `mcs` (default dumb), `inbox` (default on), `maxBodyChars` (65536).
 
-For a new absent entry, `antenna-plugin /path/openclaw.json init policy.json`
+For a new absent entry, `node /absolute/antenna/plugin/cli.mjs /path/openclaw.json init policy.json`
 writes it **disabled**. If the native installer has already added an entry,
 merge the policy into its config explicitly; init refuses to overwrite it.
 Set the plugin enabled and allowlisted only in the intended config,
@@ -57,25 +57,29 @@ and missing credentials fail without falling back to another mode.
 
 ## Operator commands
 
+In these examples, `/absolute/antenna` is the companion root and
+`/path/openclaw.json` is the resolved configuration for your selected host.
+
 All output is JSON, including escaped message bodies; never render decoded
 message bodies as terminal commands, HTML or model instructions.
 
 ```text
-antenna-plugin /path/openclaw.json status
-antenna-plugin /path/openclaw.json mode off|dumb|smart|both [peer]
-antenna-plugin /path/openclaw.json mode default peer
-antenna-plugin /path/openclaw.json check registered-model-or-alias
-antenna-plugin /path/openclaw.json select registered-model-or-alias
-antenna-plugin /path/openclaw.json inbox list
-antenna-plugin /path/openclaw.json inbox show ITEM_ID
-antenna-plugin /path/openclaw.json inbox release ITEM_ID '["Awaiting approval","MCS flagged"]'
-antenna-plugin /path/openclaw.json inbox discard ITEM_ID
-antenna-plugin /path/openclaw.json inbox approve-ordinary
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json status
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json mode off|dumb|smart|both [peer]
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json mode default peer
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json check registered-model-or-alias
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json select registered-model-or-alias
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json inbox list
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json inbox show ITEM_ID
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json inbox release ITEM_ID '["Awaiting approval","MCS flagged"]'
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json inbox discard ITEM_ID
+node /absolute/antenna/plugin/cli.mjs /path/openclaw.json inbox approve-ordinary
 ```
 
 Status is offline. `check` makes one synthetic request without saving a selection;
 `select` checks and saves one registered model/alias shared by Smart and Both.
-Neither changes mode or enables the plugin. Restart after selection/mode changes.
+Neither changes mode or enables the plugin. Reload Antenna after selection/mode
+changes; restart when hot reload is unavailable or disabled.
 Detection evaluation is optional and does not impose a passing-score gate.
 
 ## Registered-model Smart scanning
@@ -110,8 +114,8 @@ Merge this into existing host configuration, not the Antenna `config` object;
 do not overwrite other settings. This grants model-use authority, not new
 credentials. Use your registered canonical model ID in the permission lists.
 Start/restart the gateway with the plugin enabled in Off or Dumb mode, check/select
-the model, then enable Smart/Both and restart. Do not send real messages during an
-unqualified cutover. Check/select and Smart diagnostics require the running local
+the model, then enable Smart/Both and reload Antenna. Restart when hot reload is unavailable
+or disabled. Check/select and Smart diagnostics require the running local
 gateway and operator-admin access to `antenna.scan`; the peer bearer cannot call it.
 The RPC only scans literal bodies: no endpoint overrides, sessions or inbox writes.
 
@@ -120,10 +124,10 @@ selected runtime's isolated-completion capability and is not universally promise
 The SDK's `maxTokens` is advisory for some runtimes. Antenna requests 1,024 tokens,
 limits input and accepted response bytes, and enforces a deadline; it cannot promise
 a provider-side generation cap on a backend that ignores the hint. Oversized,
-malformed or unsupported responses hold incomplete. No cost estimate, budget feature,
-pre-run request display, automatic retry, model download or fallback.
+malformed or unsupported responses hold incomplete. Failed requests are not
+automatically retried or sent to another model.
 
-Old `scannerProfile` selections do not authorize Smart in v1.6.8. Run
+Old `scannerProfile` selections do not authorize Smart in the native plugin. Run
 `select` with a registered model; success removes that obsolete field. Existing
 held messages remain held. No automatic credential/profile migration is attempted.
 
@@ -182,18 +186,13 @@ scan metadata and diagnostic reports provide timing/outcome/usage counters witho
 ordinary raw-body logging. Evaluation/custom batches are serial, at most 500 cases
 and five repetitions.
 
-Local failure and load evidence does not establish broad support-host performance.
-The initial local receive benchmark missed the proposed 50 ms p95 target, including
-after worker reuse; resource/performance acceptance remains open. Loaded gateway,
-provider, public-network, and long-running soak scopes must be reported separately.
-
 ## Companion packaging
 
 This npm archive includes the plugin and its own operators, not the companion
 `antenna` shell CLI or Python helpers. Keep companion `bin/`, `scripts/`, `lib/`
 and `plugin/` together at the same release version. The repository's
-[release notes](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/RELEASE-NOTES.md) describe the matching artifacts and stay in source,
-not in the installed packages. Legacy setup is not plugin initialization.
+[release notes](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/RELEASE-NOTES.md) describe the matching artifacts. They are included with the companion,
+not the native archive. Legacy setup is not plugin initialization.
 
 ## Recovery and retained hooks
 

@@ -1,3 +1,5 @@
+> **Historical relay-era host upgrade checklist.** Preserved for reference, not current v1.6.9 installation or packaging instructions. Use the [User Guide](USER-GUIDE.md) and [current packaging guide](../packaging/README.md).
+
 # OpenClaw 2026.8.1 Host Upgrade Checklist
 
 This checklist applies when an existing Antenna host moves from OpenClaw

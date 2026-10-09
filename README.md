@@ -17,8 +17,8 @@ messaging, screening, inbox review and recovery.
 
 - **New installation:** install the native plugin plus its version-matched companion,
   prepare your identity and permissions, then pair securely.
-- **Legacy relay installation:** follow the [migration guide](plugin/OPTIONAL-KITS.md#migration)
-  to preserve identities, permissions and state across the transport change.
+- **Legacy relay installation:** migration uses a separate app that is not yet
+  published. See [migration availability](plugin/OPTIONAL-KITS.md#migration).
 - **Using Hermes:** use its own runtime-specific plugin and guide. Find the runtime
   choices on [ClawReef](https://clawreef.io/#runtimes).
 
@@ -61,7 +61,7 @@ acted on the message; avoid blind retries after an uncertain result.
 | Guide | Purpose |
 | --- | --- |
 | [User Guide](references/USER-GUIDE.md) | Standalone OpenClaw setup and everyday operation |
-| [Migration](plugin/OPTIONAL-KITS.md#migration) | Move existing identities and policy to v1.6.8 |
+| [Migration](plugin/OPTIONAL-KITS.md#migration) | Availability of the separate relay-migration app |
 | [Backup and restore](references/BACKUP-AND-READINESS.md) | Recovery commands, coverage and exclusions |
 | [Plugin reference](plugin/README.md) | Detailed native operator and scanner behavior |
 | [Custom rules](plugin/RULESETS.md) | Rule-based screening configuration |

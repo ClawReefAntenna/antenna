@@ -115,8 +115,8 @@ antenna-plugin mode default PEER
 ```
 
 The first command changes the global mode; a named peer overrides it; `default` makes
-that peer inherit again. Select a working scanner before Smart/Both and restart after
-mode, model or policy changes. Invalid, denied, timed-out or incomplete required scans
+that peer inherit again. Select a working scanner before Smart/Both and reload Antenna after
+mode, model or policy changes. Restart if hot reload is unavailable or disabled. Invalid, denied, timed-out or incomplete required scans
 remain held. Scanner clearance does not waive ordinary inbox approval.
 
 ### Select a model for Smart or Both
@@ -142,8 +142,8 @@ antenna-plugin select your-provider/your-model
 antenna-plugin mode smart
 ```
 
-`check` performs a synthetic request; `select` checks and saves the selection. Restart
-before using the new mode. These calls need the running gateway and operator access to
+`check` performs a synthetic request; `select` checks and saves the selection. Reload Antenna
+before using the new mode; restart if hot reload is unavailable or disabled. These calls need the running gateway and operator access to
 `antenna.scan`; peer credentials cannot invoke that RPC. OpenClaw uses its native isolated
 completion capability; Antenna does not fall back to a direct provider connection.
 Smart/Both sends message bodies to your selected model, which may use an external
@@ -166,7 +166,7 @@ See [corpus diagnostics](../plugin/OPTIONAL-KITS.md#diagnostics) for larger sets
 ### Choose your own rules
 
 Keep custom rules outside the native plugin installation directory. First validate
-the file; when you are ready to use it, select it and restart the gateway:
+the file; when you are ready to use it, select it and reload Antenna:
 
 ```sh
 antenna-plugin rules validate /private/rules.json
@@ -174,7 +174,8 @@ antenna-plugin rules select /private/rules.json
 ```
 
 `rules validate` checks the file. **`rules select` saves a configuration change**;
-the selected rules take effect after restart. The [rules guide](../plugin/RULESETS.md)
+reload Antenna to apply the selection or edits to an already-selected rules file.
+Restart the gateway if hot reload is unavailable or disabled. The [rules guide](../plugin/RULESETS.md)
 explains how to write and tune them.
 
 ## ClawReef and groups
@@ -207,8 +208,9 @@ antenna clawreef status --local-only --json
 ```
 
 These discovery/status commands do not enroll you, create a group or send a message.
-When upgrading, preserve existing memberships and grants and follow
-[Registry migration coordination](../plugin/OPTIONAL-KITS.md#migration) before switching routes.
+When updating a native installation, preserve existing memberships and grants.
+Moving from the relay transport requires coordinated route changes through the
+separate migration app; see [migration availability](../plugin/OPTIONAL-KITS.md#migration).
 
 ## Before you start
 
@@ -271,8 +273,9 @@ initialization. Legacy activation and optional kits are not part of the native i
 
 ### 2. Prepare a fresh identity and private files
 
-For an existing identity, reuse its keys and follow migration instead of generating a
-replacement. For a genuinely fresh installation, create a private directory and a new
+For an existing identity, reuse its keys instead of generating a replacement.
+Native v1.6.8 installations use the update path above; older relay installations
+need the separate migration app. For a genuinely fresh installation, create a private directory and a new
 Ed25519 pair. The checks below refuse to overwrite either key:
 
 ```sh
@@ -453,9 +456,11 @@ A legacy v1.6.7 archive is not a v1.6.8 plugin restore. See the [full recovery g
 
 ## Upgrading an existing installation
 
-v1.6.8 changes transport. Use the [manual migration guide](../plugin/OPTIONAL-KITS.md#migration) to
-prepare against a copy, preserve keys/pins and destination grants, account for unresolved
-legacy holds and switch peer profiles deliberately. Do not overlay a new caller on old
+Updating native v1.6.8 to v1.6.9 uses the [normal update path](#install-and-configure).
+Older relay installations need the separate migration app, which is not yet
+published; see [migration availability](../plugin/OPTIONAL-KITS.md#migration).
+For that transition, preserve keys, pins, destination grants and unresolved legacy
+holds, and coordinate the peer-profile switch. Do not overlay a new caller on old
 libraries or run old/new inbox writers together. General-hook rotation is recommended,
 not required; retaining that credential must not block migration.
 

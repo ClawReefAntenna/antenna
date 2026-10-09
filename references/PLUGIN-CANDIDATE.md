@@ -1,3 +1,5 @@
+> **Historical v1.6.8 maintainer handoff.** Preserved for reference, not current v1.6.9 installation or packaging instructions. Use the [User Guide](USER-GUIDE.md) and [current packaging guide](../packaging/README.md).
+
 # Antenna for OpenClaw 1.6.8 — maintainer release handoff
 
 **Internal handoff: final-version preparation; publication pending. No live upgrade is authorized by this file.**

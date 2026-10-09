@@ -1,14 +1,15 @@
 # Evaluation corpora
 
-A corpus is a separate JSON file of labelled test messages. `mcs evaluate` uses
-`corpus/controls.json` when present, unless you supply `--corpus /path/tests.json`.
-OpenClaw bundles this default; Hermes omits it. If the requested/default file is
-missing, evaluation stops with the ClawReef default-download link and asks you to
-supply `--corpus /path/controls.json`. Text/file/stdin tests need no corpus. No
-automatic download occurs. The release download path is
-`https://clawreef.io/resources/controls.json`.
-The same file works with Dumb, Smart and Both. Selection applies only to that
-invocation; keep custom files outside the plugin installation directory.
+A corpus is a JSON collection of labelled messages for testing your screening
+choices. The [standalone diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/tag/v1.6.9)
+includes one at `plugin/corpus/controls.json`. Extract the kit into its own directory;
+run the commands below from that directory.
+
+Use `--corpus /absolute/my-tests.json` to try your own collection. The same file
+works with Dumb, Smart and Both. Keep custom files outside installation folders.
+Text/file/stdin tests need no corpus. If you need a fresh copy of the default data,
+[download controls.json](https://clawreef.io/resources/controls.json) and select it
+with `--corpus`. This JSON file is test data, not the diagnostics kit itself.
 
 ## Minimal format
 
@@ -64,18 +65,18 @@ Choose Dumb, Smart or Both. Dumb/Both use the active or supplied ruleset; Smart/
 use your selected registered model. Smart is model-only and rejects `--ruleset`.
 
 ```text
-antenna-plugin /path/openclaw.json mcs evaluate --engine dumb
-antenna-plugin /path/openclaw.json mcs evaluate --engine dumb --corpus /path/tests.json --preview
-antenna-plugin /path/openclaw.json mcs evaluate --engine dumb --ruleset /path/rules.json --corpus /path/tests.json --verbose
-antenna-plugin /path/openclaw.json mcs evaluate --engine smart --corpus /path/tests.json
-antenna-plugin /path/openclaw.json mcs evaluate --engine both --corpus /path/tests.json --verbose
+node diagnostics/cli.mjs /path/openclaw.json evaluate --engine dumb
+node diagnostics/cli.mjs /path/openclaw.json evaluate --engine dumb --corpus /path/tests.json --preview
+node diagnostics/cli.mjs /path/openclaw.json evaluate --engine dumb --ruleset /path/rules.json --corpus /path/tests.json --verbose
+node diagnostics/cli.mjs /path/openclaw.json evaluate --engine smart --corpus /path/tests.json
+node diagnostics/cli.mjs /path/openclaw.json evaluate --engine both --corpus /path/tests.json --verbose
 ```
 
 `--preview` validates the entire file and shows the plan without scanning or
 calling a model. Valid syntax says nothing about detection effectiveness.
 Omit `--corpus` to return to the bundled default. `--suite bundled` remains a
 compatibility spelling; it cannot be combined with `--corpus`.
-The companion equivalent is `antenna mcs --config /path/openclaw.json evaluate ...`.
+Use this standalone CLI for evaluation; the native plugin and companion do not bundle it.
 `evaluate` without an engine defaults to Smart; choose `--engine dumb` for offline
 work. No additional confirmation, automatic activation, delivery, inbox changes
 or release of held messages occurs. Smart/Both can send bodies to the selected model.
@@ -91,7 +92,7 @@ Incomplete scans: 0
 Model requests: 0
 ```
 
-Those numbers illustrate the bundled development result; denominators always
+Those numbers illustrate a report; denominators always
 come from the chosen corpus. With no malicious or benign cases, that metric is
 `N/A`. Incomplete attacks are neither caught nor missed; incomplete benign scans
 are not false positives. Incompletes remain in their labelled denominators.
@@ -114,9 +115,9 @@ failure detail is requested. `--details` retains the existing bounded-findings
 option without including full bodies.
 
 `--output /new/report-directory` saves both text and JSON (directory 0700, files
-0600, no overwrite). No pricing or budget feature is added. A completed evaluation
+0600, no overwrite). A completed evaluation
 can contain misses and false positives without making report generation fail or
-activating/rejecting a model. This development corpus is not a protection guarantee.
+activating/rejecting a model. Use independent examples as well as the bundled sample when judging your rules.
 
 ## Instructions to give your agent
 
@@ -128,4 +129,4 @@ failures. Do not change live scanner settings or add cases to the bundled corpus
 
 Review expected labels separately from scanner outputs. Do not relabel examples
 merely to improve the score; keep genuinely independent cases separate from rule
-tuning. There is no automatic importer or required per-case history system.
+tuning.

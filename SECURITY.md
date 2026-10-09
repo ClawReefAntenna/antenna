@@ -112,7 +112,7 @@ See the [scanner evidence and limits](https://github.com/ClawReefAntenna/antenna
 ### Keep your connections recoverable
 
 The companion provides encrypted backup, verification and explicit in-place restore
-for v1.6.8 state. Restore preserves holds and replay data, leaves the plugin disabled,
+for schema-2 v1.6.8/v1.6.9 state. Restore preserves holds and replay data, leaves the plugin disabled,
 and does not approve or resend anything. Shared OpenClaw settings and provider
 authentication are outside its restore scope. Legacy archives are rejected rather
 than guessed into the new layout. See [recovery](references/BACKUP-AND-READINESS.md).
@@ -125,7 +125,8 @@ different formats; neither makes an ordinary message end-to-end encrypted.
 
 Retire Antenna's old relay path when moving to plugin ingress; there is no silent
 fallback. Preserve legacy holds as recovery material rather than converting them
-into new sends. Follow the [manual migration guide](plugin/OPTIONAL-KITS.md#migration).
+into new sends. The separate migration app is not yet published; see
+[migration availability](plugin/OPTIONAL-KITS.md#migration).
 
 v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may
 still hold copies. **Rotation is recommended, not required for migration.** If you

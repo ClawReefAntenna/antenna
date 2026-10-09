@@ -20,10 +20,10 @@ Use the actual companion root and the intended resolved OpenClaw JSON configurat
 not an inferred default when several instances are present. `antenna` must point at
 that companion's `bin/antenna.sh`; the native operators are in its `plugin/` directory.
 
-For migrated/new v1.6.8 state, use transport profile `antenna-plugin-v2` and native
+For native schema-2 state, use transport profile `antenna-plugin-v2` and native
 plugin operators. Do not run legacy `install.sh`, `antenna setup`, `antenna pair`,
 legacy inbox commands or the old relay model checker to initialize this plugin.
-The [migration guide](plugin/OPTIONAL-KITS.md#migration) covers unmigrated installations;
+The [migration availability notice](plugin/OPTIONAL-KITS.md#migration) explains the separate app for older relay installations;
 [historical snapshots](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/README.md) are not current instructions.
 
 ## Commands
@@ -44,6 +44,8 @@ node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json mode dumb PEER
 node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json mode default PEER
 node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --preview
 ```
+
+The evaluation command requires the separately extracted [diagnostics kit](plugin/OPTIONAL-KITS.md#diagnostics).
 
 Doctor's host-config selection follows `OPENCLAW_CONFIG_PATH`; set it to the selected
 JSON path before the companion Doctor. The explicit native status path is independent.

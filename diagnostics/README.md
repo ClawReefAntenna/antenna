@@ -9,7 +9,8 @@ Run from this extracted kit with `node diagnostics/cli.mjs HOST COMMAND ...`.
 With Dumb or Both, `evaluate` and `test` accept `--ruleset /absolute/candidate.json` for candidate
 rule evaluation without changing the active file. These commands share the production scanner and do **not** send peer messages,
 create sessions, change policy, insert inbox records, or release held work.
-The small private kernel-lock files described below are their only scanner state.
+Scans use private kernel-lock slots beneath the configured inbox directory;
+they do not write message or policy state.
 
 See the [corpus format and authoring guide](../plugin/CORPORA.md). `evaluate --corpus /path/tests.json`
 selects a custom labelled corpus for that invocation; omitting it uses the separate
@@ -31,8 +32,7 @@ node diagnostics/cli.mjs /path/openclaw.json test --file one.txt --engine dumb
 
 Use the standalone `diagnostics/cli.mjs` from this kit with an explicit host config. `evaluate` defaults to Smart; `test` defaults to Dumb.
 Smart is model-only, Both is Dumb-first with short-circuit, and `model` is a
-model-only diagnostic alias. These names follow the four-mode policy; the older
-proposal's combined “smart” spelling is not used. Off is not a diagnostic engine.
+model-only diagnostic alias. Off is not a diagnostic engine.
 
 Smart/model/Both can upload selected bodies to the selected registered model.
 `--preview` performs no scan or model request and never consumes stdin.
@@ -41,16 +41,11 @@ installation, selection activation, or automatic acceptance threshold. Tests of
 multiple models are separate explicit selections/runs; reports carry model identities and fingerprints
 for comparison. Evaluation itself never switches the selected model.
 
-The bundled versioned corpus has 40 malicious, 40 benign and four ambiguous
-controls. Its JSON contains intent rationales, development/held-out-family splits
-and source/license provenance. Labels were authored without scanner results;
-these are locally authored synthetic controls, **not an independently sourced
-quality certification**. All cases have now been inspected during development review; none are claimed
-as held-out evidence for this release. Bodies and labels are unchanged. Expected labels never enter model requests. Ambiguous controls do not
-enter binary denominators; incomplete scans remain in the relevant denominators.
-Reports distinguish misses, false flags, incomplete holds and operational failures,
-including benign hold burden. Repetitions show disagreement without inflating
-unique-case counts. No pricing lookup or cost estimation is performed. Provider-returned model names do not pin immutable weights.
+The bundled corpus contains 40 malicious, 40 benign and four ambiguous examples.
+Use your own examples alongside this sample when comparing screening choices.
+Expected labels never enter model requests. Ambiguous cases do not enter binary
+scores; incomplete scans remain in their labelled denominators. Repetitions show
+variation without increasing the number of unique examples.
 
 Inputs are literal UTF-8 text, explicit regular files, or explicit stdin; forms
 cannot be mixed except repeated files. BOMs and terminal newlines are preserved.

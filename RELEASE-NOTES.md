@@ -3,12 +3,14 @@
 Your everyday messaging kit now carries just what it needs. Diagnostics and legacy
 migration tools are separate from the native plugin and companion.
 
+**Documentation correction — October 9, 2026:** Updated the guides and examples
+for standalone diagnostics and the separate migration app. Runtime code is unchanged.
+
 ## What changed
 
 - Separate, explicit package contents for native messaging, companion/ClawHub,
-  diagnostics, and the independently staged migration app.
-- Protected configuration writes and recovery preimages; stopped-host legacy
-  retirement and interrupted migration handling in the separate migration kit.
+  diagnostics, and the separate migration app.
+- Protected configuration writes with private recovery copies.
 - Stricter Smart response validation, safe list-metadata output files, validated
   loopback gateway ports, and cleanup after damaged replay-cache refusal.
 - Recovery accepts the explicitly qualified v1.6.8/v1.6.9 schema-2 packages and
@@ -28,8 +30,8 @@ OpenClaw **2026.9.5 or newer** remains the API requirement; Linux is the qualifi
 platform. This does not claim every later host version has been tested.
 
 Legacy relay installations still need coordinated manual migration. The migration
-app remains a separate, locally qualified candidate, not a runtime download or an
-automatic update. See [optional kits](plugin/OPTIONAL-KITS.md#migration).
+app has not yet been published and is not included in these downloads.
+See [optional kits](plugin/OPTIONAL-KITS.md#migration).
 
 ## Recovery and security
 

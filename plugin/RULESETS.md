@@ -31,23 +31,33 @@ A worker deadline terminates expensive regexes with an incomplete scan.
 
 ## Edit, validate, evaluate, select
 
-```text
-antenna-plugin /path/openclaw.json rules validate /absolute/my-rules.json
-node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --preview
-node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --preview
-antenna-plugin /path/openclaw.json rules select /absolute/my-rules.json
+First [download and extract the diagnostics kit](OPTIONAL-KITS.md#diagnostics).
+The examples use explicit paths: `/absolute/antenna` is your companion root,
+`/absolute/diagnostics` is the extracted diagnostics root, and the host argument
+is your resolved OpenClaw JSON configuration.
+
+```sh
+node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json rules validate /absolute/my-rules.json
+node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --ruleset /absolute/my-rules.json --preview
+node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate --engine dumb --ruleset /absolute/my-rules.json --verbose
 ```
 
-Restart the gateway after selecting or editing the active file. The gateway uses
-an immutable startup snapshot; each diagnostic invocation loads its own snapshot.
+Review the missed attacks and false positives. Add `--corpus /absolute/my-tests.json`
+to use your own examples; see the [corpus authoring guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/plugin/CORPORA.md).
+Preview validates the inputs; the next command evaluates them. Neither changes your
+active rules or releases held messages. Verbose failures include message content.
+
+When you are ready to use the rules:
+
+```sh
+node /absolute/antenna/plugin/cli.mjs /absolute/openclaw.json rules select /absolute/my-rules.json
+```
+
+Reload Antenna through your host's normal reload procedure. Restart the gateway if
+hot reload is unavailable or disabled. Editing an already-selected rules file also
+requires reloading Antenna; each diagnostic invocation reads a fresh snapshot.
 Remove a rule to disable it. Keep at least one rule; use MCS Off to disable scanning.
 Omit `rulesetFile` from plugin configuration to return to the bundled default.
-Validation checks usability, not detection effectiveness. Evaluation reuses the
-separate editable `corpus/controls.json` baseline: 40 malicious, 40 benign and
-four ambiguous examples. Use `--corpus /path/tests.json` to select your own
-labelled examples; see the [corpus authoring guide](OPTIONAL-KITS.md#diagnostics). Add `--verbose`
-for missed attacks and false positives with full content and rule explanations.
-Evaluation does not activate the tested ruleset or release holds.
 
 ## Instructions to give your agent
 
@@ -70,14 +80,13 @@ not user-supplied rule instructions. Direct clause-local negation can suppress a
 match; quoting or code fences do not automatically suppress it. Decoding is never
 execution. Original message bytes remain unchanged.
 
-The initial external default is nine locally authored MIT rules extending the
-previous five. It covers selected takeover, disclosure, bypass, remote execution
+The bundled default contains nine locally authored MIT rules. It covers selected takeover, disclosure, bypass, remote execution
 and concealment phrases. It is English-oriented, not a multilingual guarantee.
 Security discussion can still cause false alarms; paraphrases can evade patterns.
 The baseline corpus is a diagnostic sample, not a protection guarantee.
 
 Design/pattern coverage was reviewed against ATR, OpenRouter's published patterns,
 fevziegeyurtsevenler/prompt-injection-detection-rules, and OWASP guidance. No
-third-party regex text is bundled in this candidate; those sources are not runtime
+third-party regex text is bundled; those sources are not runtime
 dependencies or compatibility claims. Any future copied rules must carry the
 notices their upstream licenses require.

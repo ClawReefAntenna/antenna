@@ -26,7 +26,7 @@ Updating from native v1.6.8? Your existing connections and permissions carry
 forward; no relay migration is needed. Requires OpenClaw **2026.9.5 or newer**.
 Tested platform: Linux.
 
-Moving from the legacy relay? Download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
+Moving from relay v1.6.3–v1.6.7? Download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
 and follow the [migration guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md). The kit is separate from the messaging
 and diagnostics downloads; see [optional kits](plugin/OPTIONAL-KITS.md#migration)
 for checksums and setup.

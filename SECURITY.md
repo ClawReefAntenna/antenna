@@ -125,7 +125,10 @@ different formats; neither makes an ordinary message end-to-end encrypted.
 Retire Antenna's old relay path when moving to plugin ingress; there is no silent
 fallback. Preserve legacy holds as recovery material rather than converting them
 into new sends. Use the separate [migration kit](plugin/OPTIONAL-KITS.md#migration)
-and its stopped-writer workflow.
+for relay v1.6.3–v1.6.7 and its stopped-writer workflow. Remote peers must have
+Ed25519 signing pins. An unsigned installer-created self-peer is retained as local
+identity but receives no native inbound grant; the migration report lists that
+omission. Already signed self-peers are validated like any other signed peer.
 
 v1.6.8 no longer uses your gateway hooks token. Previously paired Antenna peers may
 still hold copies. **Rotation is recommended, not required for migration.** If you

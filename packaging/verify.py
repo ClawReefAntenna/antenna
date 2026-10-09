@@ -71,7 +71,7 @@ with tempfile.TemporaryDirectory(prefix='antenna-artifacts-') as temp:
         run('extracted '+test,['python3',str(tests/test)],env=env)
     for test in ['diagnostics.mjs','corpus.mjs','resources.mjs','report-bounds.mjs']:
         run('standalone diagnostics '+test,['node',str(roots['diagnostics']/'plugin/tests'/test)])
-    for test in ['plugin/tests/config-write.mjs','plugin/tests/migration-doctor.mjs','migration/schema-test.mjs','migration/cutover-test.mjs']:
+    for test in ['plugin/tests/config-write.mjs','plugin/tests/migration-doctor.mjs','migration/schema-test.mjs','migration/cutover-test.mjs','migration/legacy-compat-test.mjs']:
         run('standalone migration '+test,['node',str(roots['migration']/test)])
 (build/'verification.json').write_text(json.dumps({'passed':len(checks),'checks':checks},indent=2)+'\n')
 print('PASS',len(checks),'checks')

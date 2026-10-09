@@ -38,7 +38,9 @@ into its own directory. Follow the [migration guide](https://github.com/ClawReef
 `migration/README.md`, to prepare an isolated rehearsal, review the conversion
 and cut over with the gateway and Antenna writers stopped.
 
-The kit supports Ed25519 relay-era v1.6.7 installations moving to native schema 2.
+The kit supports relay installations running **v1.6.3–v1.6.7**, moving to native
+schema 2. Remote peers retain existing Ed25519 pairings. The guide explains how
+the kit preserves an unsigned local self identity without granting native self-messaging.
 Install the matching native plugin and companion separately. Migration preserves
 old held work; it does not convert holds into signed messages or enable the plugin.
 

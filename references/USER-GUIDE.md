@@ -461,7 +461,7 @@ A legacy v1.6.7 archive is not a v1.6.8 plugin restore. See the [full recovery g
 ## Upgrading an existing installation
 
 Updating native v1.6.8 to v1.6.9 uses the [normal update path](#install-and-configure).
-For an older relay installation, download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
+For relay v1.6.3–v1.6.7, download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
 and follow its [migration guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md). See [optional kits](../plugin/OPTIONAL-KITS.md#migration)
 for checksum verification and setup.
 For that transition, preserve keys, pins, destination grants and unresolved legacy

@@ -217,7 +217,8 @@
       "plugin/smart.mjs",
       "plugin/tests/config-write.mjs",
       "plugin/tests/migration-doctor.mjs",
-      "plugin/transport.mjs"
+      "plugin/transport.mjs",
+      "migration/legacy-compat-test.mjs"
     ]
   }
 }

@@ -11,9 +11,20 @@ and a Linux host for the stopped-writer cutover.
 
 ## Supported transition
 
-Ed25519 relay-era v1.6.7 session-policy-v1 state to schema-2/plugin-v2;
-experimental schema-1 combined-smart-v1 policy can be exported as schema 2.
-Unknown schemas and plaintext signing peers are rejected, not guessed.
+Migrate relay installations running **v1.6.3–v1.6.7** to native schema-2/plugin-v2.
+The kit carries forward the global inbox and trusted-peer settings in v1.6.3–v1.6.5,
+and the session-policy settings in v1.6.6–v1.6.7. Remote peers need Ed25519 signing
+keys; existing signed pairings retain their pins. Unknown policy formats and
+unsigned remote peers require explicit review or signed pairing first.
+
+A fresh relay installation also has a local self-peer record without signing
+keys. The kit preserves that identity and reports it in `omittedUnsignedSelf`,
+but does not grant it native inbound access or select it for native outbound
+transport. If you use self-messaging, configure its signing identity separately.
+Already signed self-peers keep their normal permissions.
+
+Native v1.6.8 and later use the normal update path, not relay migration.
+Experimental schema-1 combined-smart-v1 policy can also be exported as schema 2.
 
 ## Rehearse on an isolated copy
 
@@ -118,6 +129,7 @@ node migration/cli.mjs HOST_JSON NEW_POLICY_JSON
 node plugin/migration-check.mjs doctor HOST_JSON COMPANION_ROOT
 node migration/schema-test.mjs
 node migration/cutover-test.mjs
+node migration/legacy-compat-test.mjs
 node plugin/tests/config-write.mjs
 node plugin/tests/migration-doctor.mjs
 ```

@@ -18,7 +18,7 @@ messaging, malicious content screening, inbox review and recovery.
 
 - **New installation:** install the native plugin plus its version-matched companion,
   prepare your identity and permissions, then pair securely.
-- **Legacy relay installation:** download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
+- **Legacy relay v1.6.3–v1.6.7:** download the separate [migration kit](https://github.com/ClawReefAntenna/antenna-migration/releases/download/v1.6.9/antenna-migration-1.6.9.tgz)
   and follow the [migration guide](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/migration/README.md).
 - **Using Hermes:** use its own runtime-specific plugin and guide. Find the runtime
   choices on [ClawReef](https://clawreef.io/#runtimes).

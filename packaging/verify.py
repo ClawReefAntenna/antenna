@@ -63,11 +63,11 @@ with tempfile.TemporaryDirectory(prefix='antenna-artifacts-') as temp:
     run('companion backup dispatch',['bash',str(root/'bin/antenna.sh'),'backup','--help'])
     # Execute recovery fixtures against the extracted runtime, not the source checkout.
     tests=root/'tests';tests.mkdir()
-    for test in ['ant-167-recovery.py','ant-168-recovery.py','ant-168-plugin-group-pins.py','ant-168-imports.py']:
+    for test in ['ant-167-recovery.py','ant-168-recovery.py','ant-168-plugin-group-pins.py','ant-168-imports.py','oc168-retired-policy.py']:
         shutil.copyfile(SOURCE/'tests'/test,tests/test)
     env={**os.environ,'ANT167_TEST_ROOT':str(root),'PYTHONDONTWRITEBYTECODE':'1'}
     run('extracted native recovery',['python3',str(tests/'ant-168-recovery.py')],env=env)
-    for test in ['ant-168-plugin-group-pins.py','ant-168-imports.py']:
+    for test in ['ant-168-plugin-group-pins.py','ant-168-imports.py','oc168-retired-policy.py']:
         run('extracted '+test,['python3',str(tests/test)],env=env)
     for test in ['diagnostics.mjs','corpus.mjs','resources.mjs','report-bounds.mjs']:
         run('standalone diagnostics '+test,['node',str(roots['diagnostics']/'plugin/tests'/test)])

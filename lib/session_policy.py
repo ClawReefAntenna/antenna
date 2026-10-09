@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
 """Receiver-owned session policy. No transport, session creation, or fuzzy lookup.
 
-All configuration writers use CONFIG.lock. Readers load one atomic snapshot;
-no lock is held across a gateway call. RPC admission cannot revoke an in-flight
+Read-only shared validators/resolution; legacy mutation and initialization are
+retired. Readers load one atomic snapshot; no lock is held across a gateway call. RPC admission cannot revoke an in-flight
 send. Only public gateway selectors are used, never the transcript store.
 """
-import argparse
-import contextlib
-import fcntl
 import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
 import uuid
 import unicodedata
 
@@ -211,133 +206,6 @@ def delivery(config, item, peers):
     return {'ok': True, 'sessionKey': key}
 
 
-@contextlib.contextmanager
-def locked(path):
-    with open(str(path) + '.lock', 'a') as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX)
-        yield
-
-
-def write(path, value):
-    path = Path(path)
-    fd, temporary = tempfile.mkstemp(prefix='.antenna-config.', dir=path.parent)
-    try:
-        with os.fdopen(fd, 'w') as handle:
-            os.fchmod(handle.fileno(), (path.stat().st_mode & 0o777) if path.exists() else 0o600)
-            json.dump(value, handle, indent=2, ensure_ascii=False)
-            handle.write('\n')
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
-
-
-def project_modes(before, after):
-    # Generic legacy toggle remains supported and updates the authoritative mode.
-    if before.get('inbox_mode') != after.get('inbox_mode') and 'inbox_mode' in after:
-        after['inbox_enabled'] = after['inbox_mode'] != 'off'
-    elif before.get('inbox_enabled') != after.get('inbox_enabled') and 'inbox_mode' in after:
-        need(type(after.get('inbox_enabled')) is bool, 'inbox_enabled must be boolean')
-        after['inbox_mode'] = 'on' if after['inbox_enabled'] else 'off'
-
-
-def transition(before, after, managed=False):
-    validate(after)
-    old = before.get('session_policies', {})
-    new = after.get('session_policies', {})
-    for key, entry in new.items():
-        prior = old.get(key)
-        need(prior is not None or managed, 'Create session metadata with antenna sessions add/update')
-        if prior is None or prior != entry:
-            # Generic config writes must obey the same gateway/binding rules.
-            exact(key)
-            if 'alias' in entry:
-                check_collision(alias_address(key, entry['alias']), key)
-        if prior:
-            need(entry['entry_id'] == prior['entry_id'], 'Cannot replace an existing entry identity')
-            expected = prior['alias_revision'] + (prior.get('alias') != entry.get('alias'))
-            need(entry['alias_revision'] == expected, 'Invalid alias revision transition')
-
-
-def mutate(path, jq_args):
-    with locked(path):
-        before = read(path)
-        validate(before)
-        proc = subprocess.run(['jq', *jq_args], input=json.dumps(before), capture_output=True, text=True)
-        need(proc.returncode == 0, 'Configuration mutation failed')
-        after = decode(proc.stdout)
-        project_modes(before, after)
-        transition(before, after)
-        write(path, after)
-
-
-def sessions(path, args):
-    parser = argparse.ArgumentParser(prog='antenna sessions')
-    parser.add_argument('action', choices=['list', 'ls', 'add', 'update', 'remove', 'rm'], nargs='?', default='list')
-    parser.add_argument('keys', nargs='*')
-    parser.add_argument('--alias')
-    parser.add_argument('--clear-alias', action='store_true')
-    parser.add_argument('--inbox', choices=['yes', 'no'])
-    parser.add_argument('--force', '-f', action='store_true')
-    parser.add_argument('--json', action='store_true')
-    opts = parser.parse_args(args)
-    metadata = opts.alias is not None or opts.clear_alias or opts.inbox is not None
-    need(not (opts.alias is not None and opts.clear_alias), 'Choose --alias or --clear-alias')
-    with locked(path):
-        config = read(path)
-        mode, policies, _ = validate(config)
-        before = decode(json.dumps(config))
-        allowed = config.setdefault('allowed_inbound_sessions', [])
-        agent = config.get('local_agent_id', 'agent')
-        listing = opts.action in ('list', 'ls')
-        need(not listing or (not opts.keys and not metadata and not opts.force), 'List takes only --json')
-        if not listing:
-            need(bool(opts.keys), 'Supply a session key')
-            need(not metadata or len(opts.keys) == 1, 'Metadata requires exactly one canonical key')
-            need(opts.action in ('add', 'update') or not metadata, 'Metadata applies to add/update only')
-            for raw in opts.keys:
-                key = raw if ':' in raw else 'agent:' + agent + ':' + raw
-                owner(key)
-                if metadata or opts.action == 'update':
-                    need(raw == key, 'Metadata operations require an exact canonical key')
-                    exact(key)
-                if opts.action in ('remove', 'rm'):
-                    need(opts.force or key not in ('agent:' + agent + ':main', 'agent:' + agent + ':antenna'),
-                         'Core session: use --force to remove')
-                    if key in allowed:
-                        allowed.remove(key)
-                    policies.pop(key, None)
-                else:
-                    need(opts.action != 'update' or key in allowed, 'Session is not allowlisted')
-                    if key not in allowed:
-                        allowed.append(key)
-                    if metadata:
-                        entry = policies.setdefault(key, {'entry_id': str(uuid.uuid4()), 'alias_revision': 0, 'inbox': False})
-                        previous = entry.get('alias')
-                        if opts.alias is not None:
-                            entry['alias'] = opts.alias
-                        elif opts.clear_alias:
-                            entry.pop('alias', None)
-                        if previous != entry.get('alias'):
-                            entry['alias_revision'] += 1
-                        if opts.inbox is not None:
-                            entry['inbox'] = opts.inbox == 'yes'
-            if policies or 'session_policies' in config:
-                config.update(session_policy_version=1, session_policies=policies)
-            transition(before, config, managed=True)
-            write(path, config)
-        rows = [{'key': key, 'alias': alias_address(key, policies[key]['alias']) if policies.get(key, {}).get('alias') else None,
-                 'inbox': policies.get(key, {}).get('inbox', False)} for key in allowed]
-    if opts.json:
-        print(json.dumps({'ok': True, 'inbox_mode': mode, 'sessions': rows}))
-    else:
-        print('Allowed inbound sessions (inbox mode: ' + mode + '):')
-        for row in rows:
-            print('  ' + row['key'] + '  alias=' + (row['alias'] or '—') + '  inbox=' + ('yes' if row['inbox'] else 'no'))
-
-
 def validate_queue(queue):
     need(isinstance(queue, list), 'Inbox must be an array')
     refs = set()
@@ -366,47 +234,10 @@ def queue_path(config, path):
     return q if q.is_absolute() else Path(path).parent / q
 
 
-def stage_queue(source_config, stage, destination):
-    # Upgrade owns the stopped-dispatch boundary. Preserve a custom relative
-    # queue at its same relative path, never overwrite candidate program files.
-    config = read(source_config)
-    relative = Path(config.get('inbox_queue_path', 'antenna-inbox.json'))
-    source = queue_path(config, source_config)
-    if source.exists():
-        need(not source.is_symlink() and source.resolve() == source.absolute(), 'Symlinked inbox path refused')
-        validate_queue(read(source))
-    if relative.is_absolute():
-        # External queue remains external and unchanged; no older snapshot copy.
-        return
-    need('..' not in relative.parts and all(not part.startswith('.') for part in relative.parts),
-         'Custom inbox path must stay inside the installation')
-    if relative == Path('antenna-inbox.json') or not source.exists():
-        return
-    need(relative.parts[0] not in ('agent-runtime', 'agent', 'keys', 'secrets'), 'Inbox path conflicts with protected state')
-    target = Path(stage) / relative
-    need(not (Path(destination) / relative.parts[0]).exists(), 'Custom inbox path collides with candidate files')
-    if not target.exists():
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, target)
-
-
 def main():
     path, action, *args = sys.argv[1:]
-    if action == 'sessions':
-        sessions(path, args)
-        return
-    if action == 'stage-queue':
-        stage_queue(path, *args)
-        return
-    if action == 'initialize':
-        value = decode(sys.stdin.read())
-        validate(value)
-        with locked(path):
-            write(path, value)
-        return
-    if action == 'mutate':
-        mutate(path, args)
-        return
+    if action in ('sessions', 'stage-queue', 'initialize', 'mutate'):
+        raise PolicyError('Legacy policy administration is retired; use native policy tools or the separate migration app. No changes made.')
     config = read(path)
     if action == 'validate':
         mode, _, _ = validate(config)

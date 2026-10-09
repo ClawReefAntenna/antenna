@@ -1,4 +1,4 @@
-"""Private member removal requests. Reasons travel via stdin, never retry files."""
+"""Private reasons are read from stdin and sent to the Registry; local retry records contain identifiers and a reason digest, never the reason text."""
 import hashlib
 import re
 import sys

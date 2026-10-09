@@ -19,6 +19,10 @@ with tempfile.TemporaryDirectory() as d:
  fifo=p/'fifo';os.mkfifo(fifo,0o600);check(prefix(fifo).returncode!=0,'FIFO output refuses without blocking')
  stage=p/'stage';stage.touch(mode=0o600);check(prefix(stage).returncode==0,'existing private mktemp output works')
  for helper in ['plugin/antenna-replay.sh','lib/antenna-replay.sh']:
+  if not (ROOT/helper).exists():
+   assert helper=='lib/antenna-replay.sh', 'native replay helper missing'
+   print('SOURCE-ONLY helper excluded from artifact:',helper)
+   continue
   directory=p/helper.split('/')[0];directory.mkdir(mode=0o700);cache=directory/'replay.json'
   message=str(uuid.uuid4())
   def reserve(mid=message,capacity='240'):

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
+import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
@@ -34,6 +35,11 @@ try {
  r=await send(hostile);
  check('authorized Off/Inbox-Off forwards data only to locally mapped session',()=>{assert.equal(r.result.status,'submitted');const sent=calls.filter(x=>x.method==='sessions.send');assert.equal(sent.length,1);assert.equal(sent[0].params.key,'agent:beta:work');assert(sent[0].params.message.includes(body));assert(calls.every(x=>['sessions.resolve','sessions.send'].includes(x.method)));assert(calls.every(x=>x.opts.url==='ws://127.0.0.1:18789'&&x.opts.token==='operator-only'));});
  r=await send(hostile);check('duplicate refuses with no second submission',()=>{assert.equal(r.code,409);assert.equal(calls.filter(x=>x.method==='sessions.send').length,1);});
+ const locker=spawn('bash',['-c','exec 3>>"$1"; flock -x 3; printf "locked\\n"; read -r ignored','test',config.replayFile+'.lock'],{stdio:['pipe','pipe','pipe']});
+ await new Promise((resolve,reject)=>{locker.stdout.once('data',resolve);locker.once('error',reject);});
+ const lockedAt=Date.now(),callsBefore=calls.length;
+ try{r=await send(wire());check('replay lock timeout refuses admission without gateway call',()=>{assert.equal(r.code,503);assert.equal(calls.length,callsBefore);assert(Date.now()-lockedAt<8000);});}
+ finally{locker.stdin.end();await new Promise(resolve=>locker.once('close',resolve));}
  fs.writeFileSync(config.replayFile,'damaged');const before=calls.length;r=await send(wire());
  check('damaged replay stops admission before gateway',()=>{assert.equal(r.code,503);assert.equal(calls.length,before);});
  console.log('Ingress boundary checks: '+checks+'; downstream agent interpretation not tested or sandboxed');

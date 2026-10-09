@@ -21,6 +21,8 @@ import antenna_plugin_state as state
 
 WARNING='This will replace Antenna’s configuration and saved state with this backup. Changes made since the backup—including newer inbox records—will be lost. Installed program files and OpenClaw conversation history will not be changed. Continue?'
 FORMAT=2
+PRODUCER_VERSION='1.6.9'
+COMPATIBLE_VERSIONS=('1.6.8', '1.6.9')
 TAR_LIMIT=state.MAX_TOTAL+state.MAX_MEMBERS*2048+1024*1024
 
 
@@ -56,7 +58,7 @@ def age(source,target,decrypt=False):
 
 
 def write_archive(path,root,files,refs):
-    manifest={'format_version':FORMAT,'producer_version':'1.6.8','state_schema':2,
+    manifest={'format_version':FORMAT,'producer_version':PRODUCER_VERSION,'state_schema':2,
               'created_at':datetime.now(timezone.utc).isoformat(),'source_root':str(root),
               'files':[{'name':n,'size':len(raw),'sha256':state.digest(raw)} for n,raw in sorted(files.items())],
               'absent':sorted(set(refs)-set(files))}
@@ -87,7 +89,7 @@ def load_archive(path):
     state.need('manifest.json' in files,'INVALID_ARCHIVE','Manifest missing.')
     m=state.decode(files.pop('manifest.json'))
     state.need(isinstance(m,dict) and m.get('format_version')==FORMAT and m.get('state_schema')==2 and
-               m.get('producer_version')=='1.6.8','UNSUPPORTED_FORMAT','Unsupported backup format or producer state schema.')
+               m.get('producer_version') in COMPATIBLE_VERSIONS,'UNSUPPORTED_FORMAT','Unsupported backup format or producer state schema.')
     state.need(isinstance(m.get('source_root'),str) and Path(m['source_root']).is_absolute() and
                str(state.lexical(m['source_root']))==m['source_root'],'INVALID_ARCHIVE','Invalid source metadata.')
     state.need(isinstance(m.get('created_at'),str) and len(m['created_at'])<80 and
@@ -123,10 +125,10 @@ def package_target(root):
     for n in ('bin/antenna.sh','lib/session_policy.py','lib/antenna_plugin_state.py','scripts/antenna-backup.py','plugin/recovery-validate.mjs'):
         state.read_file(root/n)
     package=state.decode(state.read_file(root/'plugin/package.json'))
-    state.need(package.get('version')=='1.6.8','INCOMPATIBLE_TARGET','Target must be a v1.6.8 companion installation.')
-    # v1.6.8 initially supports its own state schema, not arbitrary future packages.
+    state.need(package.get('version') in COMPATIBLE_VERSIONS,'INCOMPATIBLE_TARGET','Target must be a compatible v1.6.8 or v1.6.9 companion installation.')
+    # Explicitly qualified schema-2 versions only, not arbitrary future packages.
     state.need((root/'lib/antenna_plugin_state.py').read_bytes()==(ROOT/'lib/antenna_plugin_state.py').read_bytes(),
-               'INCOMPATIBLE_TARGET','Target must have matching v1.6.8 recovery validators.')
+               'INCOMPATIBLE_TARGET','Target must have matching schema-2 recovery validators.')
 
 
 def prepared(m,files,target):

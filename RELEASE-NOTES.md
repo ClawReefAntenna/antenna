@@ -11,6 +11,8 @@ migration tools are separate from the native plugin and companion.
   retirement and interrupted migration handling in the separate migration kit.
 - Stricter Smart response validation, safe list-metadata output files, validated
   loopback gateway ports, and cleanup after damaged replay-cache refusal.
+- Recovery accepts the explicitly qualified v1.6.8/v1.6.9 schema-2 packages and
+  archives; newly created archives identify v1.6.9 as their producer.
 - Clearer guidance on signed messaging, model screening and Registry report privacy.
 
 ## Install or update

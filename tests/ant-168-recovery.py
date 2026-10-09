@@ -23,6 +23,27 @@ class Recovery(unittest.TestCase):
         Path(self.c['rulesetFile']).write_bytes((self.root/'plugin/rules/default.json').read_bytes())
     def archive(self):
         refs,files,_=s.capture(self.root);p=self.base/'snapshot.tar';B['write_archive'](p,self.root,files,refs);return B['load_archive'](p)
+    def test_versioned_backup_compatibility(self):
+        import io, tarfile
+        manifest,files,_=self.archive()
+        self.assertEqual(manifest['producer_version'],'1.6.9')
+        original=(self.base/'snapshot.tar').read_bytes()
+        for version in ('1.6.8','1.6.9','1.6.7','1.6.10','9.0.0'):
+            with self.subTest(version=version):
+                target=self.base/('version-'+version+'.tar')
+                with tarfile.open(fileobj=io.BytesIO(original)) as src, tarfile.open(target,'w') as dst:
+                    for member in src:
+                        raw=src.extractfile(member).read()
+                        if member.name=='manifest.json':
+                            m=json.loads(raw);m['producer_version']=version;raw=s.encode(m)
+                        member.size=len(raw);dst.addfile(member,io.BytesIO(raw))
+                package=self.root/'plugin/package.json';meta=json.loads(package.read_text());meta['version']=version;package.write_bytes(s.encode(meta))
+                if version in ('1.6.8','1.6.9'):
+                    B['load_archive'](target);B['package_target'](self.root)
+                else:
+                    with self.assertRaises(s.StateError):B['load_archive'](target)
+                    with self.assertRaises(s.StateError):B['package_target'](self.root)
+
     def test_roundtrip_and_host_isolation(self):
         m,files,_=self.archive();self.assertNotIn('o'*32,b''.join(files.values()).decode())
         self.write('antenna-inbox.json',b'[]')

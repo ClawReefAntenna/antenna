@@ -74,6 +74,8 @@ restarting. Provider configuration is not restored. Old snapshots may reintroduc
 revoked permissions or forget later replay entries; there is no exactly-once guarantee.
 No credential rotation, service start, message send, approval or resend is performed.
 
-v1.6.9 retains the native schema-2 recovery format. For legacy readiness, use the matching legacy release or migration app.
+v1.6.9 reads v1.6.8 and v1.6.9 schema-2 archives. The old v1.6.8 recovery
+command does not read v1.6.9-produced archives: for rollback with the old command,
+retain your pre-upgrade v1.6.8 backup. Unknown future versions are refused. For legacy readiness, use the matching legacy release or migration app.
 The current `antenna readiness` runs native read-only Doctor checks; it does not
 qualify remote peers or live ingress. Backup remains optional.

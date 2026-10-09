@@ -189,13 +189,13 @@ send_group() {
     printf '%s' "$message"
   } >"$body"
   if [[ -n "$subject" ]]; then
-    if send_output=$("$SEND_SCRIPT" "$relay" --include-response --subject "$subject" --stdin <"$body"); then
+    if send_output=$(bash "$SEND_SCRIPT" "$relay" --include-response --subject "$subject" --stdin <"$body"); then
       send_rc=0
     else
       send_rc=$?
     fi
   else
-    if send_output=$("$SEND_SCRIPT" "$relay" --include-response --stdin <"$body"); then
+    if send_output=$(bash "$SEND_SCRIPT" "$relay" --include-response --stdin <"$body"); then
       send_rc=0
     else
       send_rc=$?

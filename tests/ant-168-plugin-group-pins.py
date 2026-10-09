@@ -34,5 +34,12 @@ with tempfile.TemporaryDirectory(prefix='antenna-group-pins-') as directory:
   r=subprocess.run(['bash',str(root/'scripts/antenna-public-group.sh'),'install',str(route)],capture_output=True,text=True)
   expected=name in ['imported-plugin','legacy-keys'];assert (r.returncode==0)==expected,(name,r.stdout,r.stderr)
   if not expected:assert not (root/'antenna-public-groups.json').exists(),name
+  if expected:
+   sender=root/'scripts/antenna-send.sh'
+   sender.write_text('#!/usr/bin/env bash\nprintf \'%s\\n\' \'{"response":{"failed":0}}\'\n');sender.chmod(0o644)
+   for options in [[],['--subject','fixture subject']]:
+    sent=subprocess.run(['bash',str(root/'scripts/antenna-public-group.sh'),'send','proof','fixture body',*options],capture_output=True,text=True)
+    assert sent.returncode==0,(name,sent.stdout,sent.stderr)
+    assert sender.stat().st_mode&0o777==0o644
   checks.append({'case':name,'accepted':expected})
 print(json.dumps({'passed':len(checks),'checks':checks},indent=2))

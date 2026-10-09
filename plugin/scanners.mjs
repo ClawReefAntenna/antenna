@@ -43,13 +43,14 @@ export async function scanDumb(body,{deadlineMs=LIMITS.dumbMs,resourceDir,rulese
   });
  }finally{await lease();}
 }
-export function validateVerdict(value,body){
+// Raw Smart replies use only category/reason. Dumb/internal results may carry
+// offsets and runtime metadata; they do not pass through this wire validator.
+export function validateVerdict(value){
  const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
  if(!obj(value)||Object.keys(value).some(k=>!['schema','verdict','findings'].includes(k))||value.schema!==1||!['pass','flagged','incomplete'].includes(value.verdict)||!Array.isArray(value.findings)||value.findings.length>LIMITS.findings)throw Error('schema');
  if((value.verdict==='pass'&&value.findings.length)||(value.verdict==='flagged'&&!value.findings.length))throw Error('contradiction');
  for(const f of value.findings){
-  if(!obj(f)||Object.keys(f).some(k=>!['category','reason','start','end'].includes(k))||!categories.includes(f.category)||typeof f.reason!=='string'||!f.reason.trim()||f.reason.length>LIMITS.reasonChars)throw Error('finding');
-  if('start' in f||'end' in f)if(!Number.isInteger(f.start)||!Number.isInteger(f.end)||f.start<0||f.end<=f.start||f.end>body.length)throw Error('span');
+  if(!obj(f)||Object.keys(f).some(k=>!['category','reason'].includes(k))||!categories.includes(f.category)||typeof f.reason!=='string'||!f.reason.trim()||f.reason.length>LIMITS.reasonChars)throw Error('finding');
  }
  return structuredClone(value);
 }

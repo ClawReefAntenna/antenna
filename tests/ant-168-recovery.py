@@ -86,6 +86,30 @@ class Recovery(unittest.TestCase):
             if entry['backup'] is not None:
                 n=str(Path(entry['path']).relative_to(self.base));self.assertEqual((retained[0].parent/entry['backup']).read_bytes(),before[n][0])
         self.assertFalse(json.loads(self.host.read_text())['plugins']['entries']['antenna']['enabled'])
+    def test_failed_rollback_retains_private_preimages_and_unrelated_files(self):
+        m,files,_=self.archive()
+        sentinel=self.root/'unrelated-user-data.txt';sentinel.write_bytes(b'keep this')
+        plan,desired,prior,_,_,targets=B['restore_plan'](m,files,self.root)
+        real=B['atomic']
+        def fail(path,raw):
+            if path==self.host: raise OSError('fixture replacement and rollback failure')
+            real(path,raw)
+        with patch.dict(B['replace_state'].__globals__,{'atomic':fail}):
+            with self.assertRaises(s.StateError) as caught:
+                B['replace_state'](self.root,desired,prior,targets)
+        self.assertEqual(caught.exception.code,'ROLLBACK_REQUIRED')
+        retained=list(self.root.glob('.antenna-restore-*/rollback.json'))
+        self.assertEqual(len(retained),1)
+        folder=retained[0].parent
+        self.assertEqual(folder.stat().st_mode & 0o777,0o700)
+        reverse={str(p):n for n,p in targets.items()}
+        for entry in json.loads(retained[0].read_text())['files']:
+            if entry['backup'] is not None:
+                saved=folder/entry['backup']
+                self.assertEqual(saved.read_bytes(),prior[reverse[entry['path']]])
+                self.assertEqual(saved.stat().st_mode & 0o777,0o600)
+        self.assertEqual(sentinel.read_bytes(),b'keep this')
+
     def test_archive_duplicate_and_program_payload_refused(self):
         import io,tarfile
         _,files,_=self.archive()

@@ -34,7 +34,7 @@ export function createSmart(selection,{complete,resourceDir,maxActive=LIMITS.act
    const result=await Promise.race([complete({model:selection.modelId,systemPrompt:rubric,messages:[{role:'user',content:prompt}],purpose:'antenna.mcs',maxTokens:LIMITS.outputTokens,signal:controller.signal,execution:{mode:'isolated-agent-runtime',timeoutMs:remaining}}),timeout]);
    if(result.execution?.mode!=='isolated-agent-runtime'||result.stopReason&&result.stopReason!=='stop'||typeof result.text!=='string'||Buffer.byteLength(result.text)>LIMITS.responseBytes) return {...incomplete('invalid_runtime_response'),requests};
    if(result.provider+'/'+result.model!==selection.modelId)return {...incomplete('model_identity_changed'),requests};
-   const value=validateVerdict(JSON.parse(result.text),body);
+   const value=validateVerdict(JSON.parse(result.text));
    return {...value,version:RUBRIC,model:selection.modelId,requests,elapsedMs:performance.now()-began};
   }catch(e){
    // Stable runtime codes only; never return raw provider errors or credentials.

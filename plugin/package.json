@@ -17,6 +17,7 @@
     "antenna-replay.sh",
     "capacity.mjs",
     "cli.mjs",
+    "config-write.mjs",
     "doctor.mjs",
     "dumb-worker.mjs",
     "envelope.mjs",
@@ -46,6 +47,6 @@
     "openclaw": ">=2026.9.5"
   },
   "scripts": {
-    "test": "node tests/operator-auth.mjs && node tests/package.mjs && node tests/flow.mjs && node tests/native-doctor.mjs && node tests/native-companion.mjs && node tests/diagnostics.mjs && node tests/resources.mjs && node tests/corpus.mjs && node tests/missing-corpus.mjs && node tests/report-bounds.mjs"
+    "test": "node tests/cli-writes.mjs && node tests/config-write.mjs && node tests/operator-auth.mjs && node tests/package.mjs && node tests/flow.mjs && node tests/native-doctor.mjs && node tests/native-companion.mjs && node tests/diagnostics.mjs && node tests/resources.mjs && node tests/corpus.mjs && node tests/missing-corpus.mjs && node tests/report-bounds.mjs"
   }
 }

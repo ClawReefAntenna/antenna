@@ -10,4 +10,4 @@ try{
  const next=migrate(before);new Inbox(next.inboxFile,{readOnly:true}).read();
  if(output)fs.writeFileSync(output,JSON.stringify(next,null,2)+'\n',{flag:'wx',mode:0o600});
  console.log(JSON.stringify({from:before.schemaVersion,to:next.schemaVersion,policyWritten:!!output,hostChanged:false,inbox:'preserved'}));
-}catch(e){console.error(JSON.stringify({status:'blocked',reason:e.message}));process.exitCode=1;}
+}catch(e){console.error(JSON.stringify({status:'blocked',reason:e instanceof SyntaxError?'invalid JSON input':e.message}));process.exitCode=1;}

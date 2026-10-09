@@ -2,7 +2,7 @@
 import {LIMITS} from './limits.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import {randomUUID} from 'node:crypto';
+import {snapshot,replaceJSON} from './config-write.mjs';
 import {validateConfig,modes} from './policy.mjs';
 import {resolveScanner,gatewayScan} from './smart.mjs';
 import {loadRuleset} from './ruleset.mjs';
@@ -12,24 +12,15 @@ const help='Usage: antenna-plugin <openclaw.json> status|init <policy.json>|mode
 try{
  if(!configPath||!command)throw Error(help);
  if(['mcs','migrate'].includes(command))throw Error(command==='mcs'?'Diagnostics kit not bundled. See OPTIONAL-KITS.md; run its standalone CLI with this host path. Nothing downloaded or run.':'Migration is a separate version-matched app; see OPTIONAL-KITS.md. No files changed.');
- const original=fs.readFileSync(configPath,'utf8'),host=JSON.parse(original);
+ const original=snapshot(configPath),host=original.value;
  const entry=host.plugins?.entries?.antenna;
  let c=entry?.config;
  function save(next){
   const validated=validateConfig(next,{requireReady:true,host});
-  if(fs.readFileSync(configPath,'utf8')!==original)throw Error('configuration changed; reload before editing');
-  const lock=configPath+'.antenna-lock';fs.mkdirSync(lock,{mode:0o700});
-  const tmp=configPath+'.'+randomUUID()+'.tmp';
-  try{
-   if(fs.readFileSync(configPath,'utf8')!==original)throw Error('configuration changed');
-   const copy=structuredClone(host);copy.plugins??={};copy.plugins.entries??={};
-   copy.plugins.entries.antenna={...(copy.plugins.entries.antenna??{enabled:false}),config:validated};
-   const fd=fs.openSync(tmp,'wx',0o600);
-   try{fs.writeFileSync(fd,JSON.stringify(copy,null,2)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
-   fs.renameSync(tmp,configPath);
-   const dir=fs.openSync(path.dirname(path.resolve(configPath)),'r');try{fs.fsyncSync(dir);}finally{fs.closeSync(dir);}
-  }finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);fs.rmdirSync(lock);}
-  console.log(JSON.stringify({saved:true,restartRequired:true,activation:'unchanged'}));
+  const copy=structuredClone(host);copy.plugins??={};copy.plugins.entries??={};
+  copy.plugins.entries.antenna={...(copy.plugins.entries.antenna??{enabled:false}),config:validated};
+  console.log(JSON.stringify(replaceJSON(original,copy)));
+
  }
  if(command==='init'){
   if(entry)throw Error('Antenna entry exists; use mode/select or explicit migration');

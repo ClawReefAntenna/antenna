@@ -1,10 +1,12 @@
-> Local migration candidate: conversion/retirement qualification remains pending; see [app status](../migration/README.md).
+> Local fixture-qualified candidate: see [stopped-host app and recovery](../migration/README.md). Live cutover and release qualification remain separate.
 
 # Explicit legacy migration — v1.6.8
 
 Compatibility tier: **documented manual migration**, not seamless live compatibility.
-Do this against an isolated copy first. No tool below rotates live credentials,
-restarts a gateway, removes a relay, drains an inbox, or enables the plugin.
+Do this against an isolated copy first. The original preparation commands below do not apply changes. The separate
+[cutover command](../migration/README.md) can retire an attributable relay on a
+stopped host; it never rotates credentials, restarts a gateway, drains an inbox
+or enables the plugin.
 
 ## Scope and complexity
 
@@ -74,8 +76,8 @@ approved-but-unsent and failed/uncertain items as unresolved. Resolve explicitly
 before cutover, or retain the old queue as a read-only recovery artifact and request
 a newly signed resend after operator review. Never automatically resend uncertain
 work. This version does **not** provide in-place legacy hold release under v2.
-Existing schema-2 plugin holds use the separate existing `migrate` command and
-retain their exact payloads/reasons. No migration silently approves an item.
+Existing native policy can use the separate schema exporter; it does not touch
+schema-2 plugin holds, their exact payloads or their reasons. No migration silently approves an item.
 
 ## 2. Manual cutover checklist
 

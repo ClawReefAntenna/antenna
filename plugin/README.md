@@ -33,7 +33,18 @@ For a new absent entry, `antenna-plugin /path/openclaw.json init policy.json`
 writes it **disabled**. If the native installer has already added an entry,
 merge the policy into its config explicitly; init refuses to overwrite it.
 Set the plugin enabled and allowlisted only in the intended config,
-then restart that gateway. Mode/selection edits also require a restart.
+then apply through that gateway’s reload policy. Mode/selection edits require
+plugin reload; restart only when hot reload is unavailable or disabled.
+Configuration-file edits preserve unrelated settings and activation, validate the
+new Antenna policy, and keep a private `HOST.antenna-backup-*/before.json` preimage.
+No-op edits do not request a reload or restart. `restartRequired: null` means
+the offline editor has not determined the running host’s reload capability. The file CLI accepts resolved JSON, not
+includes, symlinks or hard links. Keep other configuration writers quiescent;
+source comparisons and a cooperative lock do not replace a cross-tool CAS API.
+For normal host administration prefer supported `openclaw config set`/`patch`
+commands; this explicit-file adapter also supports isolated/offline rehearsals
+without selecting or invoking the active host. It does not restart services.
+
 The local adapter uses the gateway's configured port and token or password authentication,
 matching the host's selected mode without changing its login configuration. The selected
 credential must be resolved to a nonempty string and differ from the Antenna peer bearer.
@@ -122,7 +133,8 @@ See [ruleset format and agent-friendly editing guide](RULESETS.md). The bundled
 `rules/default.json` is selected by default. Optional `rulesetFile` selects one
 absolute local file, loaded at startup. Custom copies belong outside the plugin
 install directory. `rules validate FILE` checks structure and regex compilation;
-`rules select FILE` saves the selection and requires restart. Missing or invalid
+`rules select FILE` saves the selection and requires plugin reload (or restart
+when the host cannot hot reload). Missing or invalid
 selected files fail visibly, never silently disable scanning.
 
 ## Explicit upgrade

@@ -6,7 +6,7 @@ without either kit. Neither kit is fetched or executed automatically.
 ## Diagnostics
 
 Use the **version-matched standalone diagnostics asset** alongside the companion,
-not inside the native plugin directory. This local candidate is `oc168-sec001.1`,
+not inside the native plugin directory. This local candidate is `oc168-sec002-004.1`,
 compatible with the accompanying schema-2 runtime and `antenna-limits-2` contract.
 It has not been published: there is no download URL for this candidate yet.
 When released, obtain the matching diagnostics asset from the release's asset list
@@ -35,7 +35,8 @@ when available; do not use the diagnostics kit to migrate an installation.
 
 Local maintainers can build the `migration` artifact from `packaging/build.py`;
 it has a license, compatibility record, narrow staging/schema tools and fixtures.
-Conversion/retirement and configuration-write qualification remain open under
-OC168-SEC-002–004. Keep existing identities and unresolved holds; do not reactivate
+The local kit adds fixture-qualified stopped-host retirement, protected staging
+and interrupted-apply recovery under OC168-SEC-002–004; live/release qualification
+remains separate. Keep existing identities and unresolved holds; do not reactivate
 the retired relay. No extra acknowledgment is required to preserve existing HTTP
 peer URLs. No general-hook rotation requirement is introduced by this separation.

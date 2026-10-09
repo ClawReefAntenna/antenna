@@ -9,7 +9,9 @@ import {PROFILE} from './transport.mjs';
 try{
  const [command,file,root]=process.argv.slice(2),read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
  if(command==='doctor'){
-  const host=read(file),old=read(path.join(root,'antenna-config.json')),peers=read(path.join(root,'antenna-peers.json'));
+  const old=read(path.join(root,'antenna-config.json'));
+  if(old.transport_profile!==PROFILE)throw Error('Legacy installation detected. Use the separate version-matched migration app described in OPTIONAL-KITS.md; old setup and policy restoration are retired. No changes made.');
+  const host=read(file),peers=read(path.join(root,'antenna-peers.json'));
   const c=validateConfig(host.plugins?.entries?.antenna?.config),self=Object.values(peers).filter(p=>p.self===true);
   if(self.length!==1)throw Error('ambiguous retained identity');
   const legacyBearer=fs.readFileSync(path.resolve(root,self[0].token_file),'utf8').trim(),problems=[];
@@ -23,4 +25,4 @@ try{
   if([c.mcs,...Object.values(c.peers).map(p=>p.mcs)].some(m=>['smart','both'].includes(m))){try{if(resolveScanner(c.scannerModel,host).identity!==c.scannerIdentity)throw Error();}catch{problems.push('registered scanner selection not validated');}}
   console.log(JSON.stringify({staticChecksPassed:problems.length===0,liveIngressVerified:false,problems,warnings,required:'After explicit restart, verify signed plugin admission and denial of operator access using peer credentials. If hooks were rotated or disabled, also verify old hook access is denied; otherwise retained hook access is outside Antenna checks.'}));if(problems.length)process.exitCode=1;
  }else throw Error('doctor HOST COMPANION_ROOT');
-}catch(e){console.error(JSON.stringify({status:'blocked',reason:e.message}));process.exitCode=1;}
+}catch(e){console.error(JSON.stringify({status:'blocked',reason:e instanceof SyntaxError?'invalid JSON input':e.message}));process.exitCode=1;}

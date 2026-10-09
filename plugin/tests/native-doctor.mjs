@@ -33,4 +33,9 @@ for(const settings of [{allow:['other']},{allow:[],deny:['antenna']}]){
  assert.equal(spawnSync(process.execPath,[doctor,'doctor',path.join(root,'host.json'),root]).status,1);
  console.log('PASS explicit plugin exclusion rejected');
 }
+write('antenna-config.json',{relay_agent_id:'custom-relay'});
+const legacy=spawnSync(process.execPath,[doctor,'doctor',path.join(root,'missing-host.json'),root],{encoding:'utf8'});
+assert.equal(legacy.status,1);assert.match(legacy.stderr,/Legacy installation detected/);assert.match(legacy.stderr,/OPTIONAL-KITS.md/);
+assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root,'antenna-config.json'))),{relay_agent_id:'custom-relay'});
+console.log('PASS legacy detection gives migration guidance without host config or setup');
 fs.rmSync(root,{recursive:true,force:true});

@@ -1,4 +1,4 @@
-# Antenna diagnostics — local candidate oc168-sec002-004.1
+# Antenna diagnostics — local candidate oc168-local-review.1
 
 Standalone, not installed with native messaging. Compatibility: matching candidate
 manifest, schema 2, antenna-limits-2. Release version/URL not selected.

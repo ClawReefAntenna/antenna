@@ -1,4 +1,4 @@
-import {operatorAuth} from './operator-auth.mjs';
+import {operatorAuth,localGatewayUrl} from './operator-auth.mjs';
 import path from 'node:path';
 import {capacityDirectory} from './capacity.mjs';
 import {createSmart,resolveScanner} from './smart.mjs';
@@ -11,7 +11,7 @@ export function makeFlow(c,config,complete) {
  const ruleset=loadRuleset(c.rulesetFile);
  let smart;
  if(c.scannerModel){try{const selection=resolveScanner(c.scannerModel,config);if(selection.identity===c.scannerIdentity)smart=createSmart(selection,{complete,resourceDir:capacityDirectory(path.dirname(c.inboxFile)),maxActive:c.maxActiveSmart??2});}catch{ /* Stale selections remain incomplete. */ }}
- const opts={url:`ws://127.0.0.1:${config.gateway.port??18789}`,...operatorAuth(config,[c.bearer]),timeout:'5000',json:true};
+ const opts={url:localGatewayUrl(config),...operatorAuth(config,[c.bearer]),timeout:'5000',json:true};
  const extra={scopes:['operator.read','operator.write'],progress:false};
  return new ReceiveFlow({
   inbox:new Inbox(c.inboxFile),

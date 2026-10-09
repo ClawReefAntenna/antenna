@@ -1,4 +1,4 @@
-import {operatorAuth} from './operator-auth.mjs';
+import {operatorAuth,localGatewayUrl} from './operator-auth.mjs';
 import {createHash} from 'node:crypto';
 import {LIMITS} from './limits.mjs';
 import {acquire} from './capacity.mjs';
@@ -45,5 +45,5 @@ export function createSmart(selection,{complete,resourceDir,maxActive=LIMITS.act
 }
 export async function gatewayScan(host,selection,body){
  const {callGatewayFromCli}=await import('openclaw/plugin-sdk/gateway-runtime');
- return callGatewayFromCli('antenna.scan',{url:`ws://127.0.0.1:${host.gateway.port??18789}`,...operatorAuth(host,[host.plugins?.entries?.antenna?.config?.bearer]),timeout:String(LIMITS.smartMs+5000),json:true},{model:selection.model,identity:selection.identity,body},{scopes:['operator.admin'],progress:false});
+ return callGatewayFromCli('antenna.scan',{url:localGatewayUrl(host),...operatorAuth(host,[host.plugins?.entries?.antenna?.config?.bearer]),timeout:String(LIMITS.smartMs+5000),json:true},{model:selection.model,identity:selection.identity,body},{scopes:['operator.admin'],progress:false});
 }

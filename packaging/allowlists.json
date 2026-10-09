@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "candidate": "oc168-sec002-004.1",
+  "candidate": "oc168-local-review.1",
   "base_revision": "c30c7d4edbcd42362c899fb69bc51c99d3961b2c",
   "compatibility": {
     "runtime": "1.6.8 schema 2 candidate (not a new public release)",

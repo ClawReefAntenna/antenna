@@ -1,4 +1,4 @@
-import {operatorAuth} from './operator-auth.mjs';
+import {operatorAuth,localGatewayUrl} from './operator-auth.mjs';
 import {createSmart,resolveScanner} from './smart.mjs';
 import {capacityDirectory} from './capacity.mjs';
 import path from 'node:path';
@@ -59,7 +59,7 @@ export default {id:'antenna',name:'Antenna for OpenClaw',register(api){
    // Reuse the existing lock/atomic-file replay reservation, never a receipt store.
    try{await exec('bash',['-c','source "$1"; replay_reserve "$2" 360 240 "$3" "$4"','antenna-replay',helper,c.replayFile,fields.from,fields.message_id],{timeout:5000,maxBuffer:1024});}
    catch(e){if(e.code===2)fail(409,'rejected','replay');fail(503,'unavailable','capacity');}
-   const opts={url:`ws://127.0.0.1:${api.config.gateway.port??18789}`,...operatorAuth(api.config,[c.bearer]),timeout:'5000',json:true};
+   const opts={url:localGatewayUrl(api.config),...operatorAuth(api.config,[c.bearer]),timeout:'5000',json:true};
    const extra={scopes:['operator.read','operator.write'],progress:false};
    const found=await callGatewayFromCli('sessions.resolve',opts,{key:target,allowMissing:true},extra);
    if(!found.ok||found.key!==target)fail(503,'unavailable','runtime_unavailable');

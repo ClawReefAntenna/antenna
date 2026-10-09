@@ -6,7 +6,7 @@ without either kit. Neither kit is fetched or executed automatically.
 ## Diagnostics
 
 Use the **version-matched standalone diagnostics asset** alongside the companion,
-not inside the native plugin directory. This local candidate is `oc168-sec002-004.1`,
+not inside the native plugin directory. This local candidate is `oc168-local-review.1`,
 compatible with the accompanying schema-2 runtime and `antenna-limits-2` contract.
 It has not been published: there is no download URL for this candidate yet.
 When released, obtain the matching diagnostics asset from the release's asset list

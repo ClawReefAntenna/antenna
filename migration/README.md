@@ -1,4 +1,4 @@
-# Antenna migration app — local candidate oc168-sec002-004.1
+# Antenna migration app — local candidate oc168-local-review.1
 
 Separate local repository; no remote name or public release selected. This kit
 is locally fixture-qualified, not a live-host migration or public release.

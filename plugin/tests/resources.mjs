@@ -13,6 +13,15 @@ let checks=0,r,start;const check=(name,fn)=>{fn();checks++;console.log('PASS '+n
  const holder=spawn(process.execPath,['--input-type=module','-e',script,slots]);await new Promise(r=>holder.stdout.once('data',r));holder.kill('SIGKILL');await new Promise(r=>holder.once('close',r));await new Promise(r=>setTimeout(r,100));
  const one=await acquire('smart',Date.now()+2000,slots),two=await acquire('smart',Date.now()+2000,slots);
  check('killed parent releases locks without stale-state recovery',()=>{assert(one);assert(two);});await one();await two();
+
+ const unavailable=path.join(root,'unavailable');fs.symlinkSync(slots,unavailable);
+ check('symlink capacity directory fails closed',()=>{});assert.equal(await acquire('smart',Date.now()+1000,unavailable),null);
+ const savedPath=process.env.PATH;process.env.PATH='';
+ try{assert.equal(await acquire('smart',Date.now()+1000,path.join(root,'missing-helper')),null);}finally{process.env.PATH=savedPath;}
+ check('unavailable lock helper refuses capacity',()=>{});
+ const expiry=await acquire('smart',Date.now()+150,slots);assert(expiry);await new Promise(r=>setTimeout(r,220));await expiry();
+ const again=await acquire('smart',Date.now()+1000,slots);assert(again);await again();
+ check('lease timeout releases capacity for subsequent work',()=>{});
  const hold=new Inbox(path.join(root,'hold.json'),{pendingLimit:1,maxItems:3});let scans=0,submits=0;
  const fields=id=>({from:'alpha',message_id:id,body:'Hello'}),policy={mode:'smart',approval:false};
  hold.create(fields('first'),'target',policy);

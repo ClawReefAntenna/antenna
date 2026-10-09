@@ -34,7 +34,7 @@ replay_reserve() {
   next=$(mktemp "$dir/.replay-next.XXXXXX") || { rm -f "$tmp"; exec {fd}>&-; return 3; }
   chmod 0600 "$tmp" "$next" || { rm -f "$tmp" "$next"; exec {fd}>&-; return 3; }
   if [[ -f "$cache" ]] && ! replay_cache_valid "$cache"; then
-    rm -f "$tmp"; exec {fd}>&-; return 3
+    rm -f "$tmp" "$next"; exec {fd}>&-; return 3
   fi
   if [[ -f "$cache" ]]; then
     jq --argjson cutoff "$((now - ttl))" '{entries:[.entries[] | select(.seen > $cutoff)]}' "$cache" >"$tmp" 2>/dev/null || true

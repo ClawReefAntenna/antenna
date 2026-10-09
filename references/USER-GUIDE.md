@@ -226,10 +226,10 @@ You need a working OpenClaw installation, a reachable HTTPS route and two matchi
 Antenna 1.6.9 artifacts: the native plugin and companion CLI. Use the selected release's
 checksums. The [selected release](https://github.com/ClawReefAntenna/antenna-openclaw/releases/tag/v1.6.9) lists the matching assets.
 
-| Requirement | OpenClaw guide baseline |
+| Requirement | Details |
 | --- | --- |
-| Runtime API floor | OpenClaw 2026.9.5 or later, per plugin peer dependency |
-| Qualified platform | Linux; the API floor is separate from exact tested versions |
+| Minimum OpenClaw version | 2026.9.5 |
+| Tested platform | Linux |
 | Tools | Node supported by your OpenClaw; Bash, jq, flock, Python 3, OpenSSL, curl, and GNU/Linux helpers |
 | Optional encrypted recovery/exchange | age and age-keygen |
 | Network | HTTPS routing to this installation's `/antenna/v1/receive` |

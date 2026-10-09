@@ -26,7 +26,7 @@ We will acknowledge your report within 48 hours and aim to provide a fix or miti
 ## Scope
 
 This policy covers Antenna for OpenClaw: signed ingress, local dispatch,
-companion scripts, contact exchange, screening, inbox and recovery handling.
+companion scripts, contact exchange, malicious content screening, inbox and recovery handling.
 Hermes uses its own adapter and runtime-specific guidance.
 
 ## Supported Versions
@@ -71,7 +71,7 @@ replay state and the sender's destination permissions. The receiver maps approve
 names to existing conversations; a sender cannot use reply metadata to create a
 new destination or grant itself access. Rate and resource limits bound admission.
 
-These checks apply in every screening mode, including Off. Contact import supplies
+These checks apply in every malicious content screening mode, including Off. Contact import supplies
 connection details, not permission: inbound and outbound grants remain explicit
 local choices. Signed messages are submitted directly through the OpenClaw adapter;
 there is no messaging relay model in this ingress path.
@@ -89,16 +89,16 @@ their contents: messaging is not end-to-end encrypted. Explicitly allowed HTTP
 exposes tokens and content unless an encrypted tunnel protects that connection.
 Private addressing alone is not encryption.
 
-### Screening and review are separate choices
+### Malicious content screening and review are separate choices
 
-Dumb screening is the default; Off, Smart and Both are available, with per-peer
+Dumb is the default malicious content screening mode; Off, Smart and Both are available, with per-peer
 controls. Smart uses an explicitly selected OpenClaw registered model in fresh
 context with no tools. Both runs Dumb first and cannot clear a Dumb finding.
 Smart/Both may send message bodies to the selected model provider. Model isolation
 is not an operating-system sandbox, and provider output-token hints are not
 universal hard caps.
 
-Screening decides whether an allowed message needs review; it does not grant
+Malicious content screening decides whether an allowed message needs review; it does not grant
 access. Ordinary inbox approval is independent. Failed or invalid scans remain
 incomplete holds. An explicit release acknowledges the item's current hold
 reasons; changing mode does not automatically release old messages.

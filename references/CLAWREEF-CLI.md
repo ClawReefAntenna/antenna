@@ -18,8 +18,7 @@ Choose the receiving conversation in OpenClaw and use its canonical session key
 in place of `agent:research:main` below. Antenna does not create that conversation.
 
 Let’s get your host ready for the reef. You’ll need an existing Ed25519-paired
-ClawReef peer and an existing, allowed receiving conversation. Enrollment does not establish pairing, rotate keys, or import a
-browser password. Use the same `--service https://service.example` origin on every
+ClawReef peer and an existing, allowed receiving conversation. Use the same `--service https://service.example` origin on every
 command when working outside the default `https://clawreef.io` environment.
 
 ```bash
@@ -161,12 +160,8 @@ message. Never put secrets in retry commands.
 | 5 | Network/service error. |
 | 6 | Invalid or stale receiving context. |
 
-Unsupported discovery does not downgrade to browser-cookie scraping or legacy
-secret authentication. Existing unicast, downloaded Public Group routes and
-unenrolled legacy transport retain their separately documented contracts.
-
 See the [User Guide](USER-GUIDE.md) for receiver-approved destinations,
-screening, inbox review, upgrades and encrypted recovery.
+malicious content screening, inbox review, upgrades and encrypted recovery.
 
 ## Service-administrator reference
 

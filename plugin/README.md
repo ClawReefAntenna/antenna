@@ -1,6 +1,6 @@
 # Antenna for OpenClaw plugin — 1.6.9
 
-Inbound signed v2 delivery with Off / Dumb / Smart / Both content scanning.
+Inbound signed v2 delivery with Off / Dumb / Smart / Both Malicious Content Scanning (MCS).
 Default: Dumb. Both runs Dumb first and only calls Smart after a pass.
 Authentication, replay checks and receiver-selected existing destinations apply
 in every mode. Ordinary approval and MCS holds remain independent.

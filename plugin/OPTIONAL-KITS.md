@@ -1,7 +1,7 @@
 # Optional tools for v1.6.9
 
 Your everyday kit is ready for messaging. Add diagnostics when you want to try
-screening rules or test a collection of messages.
+malicious content screening rules or test a collection of messages.
 
 ## Diagnostics
 

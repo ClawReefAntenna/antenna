@@ -32,6 +32,12 @@ The earlier local receive benchmark missed the proposed 50 ms p95 target, includ
 after worker reuse. Broad performance acceptance remains open; loaded gateway,
 provider, public-network and long-running soak results must be assessed separately.
 
+## Registry compatibility
+
+Unsupported discovery does not downgrade to browser-cookie scraping or legacy
+secret authentication. Existing unicast, downloaded Public Group routes and
+unenrolled legacy transport retain their separately documented contracts.
+
 ## Configuration-write implementation
 
 The explicit-file CLI uses source comparisons and a cooperative lock; these do

@@ -3,8 +3,9 @@
 Your everyday messaging kit now carries just what it needs. Diagnostics and legacy
 migration tools are separate from the native plugin and companion.
 
-**Documentation correction — October 9, 2026:** Updated the guides and examples
-for standalone diagnostics and the separate migration app. Runtime code is unchanged.
+**Packaging and documentation update — October 9, 2026:** Migration and diagnostics
+now have their own repositories and release downloads. Guides and examples follow
+those new homes; messaging runtime code is unchanged.
 
 ## What changed
 
@@ -39,4 +40,4 @@ roll back. Follow the [recovery guide](references/BACKUP-AND-READINESS.md) for
 restore steps and version compatibility.
 
 Your existing permissions and malicious content screening choices stay yours. See the
-[Security Policy](SECURITY.md) for privacy and malicious content screening details.
+[Security Policy](SECURITY.md) for privacy details and how these controls work.

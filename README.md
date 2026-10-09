@@ -66,7 +66,7 @@ acted on the message; avoid blind retries after an uncertain result.
 | [Backup and restore](references/BACKUP-AND-READINESS.md) | Recovery commands, coverage and exclusions |
 | [Plugin reference](plugin/README.md) | Detailed native operator and scanner behavior |
 | [Custom rules](plugin/RULESETS.md) | Rule-based malicious content screening configuration |
-| [Diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) | Optional scanner evaluation; [setup and examples](plugin/OPTIONAL-KITS.md#diagnostics) |
+| [Diagnostics kit](https://github.com/ClawReefAntenna/antenna-diagnostics/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) | Optional scanner evaluation; [setup and examples](plugin/OPTIONAL-KITS.md#diagnostics) |
 | [Release notes](RELEASE-NOTES.md) | Release changes and compatibility |
 | [Security policy](SECURITY.md) | Private vulnerability reporting |
 | [Historical guides](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.8/references/legacy-guides/README.md) | Preserved relay-era reference |

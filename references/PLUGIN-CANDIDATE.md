@@ -56,7 +56,7 @@ program files coherently; do not overlay just a caller onto old libraries.
 3. Follow [plugin configuration and operators](../plugin/README.md). Receiver-owned
    addresses must name existing destinations. Ordinary approval and MCS holds
    remain independent; Off does not disable signatures, permission or replay checks.
-4. For legacy state, follow [manual migration](../plugin/MIGRATION.md). Preserve old
+4. For legacy state, follow [manual migration](https://github.com/ClawReefAntenna/antenna-migration/blob/v1.6.9/plugin/MIGRATION.md). Preserve old
    holds, keys, lists and registrations. General-hook rotation is recommended, not
    required; retained hook access remains outside Antenna checks. Keep operator
    authentication separate and inventory unrelated hook consumers.
@@ -75,7 +75,7 @@ Diagnostics do not deliver or change policy. Smart/Both diagnostics send bodies
 to the explicitly selected registered host model through its isolated runtime.
 `--preview` is optional and makes no model calls. Default reports omit bodies;
 `--verbose` includes failure bodies and findings. `--corpus` selects one local
-JSON corpus for that invocation; see [the corpus guide](../plugin/CORPORA.md).
+JSON corpus for that invocation; see [the corpus guide](https://github.com/ClawReefAntenna/antenna-diagnostics/blob/v1.6.9/plugin/CORPORA.md).
 
 ## Transport and accepted limits
 

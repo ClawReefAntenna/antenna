@@ -5,8 +5,8 @@ screening rules or test a collection of messages.
 
 ## Diagnostics
 
-Download [antenna-diagnostics-1.6.9.tgz](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz),
-verify its SHA-256 against [SHA256SUMS](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/SHA256SUMS), and extract it into its own directory,
+Download [antenna-diagnostics-1.6.9.tgz](https://github.com/ClawReefAntenna/antenna-diagnostics/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz),
+verify its SHA-256 against [SHA256SUMS](https://github.com/ClawReefAntenna/antenna-diagnostics/releases/download/v1.6.9/SHA256SUMS), and extract it into its own directory,
 separate from the native plugin and companion. Use the kit matching your runtime version.
 
 From the extracted diagnostics directory:

@@ -69,9 +69,5 @@ with tempfile.TemporaryDirectory(prefix='antenna-artifacts-') as temp:
     run('extracted native recovery',['python3',str(tests/'ant-168-recovery.py')],env=env)
     for test in ['ant-168-plugin-group-pins.py','ant-168-imports.py','oc168-retired-policy.py','oc168-output-replay.py']:
         run('extracted '+test,['python3',str(tests/test)],env=env)
-    for test in ['diagnostics.mjs','corpus.mjs','resources.mjs','report-bounds.mjs']:
-        run('standalone diagnostics '+test,['node',str(roots['diagnostics']/'plugin/tests'/test)])
-    for test in ['plugin/tests/config-write.mjs','plugin/tests/migration-doctor.mjs','migration/schema-test.mjs','migration/cutover-test.mjs','migration/legacy-compat-test.mjs']:
-        run('standalone migration '+test,['node',str(roots['migration']/test)])
 (build/'verification.json').write_text(json.dumps({'passed':len(checks),'checks':checks},indent=2)+'\n')
 print('PASS',len(checks),'checks')

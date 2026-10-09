@@ -24,7 +24,6 @@ def build(output):
             rel=Path(name);src=ROOT/rel
             if rel.is_absolute() or '..' in rel.parts or src.is_symlink() or not src.is_file() or src.resolve()!=src:raise ValueError('unsafe/missing source '+name)
             destination=rel.relative_to('plugin') if kind=='native' and name.startswith('plugin/') else rel
-            if kind=='migration' and name=='migration/REPOSITORY.md':destination=Path('README.md')
             target=folder/destination
             target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,target)
             target.chmod(0o755 if src.read_bytes().startswith(b'#!') else 0o644)

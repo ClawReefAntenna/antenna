@@ -155,7 +155,7 @@ provider. Choose a model suitable for the content you exchange.
 
 ### Try a message without sending it
 
-With the [optional diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz)
+With the [optional diagnostics kit](https://github.com/ClawReefAntenna/antenna-diagnostics/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz)
 ([setup instructions](../plugin/OPTIONAL-KITS.md#diagnostics)),
 see how the scanner treats a piece of text before changing anything:
 

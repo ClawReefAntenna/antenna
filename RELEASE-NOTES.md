@@ -18,7 +18,7 @@ for standalone diagnostics and the separate migration app. Runtime code is uncha
 
 Install `antenna-native-1.6.9.tgz` with the matching
 `antenna-companion-1.6.9.tgz`. Add the optional
-[diagnostics kit](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) to try malicious content screening rules and sample messages.
+[diagnostics kit](https://github.com/ClawReefAntenna/antenna-diagnostics/releases/download/v1.6.9/antenna-diagnostics-1.6.9.tgz) to try malicious content screening rules and sample messages.
 Verify the selected release's [SHA-256 manifest](https://github.com/ClawReefAntenna/antenna-openclaw/releases/download/v1.6.9/SHA256SUMS).
 Start with the [User Guide](references/USER-GUIDE.md#install-and-configure).
 

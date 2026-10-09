@@ -43,7 +43,7 @@ node /absolute/diagnostics/diagnostics/cli.mjs /absolute/openclaw.json evaluate 
 ```
 
 Review the missed attacks and false positives. Add `--corpus /absolute/my-tests.json`
-to use your own examples; see the [corpus authoring guide](https://github.com/ClawReefAntenna/antenna-openclaw/blob/v1.6.9/plugin/CORPORA.md).
+to use your own examples; see the [corpus authoring guide](https://github.com/ClawReefAntenna/antenna-diagnostics/blob/v1.6.9/plugin/CORPORA.md).
 Preview validates the inputs; the next command evaluates them. Neither changes your
 active rules or releases held messages. Verbose failures include message content.
 
